@@ -121,7 +121,7 @@ static int transfer_xor(struct loop_device *lo, int cmd,
 	return 0;
 }
 
-static int xor_init(struct loop_device *lo, const struct loop_info64 *info)
+static int xor_init(struct loop_device *lo, const struct xloop_info64 *info)
 {
 	if (unlikely(info->lo_encrypt_key_size <= 0))
 		return -EINVAL;
@@ -741,7 +741,7 @@ loop_release_xfer(struct loop_device *lo)
 
 static int
 loop_init_xfer(struct loop_device *lo, struct loop_func_table *xfer,
-	       const struct loop_info64 *i)
+	       const struct xloop_info64 *i)
 {
 	int err = 0;
 
@@ -906,7 +906,7 @@ static int loop_clr_fd(struct loop_device *lo)
 }
 
 static int
-loop_set_status(struct loop_device *lo, const struct loop_info64 *info)
+loop_set_status(struct loop_device *lo, const struct xloop_info64 *info)
 {
 	int err;
 	struct loop_func_table *xfer;
@@ -1043,7 +1043,7 @@ out_unlock:
 }
 
 static int
-loop_get_status(struct loop_device *lo, struct loop_info64 *info)
+loop_get_status(struct loop_device *lo, struct xloop_info64 *info)
 {
 	struct path path;
 	struct kstat stat;
@@ -1088,7 +1088,7 @@ loop_get_status(struct loop_device *lo, struct loop_info64 *info)
 }
 
 static void
-loop_info64_from_old(const struct loop_info *info, struct loop_info64 *info64)
+loop_info64_from_old(const struct xloop_info *info, struct xloop_info64 *info64)
 {
 	memset(info64, 0, sizeof(*info64));
 	info64->lo_number = info->lo_number;
@@ -1111,7 +1111,7 @@ loop_info64_from_old(const struct loop_info *info, struct loop_info64 *info64)
 }
 
 static int
-loop_info64_to_old(const struct loop_info64 *info64, struct loop_info *info)
+loop_info64_to_old(const struct xloop_info64 *info64, struct xloop_info *info)
 {
 	memset(info, 0, sizeof(*info));
 	info->lo_number = info64->lo_number;
@@ -1142,61 +1142,39 @@ loop_info64_to_old(const struct loop_info64 *info64, struct loop_info *info)
 }
 
 static int
-loop_set_status_old(struct loop_device *lo, const struct loop_info __user *arg)
+loop_set_status_old(struct loop_device *lo, const struct xloop_info __user *arg)
 {
-	struct loop_info info;
-	struct loop_info64 info64;
+	struct xloop_info info;
+	struct xloop_info64 info64;
 	int err;
 
-	/* backward compatibility: copy everything except the file format type
-	 * field */
-	err = copy_from_user(&info, arg,
-		sizeof(info) - sizeof(info.lo_file_fmt_type));
+	/* copy everything from the user space */
+	err = copy_from_user(&info, arg, sizeof(info));
 	if (err)
 		return -EFAULT;
-
-	if (info.lo_flags & LO_FLAGS_FILE_FMT) {
-		/* copy everything from the user space */
-		err = copy_from_user(&info, arg, sizeof(info));
-		if (err)
-			return -EFAULT;
-	} else {
-		info64.lo_file_fmt_type = LO_FILE_FMT_RAW;
-	}
 
 	loop_info64_from_old(&info, &info64);
 	return loop_set_status(lo, &info64);
 }
 
 static int
-loop_set_status64(struct loop_device *lo, const struct loop_info64 __user *arg)
+loop_set_status64(struct loop_device *lo, const struct xloop_info64 __user *arg)
 {
-	struct loop_info64 info64;
+	struct xloop_info64 info64;
 	int err;
 
-	/* backward compatibility: copy everything except the file format type
-	 * field */
-	err = copy_from_user(&info64, arg,
-		sizeof(info64) - sizeof(info64.lo_file_fmt_type));
+	/* copy everything from the user space */
+	err = copy_from_user(&info64, arg, sizeof(info64));
 	if (err)
 		return -EFAULT;
-
-	if (info64.lo_flags & LO_FLAGS_FILE_FMT) {
-		/* copy everything from the user space */
-		err = copy_from_user(&info64, arg, sizeof(info64));
-		if (err)
-			return -EFAULT;
-	} else {
-		info64.lo_file_fmt_type = LO_FILE_FMT_RAW;
-	}
 
 	return loop_set_status(lo, &info64);
 }
 
 static int
-loop_get_status_old(struct loop_device *lo, struct loop_info __user *arg) {
-	struct loop_info info;
-	struct loop_info64 info64;
+loop_get_status_old(struct loop_device *lo, struct xloop_info __user *arg) {
+	struct xloop_info info;
+	struct xloop_info64 info64;
 	int lo_flags;
 	int err;
 
@@ -1216,15 +1194,7 @@ loop_get_status_old(struct loop_device *lo, struct loop_info __user *arg) {
 	if (!err)
 		err = loop_info64_to_old(&info64, &info);
 
-	if (lo_flags & LO_FLAGS_FILE_FMT) {
-		/* copy entire structure to user space because file format
-		 * support is available */
-		err = copy_to_user(arg, &info, sizeof(info));
-	} else {
-		/* copy normal structure to user space */
-		err = copy_to_user(arg, &info,
-			sizeof(info) - sizeof(info.lo_file_fmt_type));
-	}
+	err = copy_to_user(arg, &info, sizeof(info));
 
 	if (err)
 		return -EFAULT;
@@ -1233,8 +1203,8 @@ loop_get_status_old(struct loop_device *lo, struct loop_info __user *arg) {
 }
 
 static int
-loop_get_status64(struct loop_device *lo, struct loop_info64 __user *arg) {
-	struct loop_info64 info64;
+loop_get_status64(struct loop_device *lo, struct xloop_info64 __user *arg) {
+	struct xloop_info64 info64;
 	u32 lo_flags;
 	int err;
 
@@ -1254,15 +1224,7 @@ loop_get_status64(struct loop_device *lo, struct loop_info64 __user *arg) {
 	if (err)
 		return -EFAULT;
 
-	if (lo_flags & LO_FLAGS_FILE_FMT) {
-		/* copy entire structure to user space because file format
-		 * support is available */
-		err = copy_to_user(arg, &info64, sizeof(info64));
-	} else {
-		/* copy normal structure to user space */
-		err = copy_to_user(arg, &info64,
-			sizeof(info64) - sizeof(info64.lo_file_fmt_type));
-	}
+	err = copy_to_user(arg, &info64, sizeof(info64));
 
 	if (err)
 		return -EFAULT;
@@ -1371,20 +1333,20 @@ static int lo_ioctl(struct block_device *bdev, fmode_t mode,
 		err = -EPERM;
 		if ((mode & FMODE_WRITE) || capable(CAP_SYS_ADMIN)) {
 			err = loop_set_status_old(lo,
-					(struct loop_info __user *)arg);
+					(struct xloop_info __user *)arg);
 		}
 		break;
 	case LOOP_GET_STATUS:
-		return loop_get_status_old(lo, (struct loop_info __user *) arg);
+		return loop_get_status_old(lo, (struct xloop_info __user *) arg);
 	case LOOP_SET_STATUS64:
 		err = -EPERM;
 		if ((mode & FMODE_WRITE) || capable(CAP_SYS_ADMIN)) {
 			err = loop_set_status64(lo,
-					(struct loop_info64 __user *) arg);
+					(struct xloop_info64 __user *) arg);
 		}
 		break;
 	case LOOP_GET_STATUS64:
-		return loop_get_status64(lo, (struct loop_info64 __user *) arg);
+		return loop_get_status64(lo, (struct xloop_info64 __user *) arg);
 	case LOOP_SET_CAPACITY:
 	case LOOP_SET_DIRECT_IO:
 	case LOOP_SET_BLOCK_SIZE:
@@ -1422,26 +1384,16 @@ struct compat_loop_info {
  */
 static noinline int
 loop_info64_from_compat(const struct compat_loop_info __user *arg,
-			struct loop_info64 *info64)
+			struct xloop_info64 *info64)
 {
 	struct compat_loop_info info;
 	int err;
 
 	/* backward compatibility: copy everything except the file format type
 	 * field */
-	err = copy_from_user(&info, arg,
-		sizeof(info) - sizeof(info.lo_file_fmt_type));
+	err = copy_from_user(&info, arg, sizeof(info));
 	if (err)
 		return -EFAULT;
-
-	if (info.lo_flags & LO_FLAGS_FILE_FMT) {
-		/* copy everything from the user space */
-		err = copy_from_user(&info, arg, sizeof(info));
-		if (err)
-			return -EFAULT;
-	} else {
-		info.lo_file_fmt_type = LO_FILE_FMT_RAW;
-	}
 
 	memset(info64, 0, sizeof(*info64));
 	info64->lo_number = info.lo_number;
@@ -1469,7 +1421,7 @@ loop_info64_from_compat(const struct compat_loop_info __user *arg,
  * - noinlined to reduce stack space usage in main part of driver
  */
 static noinline int
-loop_info64_to_compat(const struct loop_info64 *info64,
+loop_info64_to_compat(const struct xloop_info64 *info64,
 		      struct compat_loop_info __user *arg)
 {
 	struct compat_loop_info info;
@@ -1513,15 +1465,7 @@ loop_info64_to_compat(const struct loop_info64 *info64,
 	    info.lo_file_fmt_type != info64->lo_file_fmt_type)
 		return -EOVERFLOW;
 
-	if (lo_flags & LO_FLAGS_FILE_FMT) {
-		/* copy entire structure to user space because file format
-		 * support is available */
-		err = copy_to_user(arg, &info, sizeof(info));
-	} else {
-		/* copy normal structure to user space */
-		err = copy_to_user(arg, &info,
-			sizeof(info) - sizeof(info.lo_file_fmt_type));
-	}
+	err = copy_to_user(arg, &info, sizeof(info));
 
 	if (err)
 		return -EFAULT;
@@ -1533,7 +1477,7 @@ static int
 loop_set_status_compat(struct loop_device *lo,
 		       const struct compat_loop_info __user *arg)
 {
-	struct loop_info64 info64;
+	struct xloop_info64 info64;
 	int ret;
 
 	ret = loop_info64_from_compat(arg, &info64);
@@ -1546,7 +1490,7 @@ static int
 loop_get_status_compat(struct loop_device *lo,
 		       struct compat_loop_info __user *arg)
 {
-	struct loop_info64 info64;
+	struct xloop_info64 info64;
 	int err;
 
 	if (!arg)

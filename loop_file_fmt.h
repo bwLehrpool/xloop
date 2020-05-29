@@ -14,6 +14,12 @@
 
 struct loop_file_fmt;
 
+#define LO_FILE_FMT_RAW         0
+#define LO_FILE_FMT_QCOW        1
+#define LO_FILE_FMT_VDI         2
+#define LO_FILE_FMT_VMDK        3
+#define MAX_LO_FILE_FMT         (LO_FILE_FMT_VMDK + 1)
+
 /**
  * struct loop_file_fmt_ops - File format subsystem operations
  *

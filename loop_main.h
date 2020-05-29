@@ -32,6 +32,39 @@ enum {
 
 struct loop_func_table;
 
+struct xloop_info {
+	int		   lo_number;		/* ioctl r/o */
+	__kernel_old_dev_t lo_device; 		/* ioctl r/o */
+	unsigned long	   lo_inode; 		/* ioctl r/o */
+	__kernel_old_dev_t lo_rdevice; 		/* ioctl r/o */
+	int		   lo_offset;
+	int		   lo_encrypt_type;
+	int		   lo_encrypt_key_size; 	/* ioctl w/o */
+	int		   lo_flags;			/* ioctl r/o */
+	char		   lo_name[LO_NAME_SIZE];
+	unsigned char	   lo_encrypt_key[LO_KEY_SIZE]; /* ioctl w/o */
+	unsigned long	   lo_init[2];
+	char		   reserved[4];
+	int		   lo_file_fmt_type;
+};
+
+struct xloop_info64 {
+	__u64		   lo_device;			/* ioctl r/o */
+	__u64		   lo_inode;			/* ioctl r/o */
+	__u64		   lo_rdevice;			/* ioctl r/o */
+	__u64		   lo_offset;
+	__u64		   lo_sizelimit;/* bytes, 0 == max available */
+	__u32		   lo_number;			/* ioctl r/o */
+	__u32		   lo_encrypt_type;
+	__u32		   lo_encrypt_key_size;		/* ioctl w/o */
+	__u32		   lo_flags;			/* ioctl r/o */
+	__u8		   lo_file_name[LO_NAME_SIZE];
+	__u8		   lo_crypt_name[LO_NAME_SIZE];
+	__u8		   lo_encrypt_key[LO_KEY_SIZE]; /* ioctl w/o */
+	__u64		   lo_init[2];
+	__u32		   lo_file_fmt_type;
+} __attribute__((packed));
+
 struct loop_device {
 	int		lo_number;
 	atomic_t	lo_refcnt;
@@ -93,7 +126,7 @@ struct loop_func_table {
 			struct page *raw_page, unsigned raw_off,
 			struct page *loop_page, unsigned loop_off,
 			int size, sector_t real_block);
-	int (*init)(struct loop_device *, const struct loop_info64 *); 
+	int (*init)(struct loop_device *, const struct xloop_info64 *);
 	/* release is called from loop_unregister_transfer or clr_fd */
 	int (*release)(struct loop_device *); 
 	int (*ioctl)(struct loop_device *, int cmd, unsigned long arg);
