@@ -23,6 +23,10 @@
 
 #include "loop_file_fmt.h"
 
+// See: https://www.kernel.org/doc/Documentation/admin-guide/devices.txt
+#define XLOOP_MAJOR          120
+#define XLOOP_CTRL_MINOR     142
+
 /* Possible states of device */
 enum {
 	Lo_unbound,
@@ -133,7 +137,7 @@ struct loop_func_table {
 	struct module *owner;
 }; 
 
-int loop_register_transfer(struct loop_func_table *funcs);
-int loop_unregister_transfer(int number); 
+int xloop_register_transfer(struct loop_func_table *funcs);
+int xloop_unregister_transfer(int number);
 
 #endif

@@ -197,19 +197,19 @@ static struct loop_func_table cryptoloop_funcs = {
 static int __init
 init_cryptoloop(void)
 {
-	int rc = loop_register_transfer(&cryptoloop_funcs);
+	int rc = xloop_register_transfer(&cryptoloop_funcs);
 
 	if (rc)
-		printk(KERN_ERR "cryptoloop: loop_register_transfer failed\n");
+		printk(KERN_ERR "cryptoloop: xloop_register_transfer failed\n");
 	return rc;
 }
 
 static void __exit
 cleanup_cryptoloop(void)
 {
-	if (loop_unregister_transfer(LO_CRYPT_CRYPTOAPI))
+	if (xloop_unregister_transfer(LO_CRYPT_CRYPTOAPI))
 		printk(KERN_ERR
-			"cryptoloop: loop_unregister_transfer failed\n");
+			"cryptoloop: xloop_unregister_transfer failed\n");
 }
 
 module_init(init_cryptoloop);

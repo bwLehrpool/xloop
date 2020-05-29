@@ -59,7 +59,6 @@
 #include <linux/file.h>
 #include <linux/stat.h>
 #include <linux/errno.h>
-#include <linux/major.h>
 #include <linux/wait.h>
 #include <linux/blkdev.h>
 #include <linux/blkpg.h>
@@ -333,7 +332,7 @@ static inline int is_loop_device(struct file *file)
 {
 	struct inode *i = file->f_mapping->host;
 
-	return i && S_ISBLK(i->i_mode) && MAJOR(i->i_rdev) == LOOP_MAJOR;
+	return i && S_ISBLK(i->i_mode) && MAJOR(i->i_rdev) == XLOOP_MAJOR;
 }
 
 static int loop_validate_file(struct file *file, struct block_device *bdev)
@@ -552,7 +551,7 @@ static struct attribute *loop_attrs[] = {
 };
 
 static struct attribute_group loop_attribute_group = {
-	.name = "loop",
+	.name = "xloop",
 	.attrs= loop_attrs,
 };
 
@@ -1607,9 +1606,9 @@ MODULE_PARM_DESC(max_loop, "Maximum number of loop devices");
 module_param(max_part, int, 0444);
 MODULE_PARM_DESC(max_part, "Maximum number of partitions per loop device");
 MODULE_LICENSE("GPL");
-MODULE_ALIAS_BLOCKDEV_MAJOR(LOOP_MAJOR);
+MODULE_ALIAS_BLOCKDEV_MAJOR(XLOOP_MAJOR);
 
-int loop_register_transfer(struct loop_func_table *funcs)
+int xloop_register_transfer(struct loop_func_table *funcs)
 {
 	unsigned int n = funcs->number;
 
@@ -1631,7 +1630,7 @@ static int unregister_transfer_cb(int id, void *ptr, void *data)
 	return 0;
 }
 
-int loop_unregister_transfer(int number)
+int xloop_unregister_transfer(int number)
 {
 	unsigned int n = number;
 	struct loop_func_table *xfer;
@@ -1644,8 +1643,8 @@ int loop_unregister_transfer(int number)
 	return 0;
 }
 
-EXPORT_SYMBOL(loop_register_transfer);
-EXPORT_SYMBOL(loop_unregister_transfer);
+EXPORT_SYMBOL(xloop_register_transfer);
+EXPORT_SYMBOL(xloop_unregister_transfer);
 
 static blk_status_t loop_queue_rq(struct blk_mq_hw_ctx *hctx,
 		const struct blk_mq_queue_data *bd)
@@ -1820,12 +1819,12 @@ static int loop_add(struct loop_device **l, int i)
 	atomic_set(&lo->lo_refcnt, 0);
 	lo->lo_number		= i;
 	spin_lock_init(&lo->lo_lock);
-	disk->major		= LOOP_MAJOR;
+	disk->major		= XLOOP_MAJOR;
 	disk->first_minor	= i << part_shift;
 	disk->fops		= &lo_fops;
 	disk->private_data	= lo;
 	disk->queue		= lo->lo_queue;
-	sprintf(disk->disk_name, "loop%d", i);
+	sprintf(disk->disk_name, "xloop%d", i);
 	add_disk(disk);
 	*l = lo;
 
@@ -1984,15 +1983,15 @@ static const struct file_operations loop_ctl_fops = {
 };
 
 static struct miscdevice loop_misc = {
-	.minor		= LOOP_CTRL_MINOR,
-	.name		= "loop-control",
+	.minor		= XLOOP_CTRL_MINOR,
+	.name		= "xloop-control",
 	.fops		= &loop_ctl_fops,
 };
 
-MODULE_ALIAS_MISCDEV(LOOP_CTRL_MINOR);
-MODULE_ALIAS("devname:loop-control");
+MODULE_ALIAS_MISCDEV(XLOOP_CTRL_MINOR);
+MODULE_ALIAS("devname:xloop-control");
 
-static int __init loop_init(void)
+static int __init xloop_init(void)
 {
 	int i, nr;
 	unsigned long range;
@@ -2029,7 +2028,7 @@ static int __init loop_init(void)
 	 * This also becomes a hard limit. If max_loop is not specified,
 	 * create CONFIG_BLK_DEV_LOOP_MIN_COUNT loop devices at module
 	 * init time. Loop devices can be requested on-demand with the
-	 * /dev/loop-control interface, or be instantiated by accessing
+	 * /dev/xloop-control interface, or be instantiated by accessing
 	 * a 'dead' device node.
 	 */
 	if (max_loop) {
@@ -2045,20 +2044,20 @@ static int __init loop_init(void)
 		goto err_out;
 
 
-	if (register_blkdev(LOOP_MAJOR, "loop")) {
+	if (register_blkdev(XLOOP_MAJOR, "xloop")) {
 		err = -EIO;
 		goto misc_out;
 	}
 
 #ifdef CONFIG_DEBUG_FS
-	loop_dbgfs_dir = debugfs_create_dir("loop", NULL);
+	loop_dbgfs_dir = debugfs_create_dir("xloop", NULL);
 	if (IS_ERR_OR_NULL(loop_dbgfs_dir)) {
 		err = -ENODEV;
 		goto misc_out;
 	}
 #endif
 
-	blk_register_region(MKDEV(LOOP_MAJOR, 0), range,
+	blk_register_region(MKDEV(XLOOP_MAJOR, 0), range,
 				  THIS_MODULE, loop_probe, NULL, NULL);
 
 	/* pre-create number of devices given by config or max_loop */
@@ -2084,7 +2083,7 @@ static int loop_exit_cb(int id, void *ptr, void *data)
 	return 0;
 }
 
-static void __exit loop_exit(void)
+static void __exit xloop_exit(void)
 {
 	unsigned long range;
 
@@ -2093,8 +2092,8 @@ static void __exit loop_exit(void)
 	idr_for_each(&loop_index_idr, &loop_exit_cb, NULL);
 	idr_destroy(&loop_index_idr);
 
-	blk_unregister_region(MKDEV(LOOP_MAJOR, 0), range);
-	unregister_blkdev(LOOP_MAJOR, "loop");
+	blk_unregister_region(MKDEV(XLOOP_MAJOR, 0), range);
+	unregister_blkdev(XLOOP_MAJOR, "xloop");
 
 #ifdef CONFIG_DEBUG_FS
 	debugfs_remove(loop_dbgfs_dir);
@@ -2103,8 +2102,8 @@ static void __exit loop_exit(void)
 	misc_deregister(&loop_misc);
 }
 
-module_init(loop_init);
-module_exit(loop_exit);
+module_init(xloop_init);
+module_exit(xloop_exit);
 
 #ifndef MODULE
 static int __init max_loop_setup(char *str)
