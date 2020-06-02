@@ -1,3 +1,5 @@
+The master branch supports 4.19.x kernels.
+
 Building the modules:
 
 ```shell
