@@ -1,0 +1,37 @@
+# Adapted from /usr/lib/udev/rules.d/60-persistent-storage.rules
+# Only handle /dev/xloop* devices.
+#
+# persistent storage links: /dev/disk/{by-id,by-uuid,by-label,by-path}
+# scheme based on "Linux persistent device names", 2004, Hannes Reinecke <hare@suse.de>
+
+ACTION=="remove", GOTO="xloop_storage_end"
+
+SUBSYSTEM!="block", GOTO="xloop_storage_end"
+KERNEL!="xloop*", GOTO="xloop_storage_end"
+
+# ignore partitions that span the entire disk
+TEST=="whole_disk", GOTO="xloop_storage_end"
+
+# for partitions import parent information
+ENV{DEVTYPE}=="partition", IMPORT{parent}="ID_*"
+
+# by-path
+ENV{DEVTYPE}=="disk", DEVPATH!="*/virtual/*", IMPORT{builtin}="path_id"
+ENV{DEVTYPE}=="partition", ENV{ID_PATH}=="?*", SYMLINK+="disk/by-path/$env{ID_PATH}-part%n"
+
+# probe filesystem metadata of disks
+IMPORT{builtin}="blkid"
+
+# by-label/by-uuid links (filesystem metadata)
+ENV{ID_FS_USAGE}=="filesystem|other|crypto", ENV{ID_FS_UUID_ENC}=="?*", SYMLINK+="disk/by-uuid/$env{ID_FS_UUID_ENC}"
+ENV{ID_FS_USAGE}=="filesystem|other|crypto", ENV{ID_FS_LABEL_ENC}=="?*", SYMLINK+="disk/by-label/$env{ID_FS_LABEL_ENC}"
+
+# by-id (World Wide Name)
+ENV{DEVTYPE}=="disk", ENV{ID_WWN_WITH_EXTENSION}=="?*", SYMLINK+="disk/by-id/wwn-$env{ID_WWN_WITH_EXTENSION}"
+ENV{DEVTYPE}=="partition", ENV{ID_WWN_WITH_EXTENSION}=="?*", SYMLINK+="disk/by-id/wwn-$env{ID_WWN_WITH_EXTENSION}-part%n"
+
+# by-partlabel/by-partuuid links (partition metadata)
+ENV{ID_PART_ENTRY_UUID}=="?*", SYMLINK+="disk/by-partuuid/$env{ID_PART_ENTRY_UUID}"
+ENV{ID_PART_ENTRY_SCHEME}=="gpt", ENV{ID_PART_ENTRY_NAME}=="?*", SYMLINK+="disk/by-partlabel/$env{ID_PART_ENTRY_NAME}"
+
+LABEL="xloop_storage_end"
