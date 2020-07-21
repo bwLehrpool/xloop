@@ -78,7 +78,7 @@ static int raw_file_fmt_read_transfer(struct loop_file_fmt *lo_fmt,
 		b.bv_offset = 0;
 		b.bv_len = bvec.bv_len;
 
-		iov_iter_bvec(&i, ITER_BVEC, &b, 1, b.bv_len);
+		iov_iter_bvec(&i, READ, &b, 1, b.bv_len);
 		len = vfs_iter_read(lo->lo_backing_file, &i, &pos, 0);
 		if (len < 0) {
 			ret = len;
@@ -125,7 +125,7 @@ static int raw_file_fmt_read(struct loop_file_fmt *lo_fmt,
 	pos = __raw_file_fmt_rq_get_pos(lo_fmt, rq);
 
 	rq_for_each_segment(bvec, rq, iter) {
-		iov_iter_bvec(&i, ITER_BVEC, &bvec, 1, bvec.bv_len);
+		iov_iter_bvec(&i, READ, &bvec, 1, bvec.bv_len);
 		len = vfs_iter_read(lo->lo_backing_file, &i, &pos, 0);
 		if (len < 0)
 			return len;
@@ -171,13 +171,15 @@ static int __raw_file_fmt_rw_aio(struct loop_file_fmt *lo_fmt,
 				 bool rw)
 {
 	struct iov_iter iter;
+	struct req_iterator rq_iter;
 	struct bio_vec *bvec;
 	struct bio *bio = rq->bio;
 	struct file *file;
+	struct bio_vec tmp;
 	struct loop_device *lo;
 	struct loop_cmd *cmd;
 	unsigned int offset;
-	int segments = 0;
+	int nr_bvec = 0;
 	int ret;
 	loff_t pos;
 
@@ -186,13 +188,12 @@ static int __raw_file_fmt_rw_aio(struct loop_file_fmt *lo_fmt,
 	cmd = blk_mq_rq_to_pdu(rq);
 	pos = __raw_file_fmt_rq_get_pos(lo_fmt, rq);
 
-	if (rq->bio != rq->biotail) {
-		struct req_iterator iter;
-		struct bio_vec tmp;
+	rq_for_each_bvec(tmp, rq, rq_iter)
+		nr_bvec++;
 
-		__rq_for_each_bio(bio, rq)
-			segments += bio_segments(bio);
-		bvec = kmalloc_array(segments, sizeof(struct bio_vec),
+	if (rq->bio != rq->biotail) {
+
+		bvec = kmalloc_array(nr_bvec, sizeof(struct bio_vec),
 				     GFP_NOIO);
 		if (!bvec)
 			return -EIO;
@@ -201,10 +202,10 @@ static int __raw_file_fmt_rw_aio(struct loop_file_fmt *lo_fmt,
 		/*
 		 * The bios of the request may be started from the middle of
 		 * the 'bvec' because of bio splitting, so we can't directly
-		 * copy bio->bi_iov_vec to new bvec. The rq_for_each_segment
+		 * copy bio->bi_iov_vec to new bvec. The rq_for_each_bvec
 		 * API will take care of all details for us.
 		 */
-		rq_for_each_segment(tmp, rq, iter) {
+		rq_for_each_bvec(tmp, rq, rq_iter) {
 			*bvec = tmp;
 			bvec++;
 		}
@@ -218,12 +219,10 @@ static int __raw_file_fmt_rw_aio(struct loop_file_fmt *lo_fmt,
 		 */
 		offset = bio->bi_iter.bi_bvec_done;
 		bvec = __bvec_iter_bvec(bio->bi_io_vec, bio->bi_iter);
-		segments = bio_segments(bio);
 	}
 	atomic_set(&cmd->ref, 2);
 
-	iov_iter_bvec(&iter, ITER_BVEC | rw, bvec, 
-		      segments, blk_rq_bytes(rq));
+	iov_iter_bvec(&iter, rw, bvec, nr_bvec, blk_rq_bytes(rq));
 	iter.iov_offset = offset;
 
 	cmd->iocb.ki_pos = pos;
@@ -260,7 +259,7 @@ static int __raw_file_fmt_write_bvec(struct file *file,
 	struct iov_iter i;
 	ssize_t bw;
 
-	iov_iter_bvec(&i, ITER_BVEC | WRITE, bvec, 1, bvec->bv_len);
+	iov_iter_bvec(&i, WRITE, bvec, 1, bvec->bv_len);
 
 	file_start_write(file);
 	bw = vfs_iter_write(file, &i, ppos, 0);

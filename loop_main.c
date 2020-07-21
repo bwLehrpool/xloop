@@ -79,6 +79,7 @@
 #include <linux/falloc.h>
 #include <linux/uio.h>
 #include <linux/ioprio.h>
+#include <linux/blk-cgroup.h>
 
 #include "loop_file_fmt.h"
 #include "loop_main.h"
@@ -241,7 +242,6 @@ figure_loop_size(struct loop_device *lo, loff_t offset, loff_t sizelimit)
 		lo->lo_offset = offset;
 	if (lo->lo_sizelimit != sizelimit)
 		lo->lo_sizelimit = sizelimit;
-
 	set_capacity(lo->lo_disk, x);
 	bd_set_size(bdev, (loff_t)get_capacity(bdev->bd_disk) << 9);
 	/* let user-space know about the new size */
@@ -307,7 +307,6 @@ static int do_req_filebacked(struct loop_device *lo, struct request *rq)
 	default:
 		WARN_ON_ONCE(1);
 		return -EIO;
-		break;
 	}
 }
 
@@ -473,31 +472,14 @@ static ssize_t loop_attr_backing_file_show(struct loop_device *lo, char *buf)
 	return ret;
 }
 
-static ssize_t __print_file_fmt_type(__u32 file_fmt_type, char* buf) {
-	switch(file_fmt_type) {
-	case LO_FILE_FMT_RAW:
-		sprintf(buf, "%s\n", "RAW");
-		break;
-	case LO_FILE_FMT_QCOW:
-		sprintf(buf, "%s\n", "QCOW");
-		break;
-	case LO_FILE_FMT_VDI:
-		sprintf(buf, "%s\n", "VDI");
-		break;
-	case LO_FILE_FMT_VMDK:
-		sprintf(buf, "%s\n", "VMDK");
-		break;
-	default:
-		sprintf(buf, "%s\n", "ERROR: Unsupported loop file format!");
-		break;
-	}
-
-	return strlen(buf);
-}
-
 static ssize_t loop_attr_file_fmt_type_show(struct loop_device *lo, char *buf)
 {
-	return __print_file_fmt_type(lo->lo_fmt->file_fmt_type, buf);
+	ssize_t len = 0;
+
+	len = loop_file_fmt_print_type(lo->lo_fmt->file_fmt_type, buf);
+	len += sprintf(buf + len, "\n");
+
+	return len;
 }
 
 static ssize_t loop_attr_offset_show(struct loop_device *lo, char *buf)
@@ -621,12 +603,31 @@ static int loop_prepare_queue(struct loop_device *lo)
 	return 0;
 }
 
+static void loop_update_rotational(struct loop_device *lo)
+{
+	struct file *file = lo->lo_backing_file;
+	struct inode *file_inode = file->f_mapping->host;
+	struct block_device *file_bdev = file_inode->i_sb->s_bdev;
+	struct request_queue *q = lo->lo_queue;
+	bool nonrot = true;
+
+	/* not all filesystems (e.g. tmpfs) have a sb->s_bdev */
+	if (file_bdev)
+		nonrot = blk_queue_nonrot(bdev_get_queue(file_bdev));
+
+	if (nonrot)
+		blk_queue_flag_set(QUEUE_FLAG_NONROT, q);
+	else
+		blk_queue_flag_clear(QUEUE_FLAG_NONROT, q);
+}
+
 static int loop_set_fd(struct loop_device *lo, fmode_t mode,
 		       struct block_device *bdev, unsigned int arg)
 {
 	struct file	*file;
 	struct inode	*inode;
 	struct address_space *mapping;
+	struct block_device *claimed_bdev = NULL;
 	int		lo_flags = 0;
 	int		error;
 	loff_t		size;
@@ -640,9 +641,21 @@ static int loop_set_fd(struct loop_device *lo, fmode_t mode,
 	if (!file)
 		goto out;
 
+	/*
+	 * If we don't hold exclusive handle for the device, upgrade to it
+	 * here to avoid changing device under exclusive owner.
+	 */
+	if (!(mode & FMODE_EXCL)) {
+		claimed_bdev = bd_start_claiming(bdev, loop_set_fd);
+		if (IS_ERR(claimed_bdev)) {
+			error = PTR_ERR(claimed_bdev);
+			goto out_putf;
+		}
+	}
+
 	error = mutex_lock_killable(&loop_ctl_mutex);
 	if (error)
-		goto out_putf;
+		goto out_bdev;
 
 	error = -EBUSY;
 	if (lo->lo_state != Lo_unbound)
@@ -674,6 +687,7 @@ static int loop_set_fd(struct loop_device *lo, fmode_t mode,
 	if (!(lo_flags & LO_FLAGS_READ_ONLY) && file->f_op->fsync)
 		blk_queue_write_cache(lo->lo_queue, true, false);
 
+	loop_update_rotational(lo);
 	loop_update_dio(lo);
 
 	error = loop_file_fmt_init(lo->lo_fmt, LO_FILE_FMT_RAW);
@@ -710,10 +724,15 @@ static int loop_set_fd(struct loop_device *lo, fmode_t mode,
 	mutex_unlock(&loop_ctl_mutex);
 	if (partscan)
 		loop_reread_partitions(lo, bdev);
+	if (claimed_bdev)
+		bd_abort_claiming(bdev, claimed_bdev, loop_set_fd);
 	return 0;
 
 out_unlock:
 	mutex_unlock(&loop_ctl_mutex);
+out_bdev:
+	if (claimed_bdev)
+		bd_abort_claiming(bdev, claimed_bdev, loop_set_fd);
 out_putf:
 	fput(file);
 out:
@@ -1013,7 +1032,6 @@ loop_set_status(struct loop_device *lo, const struct xloop_info64 *info)
 	lo->lo_encrypt_key_size = info->lo_encrypt_key_size;
 	lo->lo_init[0] = info->lo_init[0];
 	lo->lo_init[1] = info->lo_init[1];
-	lo->lo_fmt->file_fmt_type = info->lo_file_fmt_type;
 	if (info->lo_encrypt_key_size) {
 		memcpy(lo->lo_encrypt_key, info->lo_encrypt_key,
 		       info->lo_encrypt_key_size);
@@ -1468,7 +1486,6 @@ loop_info64_to_compat(const struct xloop_info64 *info64,
 
 	if (err)
 		return -EFAULT;
-
 	return 0;
 }
 
@@ -1671,8 +1688,8 @@ static blk_status_t loop_queue_rq(struct blk_mq_hw_ctx *hctx,
 
 	/* always use the first bio's css */
 #ifdef CONFIG_BLK_CGROUP
-	if (cmd->use_aio && rq->bio && rq->bio->bi_css) {
-		cmd->css = rq->bio->bi_css;
+	if (cmd->use_aio && rq->bio && rq->bio->bi_blkg) {
+		cmd->css = &bio_blkcg(rq->bio)->css;
 		css_get(cmd->css);
 	} else
 #endif
@@ -1759,7 +1776,7 @@ static int loop_add(struct loop_device **l, int i)
 	lo->tag_set.queue_depth = 128;
 	lo->tag_set.numa_node = NUMA_NO_NODE;
 	lo->tag_set.cmd_size = sizeof(struct loop_cmd);
-	lo->tag_set.flags = BLK_MQ_F_SHOULD_MERGE | BLK_MQ_F_SG_MERGE;
+	lo->tag_set.flags = BLK_MQ_F_SHOULD_MERGE;
 	lo->tag_set.driver_data = lo;
 
 	err = blk_mq_alloc_tag_set(&lo->tag_set);
@@ -1767,7 +1784,7 @@ static int loop_add(struct loop_device **l, int i)
 		goto out_free_idr;
 
 	lo->lo_queue = blk_mq_init_queue(&lo->tag_set);
-	if (IS_ERR_OR_NULL(lo->lo_queue)) {
+	if (IS_ERR(lo->lo_queue)) {
 		err = PTR_ERR(lo->lo_queue);
 		goto out_cleanup_tags;
 	}
