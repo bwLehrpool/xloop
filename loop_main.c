@@ -323,7 +323,7 @@ static void loop_reread_partitions(struct loop_device *lo,
 
 	rc = blkdev_reread_part(bdev);
 	if (rc)
-		pr_warn("%s: partition scan of loop%d (%s) failed (rc=%d)\n",
+		pr_warn("%s: partition scan of xloop%d (%s) failed (rc=%d)\n",
 			__func__, lo->lo_number, lo->lo_file_name, rc);
 }
 
@@ -596,7 +596,7 @@ static int loop_prepare_queue(struct loop_device *lo)
 {
 	kthread_init_worker(&lo->worker);
 	lo->worker_task = kthread_run(loop_kthread_worker_fn,
-			&lo->worker, "loop%d", lo->lo_number);
+			&lo->worker, "xloop%d", lo->lo_number);
 	if (IS_ERR(lo->worker_task))
 		return -ENOMEM;
 	set_user_nice(lo->worker_task, MIN_NICE);
@@ -858,7 +858,7 @@ out_unlock:
 		else
 			err = blkdev_reread_part(bdev);
 		if (err)
-			pr_warn("%s: partition scan of loop%d failed (rc=%d)\n",
+			pr_warn("%s: partition scan of xloop%d failed (rc=%d)\n",
 				__func__, lo_number, err);
 		/* Device is gone, no point in returning error */
 		err = 0;
@@ -987,7 +987,7 @@ loop_set_status(struct loop_device *lo, const struct xloop_info64 *info)
 		/* kill_bdev should have truncated all the pages */
 		if (lo->lo_device->bd_inode->i_mapping->nrpages) {
 			err = -EAGAIN;
-			pr_warn("%s: loop%d (%s) has still dirty pages (nrpages=%lu)\n",
+			pr_warn("%s: xloop%d (%s) has still dirty pages (nrpages=%lu)\n",
 				__func__, lo->lo_number, lo->lo_file_name,
 				lo->lo_device->bd_inode->i_mapping->nrpages);
 			goto out_unfreeze;
@@ -1292,7 +1292,7 @@ static int loop_set_block_size(struct loop_device *lo, unsigned long arg)
 	if (lo->lo_queue->limits.logical_block_size != arg &&
 			lo->lo_device->bd_inode->i_mapping->nrpages) {
 		err = -EAGAIN;
-		pr_warn("%s: loop%d (%s) has still dirty pages (nrpages=%lu)\n",
+		pr_warn("%s: xloop%d (%s) has still dirty pages (nrpages=%lu)\n",
 			__func__, lo->lo_number, lo->lo_file_name,
 			lo->lo_device->bd_inode->i_mapping->nrpages);
 		goto out_unfreeze;
