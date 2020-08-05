@@ -150,8 +150,17 @@ static int __qcow_file_fmt_compression_init(struct loop_file_fmt *lo_fmt)
 		goto out_free_strm;
 	}
 
+	qcow_data->cmp_last_coffset = ULLONG_MAX;
+	qcow_data->cmp_out_buf = vmalloc(qcow_data->cluster_size);
+	if (!qcow_data->cmp_out_buf) {
+		ret = -ENOMEM;
+		goto out_free_workspace;
+	}
+
 	return ret;
 
+out_free_workspace:
+	vfree(qcow_data->strm->workspace);
 out_free_strm:
 	kfree(qcow_data->strm);
 out:
@@ -162,11 +171,9 @@ static void __qcow_file_fmt_compression_exit(struct loop_file_fmt *lo_fmt)
 {
 	struct loop_file_fmt_qcow_data *qcow_data = lo_fmt->private_data;
 
-	if (qcow_data->strm->workspace)
-		vfree(qcow_data->strm->workspace);
-
-	if (qcow_data->strm)
-		kfree(qcow_data->strm);
+	vfree(qcow_data->strm->workspace);
+	kfree(qcow_data->strm);
+	vfree(qcow_data->cmp_out_buf);
 }
 
 #ifdef CONFIG_DEBUG_FS
@@ -703,10 +710,9 @@ static ssize_t __qcow_file_fmt_buffer_decompress(struct loop_file_fmt *lo_fmt,
 		 * qcow2 we know size of compressed data with precision of one
 		 * sector) */
 		ret = -1;
+	} else {
+		ret = 0;
 	}
-
-	zlib_inflateEnd(qcow_data->strm);
-
 	return ret;
 }
 
@@ -721,7 +727,7 @@ static int __qcow_file_fmt_read_compressed(struct loop_file_fmt *lo_fmt,
 	struct loop_device *lo = loop_file_fmt_get_lo(lo_fmt);
 	int ret = 0, csize, nb_csectors;
 	u64 coffset;
-	u8 *in_buf, *out_buf;
+	u8 *in_buf = NULL;
 	ssize_t len;
 	void *data;
 	unsigned long irq_flags;
@@ -734,37 +740,35 @@ static int __qcow_file_fmt_read_compressed(struct loop_file_fmt *lo_fmt,
 	csize = nb_csectors * QCOW_COMPRESSED_SECTOR_SIZE -
 		(coffset & ~QCOW_COMPRESSED_SECTOR_MASK);
 
-	in_buf = vmalloc(csize);
-	if (!in_buf) {
-		return -ENOMEM;
-	}
 
-	out_buf = vmalloc(qcow_data->cluster_size);
-	if (!out_buf) {
-		ret = -ENOMEM;
-		goto out_free_in_buf;
-	}
+	if (qcow_data->cmp_last_coffset != coffset) {
+		in_buf = vmalloc(csize);
+		if (!in_buf) {
+			qcow_data->cmp_last_coffset = ULLONG_MAX;
+			return -ENOMEM;
+		}
+		qcow_data->cmp_last_coffset = coffset;
+		len = kernel_read(lo->lo_backing_file, in_buf, csize, &coffset);
+		if (len < 0) {
+			qcow_data->cmp_last_coffset = ULLONG_MAX;
+			ret = len;
+			goto out_free_in_buf;
+		}
 
-	len = kernel_read(lo->lo_backing_file, in_buf, csize, &coffset);
-	if (len < 0) {
-		ret = len;
-		goto out_free_out_buf;
-	}
-
-	if (__qcow_file_fmt_buffer_decompress(lo_fmt, out_buf,
-		qcow_data->cluster_size, in_buf, csize) < 0) {
-		ret = -EIO;
-		goto out_free_out_buf;
+		if (__qcow_file_fmt_buffer_decompress(lo_fmt, qcow_data->cmp_out_buf,
+			qcow_data->cluster_size, in_buf, csize) < 0) {
+			qcow_data->cmp_last_coffset = ULLONG_MAX;
+			ret = -EIO;
+			goto out_free_in_buf;
+		}
 	}
 
 	ASSERT(bytes <= bvec->bv_len);
 	data = bvec_kmap_irq(bvec, &irq_flags) + bytes_done;
-	memcpy(data, out_buf + offset_in_cluster, bytes);
+	memcpy(data, qcow_data->cmp_out_buf + offset_in_cluster, bytes);
 	flush_dcache_page(bvec->bv_page);
 	bvec_kunmap_irq(data, &irq_flags);
 
-out_free_out_buf:
-	vfree(out_buf);
 out_free_in_buf:
 	vfree(in_buf);
 

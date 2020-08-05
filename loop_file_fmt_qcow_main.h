@@ -238,6 +238,8 @@ struct loop_file_fmt_qcow_data {
 	u64 autoclear_features;
 
 	struct z_stream_s *strm;
+	u8 *cmp_out_buf;
+	u64 cmp_last_coffset;
 
 	/* debugfs entries */
 #ifdef CONFIG_DEBUG_FS
