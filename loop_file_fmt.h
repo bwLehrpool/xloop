@@ -2,102 +2,109 @@
 /*
  * loop_file_fmt.h
  *
- * File format subsystem for the loop device module.
+ * File format subsystem for the xloop device module.
  *
  * Copyright (C) 2019 Manuel Bentele <development@manuel-bentele.de>
  */
 
-#ifndef _LINUX_LOOP_FILE_FMT_H
-#define _LINUX_LOOP_FILE_FMT_H
+#ifndef _LINUX_XLOOP_FILE_FMT_H
+#define _LINUX_XLOOP_FILE_FMT_H
 
 #include "loop_main.h"
 
-struct loop_file_fmt;
+struct xloop_file_fmt;
 
-#define LO_FILE_FMT_RAW         0
-#define LO_FILE_FMT_QCOW        1
-#define LO_FILE_FMT_VDI         2
-#define LO_FILE_FMT_VMDK        3
-#define MAX_LO_FILE_FMT         (LO_FILE_FMT_VMDK + 1)
+#define XLO_FILE_FMT_RAW         0
+#define XLO_FILE_FMT_QCOW        1
+#define XLO_FILE_FMT_VDI         2
+#define XLO_FILE_FMT_VMDK        3
+#define MAX_XLO_FILE_FMT         (XLO_FILE_FMT_VMDK + 1)
 
 /**
- * struct loop_file_fmt_ops - File format subsystem operations
+ * struct xloop_file_fmt_ops - File format subsystem operations
  *
  * Data structure representing the file format subsystem interface.
  */
-struct loop_file_fmt_ops {
+struct xloop_file_fmt_ops {
 	/**
 	 * @init: Initialization callback function
 	 */
-	int (*init) (struct loop_file_fmt *lo_fmt);
+	int (*init) (struct xloop_file_fmt *xlo_fmt);
 
 	/**
 	 * @exit: Release callback function
 	 */
-	void (*exit) (struct loop_file_fmt *lo_fmt);
+	void (*exit) (struct xloop_file_fmt *xlo_fmt);
 
 	/**
 	 * @read: Read IO callback function
 	 */
-	int (*read) (struct loop_file_fmt *lo_fmt,
-		     struct request *rq);
+	int (*read) (struct xloop_file_fmt *xlo_fmt,
+			struct request *rq);
 
 	/**
 	 * @write: Write IO callback function
 	 */
-	int (*write) (struct loop_file_fmt *lo_fmt,
-		      struct request *rq);
+	int (*write) (struct xloop_file_fmt *xlo_fmt,
+			struct request *rq);
 
 	/**
 	 * @read_aio: Asynchronous read IO callback function
 	 */
-	int (*read_aio) (struct loop_file_fmt *lo_fmt,
-			 struct request *rq);
+	int (*read_aio) (struct xloop_file_fmt *xlo_fmt,
+			struct request *rq);
 
 	/**
 	 * @write_aio: Asynchronous write IO callback function
 	 */
-	int (*write_aio) (struct loop_file_fmt *lo_fmt,
-			  struct request *rq);
+	int (*write_aio) (struct xloop_file_fmt *xlo_fmt,
+			struct request *rq);
+
+	/**
+	 * @zero: Zero (discard) IO callback function
+	 */
+	int (*write_zeros) (struct xloop_file_fmt *xlo_fmt,
+			struct request *rq);
 
 	/**
 	 * @discard: Discard IO callback function
 	 */
-	int (*discard) (struct loop_file_fmt *lo_fmt,
+	int (*discard) (struct xloop_file_fmt *xlo_fmt,
 			struct request *rq);
 
 	/**
 	 * @flush: Flush callback function
 	 */
-	int (*flush) (struct loop_file_fmt *lo_fmt);
+	int (*flush) (struct xloop_file_fmt *xlo_fmt);
 
 	/**
 	 * @sector_size: Get sector size callback function
 	 */
-	loff_t (*sector_size) (struct loop_file_fmt *lo_fmt);
+	loff_t (*sector_size) (struct xloop_file_fmt *xlo_fmt,
+				struct file *file, loff_t offset, loff_t sizelimit);
 };
 
 /**
- * struct loop_file_fmt_driver - File format subsystem driver
+ * struct xloop_file_fmt_driver - File format subsystem driver
  *
  * Data structure to implement file format drivers for the file format
  * subsystem.
  */
-struct loop_file_fmt_driver {
+struct xloop_file_fmt_driver {
 	/**
 	 * @name: Name of the file format driver
 	 */
 	const char *name;
 
 	/**
-	 * @file_fmt_type: Loop file format type of the file format driver
+	 * @file_fmt_type: xloop file format type of the file format driver
 	 */
 	const u32 file_fmt_type;
 
 	/**
 	 * @ops: Driver's implemented file format operations
 	 */
-	struct loop_file_fmt_ops *ops;
+	struct xloop_file_fmt_ops *ops;
 
 	/**
 	 * @ops: Owner of the file format driver
@@ -109,26 +116,26 @@ struct loop_file_fmt_driver {
  * states of the file format
  *
  * transitions:
- *                    loop_file_fmt_init(...)
+ *                    xloop_file_fmt_init(...)
  * ---> uninitialized ------------------------------> initialized
- *                    loop_file_fmt_exit(...)
+ *                    xloop_file_fmt_exit(...)
  *      initialized   ------------------------------> uninitialized
- *                    loop_file_fmt_read(...)
+ *                    xloop_file_fmt_read(...)
  *      initialized   ------------------------------> initialized
- *                    loop_file_fmt_read_aio(...)
+ *                    xloop_file_fmt_read_aio(...)
  *      initialized   ------------------------------> initialized
- *                    loop_file_fmt_write(...)
+ *                    xloop_file_fmt_write(...)
  *      initialized   ------------------------------> initialized
- *                    loop_file_fmt_write_aio(...)
+ *                    xloop_file_fmt_write_aio(...)
  *      initialized   ------------------------------> initialized
- *                    loop_file_fmt_discard(...)
+ *                    xloop_file_fmt_discard(...)
  *      initialized   ------------------------------> initialized
- *                    loop_file_fmt_flush(...)
+ *                    xloop_file_fmt_flush(...)
  *      initialized   ------------------------------> initialized
- *                    loop_file_fmt_sector_size(...)
+ *                    xloop_file_fmt_sector_size(...)
  *      initialized   ------------------------------> initialized
  *
- *                    loop_file_fmt_change(...)
+ *                    xloop_file_fmt_change(...)
  *    +-----------------------------------------------------------+
  *    |               exit(...)              init(...)            |
  *    | initialized   -------> uninitialized -------> initialized |
@@ -140,25 +147,25 @@ enum {
 };
 
 /**
- * struct loop_file_fmt - Loop file format
+ * struct xloop_file_fmt - xloop file format
  *
- * Data structure to use with the file format the loop file format subsystem.
+ * Data structure to use with the file format the xloop file format subsystem.
  */
-struct loop_file_fmt {
+struct xloop_file_fmt {
 	/**
-	 * @file_fmt_type: Current type of the loop file format
+	 * @file_fmt_type: Current type of the xloop file format
 	 */
 	u32 file_fmt_type;
 
 	/**
-	 * @file_fmt_state: Current state of the loop file format
+	 * @file_fmt_state: Current state of the xloop file format
 	 */
 	int file_fmt_state;
 
 	/**
-	 * @lo: Link to a file format's loop device
+	 * @xlo: Link to a file format's xloop device
 	 */
-	struct loop_device *lo;
+	struct xloop_device *xlo;
 
 	/**
 	 * @private_data: Optional link to a file format's driver specific data
@@ -170,188 +177,204 @@ struct loop_file_fmt {
 /* subsystem functions for the driver implementation */
 
 /**
- * loop_file_fmt_register_driver - Register a loop file format driver
+ * xloop_file_fmt_register_driver - Register a xloop file format driver
  * @drv: File format driver
  *
- * Registers the specified loop file format driver @drv by the loop file format
+ * Registers the specified xloop file format driver @drv by the xloop file format
  * subsystem.
  */
-extern int loop_file_fmt_register_driver(struct loop_file_fmt_driver *drv);
+extern int xloop_file_fmt_register_driver(struct xloop_file_fmt_driver *drv);
 
 /**
- * loop_file_fmt_unregister_driver - Unregister a loop file format driver
+ * xloop_file_fmt_unregister_driver - Unregister a xloop file format driver
  * @drv: File format driver
  *
- * Unregisters the specified loop file format driver @drv from the loop file
+ * Unregisters the specified xloop file format driver @drv from the xloop file
  * format subsystem.
  */
-extern void loop_file_fmt_unregister_driver(struct loop_file_fmt_driver *drv);
+extern void xloop_file_fmt_unregister_driver(struct xloop_file_fmt_driver *drv);
 
 
 /* subsystem functions for subsystem usage */
 
 /**
- * loop_file_fmt_alloc - Allocate a loop file format
+ * xloop_file_fmt_alloc - Allocate a xloop file format
  *
- * Dynamically allocates a loop file format and returns a pointer to the
- * created loop file format.
+ * Dynamically allocates a xloop file format and returns a pointer to the
+ * created xloop file format.
  */
-extern struct loop_file_fmt *loop_file_fmt_alloc(void);
+extern struct xloop_file_fmt *xloop_file_fmt_alloc(void);
 
 /**
- * loop_file_fmt_free - Free an allocated loop file format
- * @lo_fmt: Loop file format
+ * xloop_file_fmt_free - Free an allocated xloop file format
+ * @xlo_fmt: xloop file format
  *
- * Frees the already allocated loop file format @lo_fmt.
+ * Frees the already allocated xloop file format @xlo_fmt.
  */
-extern void loop_file_fmt_free(struct loop_file_fmt *lo_fmt);
+extern void xloop_file_fmt_free(struct xloop_file_fmt *xlo_fmt);
 
 /**
- * loop_file_fmt_set_lo - Set the loop file format's loop device
- * @lo_fmt: Loop file format
- * @lo: Loop device
+ * xloop_file_fmt_set_xlo - Set the xloop file format's xloop device
+ * @xlo_fmt: xloop file format
+ * @xlo: xloop device
  *
- * The link to the loop device @lo is set in the loop file format @lo_fmt.
+ * The link to the xloop device @xlo is set in the xloop file format @xlo_fmt.
  */
-extern int loop_file_fmt_set_lo(struct loop_file_fmt *lo_fmt,
-				struct loop_device *lo);
+extern int xloop_file_fmt_set_xlo(struct xloop_file_fmt *xlo_fmt,
+				struct xloop_device *xlo);
 
 /**
- * loop_file_fmt_get_lo - Get the loop file format's loop device
- * @lo_fmt: Loop file format
+ * xloop_file_fmt_get_xlo - Get the xloop file format's xloop device
+ * @xlo_fmt: xloop file format
  *
- * Returns a pointer to the loop device of the loop file format @lo_fmt.
+ * Returns a pointer to the xloop device of the xloop file format @xlo_fmt.
  */
-extern struct loop_device *loop_file_fmt_get_lo(struct loop_file_fmt *lo_fmt);
+extern struct xloop_device *xloop_file_fmt_get_xlo(struct xloop_file_fmt *xlo_fmt);
 
 /**
- * loop_file_fmt_init - Initialize a loop file format
- * @lo_fmt: Loop file format
+ * xloop_file_fmt_init - Initialize a xloop file format
+ * @xlo_fmt: xloop file format
  * @file_fmt_type: Type of the file format
  *
- * Initializes the specified loop file format @lo_fmt and sets up the correct
+ * Initializes the specified xloop file format @xlo_fmt and sets up the correct
  * file format type @file_fmt_type. Depending on @file_fmt_type, the correct
- * loop file format driver is loaded in the subsystems backend. If no loop file
+ * xloop file format driver is loaded in the subsystems backend. If no xloop file
  * format driver for the specified file format is available an error is
  * returned.
  */
-extern int loop_file_fmt_init(struct loop_file_fmt *lo_fmt,
+extern int xloop_file_fmt_init(struct xloop_file_fmt *xlo_fmt,
 			      u32 file_fmt_type);
 
 /**
- * loop_file_fmt_exit - Release a loop file format
- * @lo_fmt: Loop file format
+ * xloop_file_fmt_exit - Release a xloop file format
+ * @xlo_fmt: xloop file format
  *
- * Releases the specified loop file format @lo_fmt and all its resources.
+ * Releases the specified xloop file format @xlo_fmt and all its resources.
  */
-extern void loop_file_fmt_exit(struct loop_file_fmt *lo_fmt);
+extern void xloop_file_fmt_exit(struct xloop_file_fmt *xlo_fmt);
 
 /**
- * loop_file_fmt_read - Read IO from a loop file format
- * @lo_fmt: Loop file format
+ * xloop_file_fmt_read - Read IO from a xloop file format
+ * @xlo_fmt: xloop file format
  * @rq: IO Request
  *
- * Reads IO from the file format's loop device by sending the IO read request
- * @rq to the loop file format subsystem. The subsystem calls the registered
- * callback function of the suitable loop file format driver.
+ * Reads IO from the file format's xloop device by sending the IO read request
+ * @rq to the xloop file format subsystem. The subsystem calls the registered
+ * callback function of the suitable xloop file format driver.
  */
-extern int loop_file_fmt_read(struct loop_file_fmt *lo_fmt,
+extern int xloop_file_fmt_read(struct xloop_file_fmt *xlo_fmt,
 			      struct request *rq);
 
 /**
- * loop_file_fmt_read_aio - Read IO from a loop file format asynchronously
- * @lo_fmt: Loop file format
+ * xloop_file_fmt_read_aio - Read IO from a xloop file format asynchronously
+ * @xlo_fmt: xloop file format
  * @rq: IO Request
  *
- * Reads IO from the file format's loop device asynchronously by sending the
- * IO read aio request @rq to the loop file format subsystem. The subsystem
- * calls the registered callback function of the suitable loop file format
+ * Reads IO from the file format's xloop device asynchronously by sending the
+ * IO read aio request @rq to the xloop file format subsystem. The subsystem
+ * calls the registered callback function of the suitable xloop file format
  * driver.
  */
-extern int loop_file_fmt_read_aio(struct loop_file_fmt *lo_fmt,
+extern int xloop_file_fmt_read_aio(struct xloop_file_fmt *xlo_fmt,
 				  struct request *rq);
 
 /**
- * loop_file_fmt_write - Write IO to a loop file format
- * @lo_fmt: Loop file format
+ * xloop_file_fmt_write - Write IO to a xloop file format
+ * @xlo_fmt: xloop file format
  * @rq: IO Request
  *
- * Write IO to the file format's loop device by sending the IO write request
- * @rq to the loop file format subsystem. The subsystem calls the registered
- * callback function of the suitable loop file format driver.
+ * Write IO to the file format's xloop device by sending the IO write request
+ * @rq to the xloop file format subsystem. The subsystem calls the registered
+ * callback function of the suitable xloop file format driver.
  */
-extern int loop_file_fmt_write(struct loop_file_fmt *lo_fmt,
+extern int xloop_file_fmt_write(struct xloop_file_fmt *xlo_fmt,
 			       struct request *rq);
 
 /**
- * loop_file_fmt_write_aio - Write IO to a loop file format asynchronously
- * @lo_fmt: Loop file format
+ * xloop_file_fmt_write_aio - Write IO to a xloop file format asynchronously
+ * @xlo_fmt: xloop file format
  * @rq: IO Request
  *
- * Write IO to the file format's loop device asynchronously by sending the
- * IO write aio request @rq to the loop file format subsystem. The subsystem
- * calls the registered callback function of the suitable loop file format
+ * Write IO to the file format's xloop device asynchronously by sending the
+ * IO write aio request @rq to the xloop file format subsystem. The subsystem
+ * calls the registered callback function of the suitable xloop file format
  * driver.
  */
-extern int loop_file_fmt_write_aio(struct loop_file_fmt *lo_fmt,
+extern int xloop_file_fmt_write_aio(struct xloop_file_fmt *xlo_fmt,
 				   struct request *rq);
 
 /**
- * loop_file_fmt_discard - Discard IO on a loop file format
- * @lo_fmt: Loop file format
+ * xloop_file_fmt_write_zeros - Zero (discard) IO on a xloop file format
+ * @xlo_fmt: xloop file format
  * @rq: IO Request
  *
- * Discard IO on the file format's loop device by sending the IO discard
- * request @rq to the loop file format subsystem. The subsystem calls the
- * registered callback function of the suitable loop file format driver.
+ * Zero (discard) IO on the file format's xloop device by sending the IO write
+ * zeros request @rq to the xloop file format subsystem. The subsystem calls the
+ * registered callback function of the suitable xloop file format driver.
  */
-extern int loop_file_fmt_discard(struct loop_file_fmt *lo_fmt,
+extern int xloop_file_fmt_write_zeros(struct xloop_file_fmt *xlo_fmt,
 				 struct request *rq);
 
 /**
- * loop_file_fmt_flush - Flush a loop file format
- * @lo_fmt: Loop file format
+ * xloop_file_fmt_discard - Discard IO on a xloop file format
+ * @xlo_fmt: xloop file format
+ * @rq: IO Request
  *
- * Flush the file format's loop device by calling the registered callback
- * function of the suitable loop file format driver.
+ * Discard IO on the file format's xloop device by sending the IO discard
+ * request @rq to the xloop file format subsystem. The subsystem calls the
+ * registered callback function of the suitable xloop file format driver.
  */
-extern int loop_file_fmt_flush(struct loop_file_fmt *lo_fmt);
+extern int xloop_file_fmt_discard(struct xloop_file_fmt *xlo_fmt,
+				 struct request *rq);
 
 /**
- * loop_file_fmt_sector_size - Get sector size of a loop file format
- * @lo_fmt: Loop file format
+ * xloop_file_fmt_flush - Flush a xloop file format
+ * @xlo_fmt: xloop file format
  *
- * Returns the physical sector size of the loop file format's loop device.
- * If the loop file format implements a sparse disk image format, then this
+ * Flush the file format's xloop device by calling the registered callback
+ * function of the suitable xloop file format driver.
+ */
+extern int xloop_file_fmt_flush(struct xloop_file_fmt *xlo_fmt);
+
+/**
+ * xloop_file_fmt_sector_size - Get sector size of a xloop file format
+ * @xlo_fmt: xloop file format
+ * @file: xloop file formats file for sector size calculation
+ * @offset: Offset within the file for sector size calculation
+ * @sizelimit: Sizelimit of the file for sector size calculation
+ *
+ * Returns the physical sector size of the given xloop file format's file.
+ * If the xloop file format implements a sparse disk image format, then this
  * function returns the virtual sector size.
  */
-extern loff_t loop_file_fmt_sector_size(struct loop_file_fmt *lo_fmt);
+extern loff_t xloop_file_fmt_sector_size(struct xloop_file_fmt *xlo_fmt,
+				struct file *file, loff_t offset, loff_t sizelimit);
 
 /**
- * loop_file_fmt_change - Change the loop file format's type
- * @lo_fmt: Loop file format
- * @file_fmt_type_new: Loop file format type
+ * xloop_file_fmt_change - Change the xloop file format's type
+ * @xlo_fmt: xloop file format
+ * @file_fmt_type_new: xloop file format type
  *
- * Changes the file format type of the already initialized loop file format
- * @lo_fmt. Therefore, the function releases the old file format and frees all
- * of its resources before the loop file format @lo_fmt is initialized and set
+ * Changes the file format type of the already initialized xloop file format
+ * @xlo_fmt. Therefore, the function releases the old file format and frees all
+ * of its resources before the xloop file format @xlo_fmt is initialized and set
  * up with the new file format @file_fmt_type_new.
  */
-extern int loop_file_fmt_change(struct loop_file_fmt *lo_fmt,
+extern int xloop_file_fmt_change(struct xloop_file_fmt *xlo_fmt,
 				u32 file_fmt_type_new);
 
 
 /* helper functions of the subsystem */
 
 /**
- * loop_file_fmt_print_type - Convert file format type to string
- * @file_fmt_type: Loop file format type
- * @file_fmt_name: Loop file format type string
+ * xloop_file_fmt_print_type - Convert file format type to string
+ * @file_fmt_type: xloop file format type
+ * @file_fmt_name: xloop file format type string
  *
  * Converts the specified numeric @file_fmt_type value into a human readable
  * string stating the file format as string in @file_fmt_name.
  */
-extern ssize_t loop_file_fmt_print_type(u32 file_fmt_type,
+extern ssize_t xloop_file_fmt_print_type(u32 file_fmt_type,
 					char *file_fmt_name);
 
 #endif

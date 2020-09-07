@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
- * loop_file_fmt_raw.c
+ * xloop_file_fmt_raw.c
  *
- * RAW file format driver for the loop device module.
+ * RAW file format driver for the xloop device module.
  *
  * Copyright (C) 2019 Manuel Bentele <development@manuel-bentele.de>
  */
@@ -19,57 +19,48 @@
 #include <linux/sched.h>
 #include <linux/types.h>
 #include <linux/uio.h>
+#include <linux/version.h>
 
 #include "loop_file_fmt.h"
 
-static inline loff_t __raw_file_fmt_rq_get_pos(struct loop_file_fmt *lo_fmt,
+static inline loff_t __raw_file_fmt_rq_get_pos(struct xloop_file_fmt *xlo_fmt,
 					       struct request *rq)
 {
-	struct loop_device *lo = loop_file_fmt_get_lo(lo_fmt);
-	return ((loff_t) blk_rq_pos(rq) << 9) + lo->lo_offset;
+	struct xloop_device *xlo = xloop_file_fmt_get_xlo(xlo_fmt);
+	return ((loff_t) blk_rq_pos(rq) << 9) + xlo->xlo_offset;
 }
 
-/* transfer function for DEPRECATED cryptoloop support */
-static inline int __raw_file_fmt_do_transfer(struct loop_file_fmt *lo_fmt,
-					     int cmd,
-					     struct page *rpage,
-					     unsigned roffs,
-					     struct page *lpage,
-					     unsigned loffs,
-					     int size,
-					     sector_t rblock)
+/* transfer function for DEPRECATED cryptoxloop support */
+static inline int __raw_file_fmt_do_transfer(struct xloop_device *xlo, int cmd,
+					struct page *rpage, unsigned roffs,
+					struct page *lpage, unsigned loffs,
+					int size, sector_t rblock)
 {
-	struct loop_device *lo = loop_file_fmt_get_lo(lo_fmt);
 	int ret;
 
-	ret = lo->transfer(lo, cmd, rpage, roffs, lpage, loffs, size, rblock);
+	ret = xlo->transfer(xlo, cmd, rpage, roffs, lpage, loffs, size, rblock);
 	if (likely(!ret))
 		return 0;
 
 	printk_ratelimited(KERN_ERR
-		"loop: Transfer error at byte offset %llu, length %i.\n",
+		"xloop_file_fmt_raw: Transfer error at byte offset %llu, length %i.\n",
 		(unsigned long long)rblock << 9, size);
 	return ret;
 }
 
-static int raw_file_fmt_read_transfer(struct loop_file_fmt *lo_fmt,
-				      struct request *rq)
+static int __raw_file_fmt_read_transfer(struct xloop_device *xlo,
+		struct request *rq, loff_t pos)
 {
 	struct bio_vec bvec, b;
 	struct req_iterator iter;
 	struct iov_iter i;
 	struct page *page;
-	struct loop_device *lo;
 	ssize_t len;
 	int ret = 0;
-	loff_t pos;
 
 	page = alloc_page(GFP_NOIO);
 	if (unlikely(!page))
 		return -ENOMEM;
-
-	lo = loop_file_fmt_get_lo(lo_fmt);
-	pos = __raw_file_fmt_rq_get_pos(lo_fmt, rq);
 
 	rq_for_each_segment(bvec, rq, iter) {
 		loff_t offset = pos;
@@ -79,14 +70,14 @@ static int raw_file_fmt_read_transfer(struct loop_file_fmt *lo_fmt,
 		b.bv_len = bvec.bv_len;
 
 		iov_iter_bvec(&i, READ, &b, 1, b.bv_len);
-		len = vfs_iter_read(lo->lo_backing_file, &i, &pos, 0);
+		len = vfs_iter_read(xlo->xlo_backing_file, &i, &pos, 0);
 		if (len < 0) {
 			ret = len;
 			goto out_free_page;
 		}
 
-		ret = __raw_file_fmt_do_transfer(lo_fmt, READ, page, 0,
-			bvec.bv_page, bvec.bv_offset, len, offset >> 9);
+		ret = __raw_file_fmt_do_transfer(xlo, READ, page, 0, bvec.bv_page,
+			bvec.bv_offset, len, offset >> 9);
 		if (ret)
 			goto out_free_page;
 
@@ -107,26 +98,25 @@ out_free_page:
 	return ret;
 }
 
-static int raw_file_fmt_read(struct loop_file_fmt *lo_fmt,
+static int raw_file_fmt_read(struct xloop_file_fmt *xlo_fmt,
 			     struct request *rq)
 {
 	struct bio_vec bvec;
 	struct req_iterator iter;
 	struct iov_iter i;
-	struct loop_device *lo;
 	ssize_t len;
+	struct xloop_device *xlo;
 	loff_t pos;
 
-	lo = loop_file_fmt_get_lo(lo_fmt);
+	xlo = xloop_file_fmt_get_xlo(xlo_fmt);
+	pos = __raw_file_fmt_rq_get_pos(xlo_fmt, rq);
 
-	if (lo->transfer)
-		return raw_file_fmt_read_transfer(lo_fmt, rq);
-
-	pos = __raw_file_fmt_rq_get_pos(lo_fmt, rq);
+	if (xlo->transfer)
+		return __raw_file_fmt_read_transfer(xlo, rq, pos);
 
 	rq_for_each_segment(bvec, rq, iter) {
 		iov_iter_bvec(&i, READ, &bvec, 1, bvec.bv_len);
-		len = vfs_iter_read(lo->lo_backing_file, &i, &pos, 0);
+		len = vfs_iter_read(xlo->xlo_backing_file, &i, &pos, 0);
 		if (len < 0)
 			return len;
 
@@ -145,7 +135,7 @@ static int raw_file_fmt_read(struct loop_file_fmt *lo_fmt,
 	return 0;
 }
 
-static void __raw_file_fmt_rw_aio_do_completion(struct loop_cmd *cmd)
+static void __raw_file_fmt_rw_aio_do_completion(struct xloop_cmd *cmd)
 {
 	struct request *rq = blk_mq_rq_from_pdu(cmd);
 
@@ -153,12 +143,17 @@ static void __raw_file_fmt_rw_aio_do_completion(struct loop_cmd *cmd)
 		return;
 	kfree(cmd->bvec);
 	cmd->bvec = NULL;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+	if (likely(!blk_should_fake_timeout(rq->q)))
+		blk_mq_complete_request(rq);
+#else
 	blk_mq_complete_request(rq);
+#endif
 }
 
 static void __raw_file_fmt_rw_aio_complete(struct kiocb *iocb, long ret, long ret2)
 {
-	struct loop_cmd *cmd = container_of(iocb, struct loop_cmd, iocb);
+	struct xloop_cmd *cmd = container_of(iocb, struct xloop_cmd, iocb);
 
 	if (cmd->css)
 		css_put(cmd->css);
@@ -166,27 +161,19 @@ static void __raw_file_fmt_rw_aio_complete(struct kiocb *iocb, long ret, long re
 	__raw_file_fmt_rw_aio_do_completion(cmd);
 }
 
-static int __raw_file_fmt_rw_aio(struct loop_file_fmt *lo_fmt,
-				 struct request *rq,
-				 bool rw)
+static int __raw_file_fmt_rw_aio(struct xloop_device *xlo,
+			struct xloop_cmd *cmd, loff_t pos, bool rw)
 {
 	struct iov_iter iter;
 	struct req_iterator rq_iter;
 	struct bio_vec *bvec;
+	struct request *rq = blk_mq_rq_from_pdu(cmd);
 	struct bio *bio = rq->bio;
-	struct file *file;
+	struct file *file = xlo->xlo_backing_file;
 	struct bio_vec tmp;
-	struct loop_device *lo;
-	struct loop_cmd *cmd;
 	unsigned int offset;
 	int nr_bvec = 0;
 	int ret;
-	loff_t pos;
-
-	lo = loop_file_fmt_get_lo(lo_fmt);
-	file = lo->lo_backing_file;
-	cmd = blk_mq_rq_to_pdu(rq);
-	pos = __raw_file_fmt_rq_get_pos(lo_fmt, rq);
 
 	rq_for_each_bvec(tmp, rq, rq_iter)
 		nr_bvec++;
@@ -246,10 +233,14 @@ static int __raw_file_fmt_rw_aio(struct loop_file_fmt *lo_fmt,
 	return 0;
 }
 
-static int raw_file_fmt_read_aio(struct loop_file_fmt *lo_fmt,
+static int raw_file_fmt_read_aio(struct xloop_file_fmt *xlo_fmt,
 				 struct request *rq)
 {
-	return __raw_file_fmt_rw_aio(lo_fmt, rq, READ);
+	struct xloop_device *xlo = xloop_file_fmt_get_xlo(xlo_fmt);
+	struct xloop_cmd *cmd = blk_mq_rq_to_pdu(rq);
+	loff_t pos = __raw_file_fmt_rq_get_pos(xlo_fmt, rq);
+
+	return __raw_file_fmt_rw_aio(xlo, cmd, pos, READ);
 }
 
 static int __raw_file_fmt_write_bvec(struct file *file,
@@ -269,41 +260,40 @@ static int __raw_file_fmt_write_bvec(struct file *file,
 		return 0;
 
 	printk_ratelimited(KERN_ERR
-		"loop_file_fmt_raw: Write error at byte offset %llu, length "
+		"xloop_file_fmt_raw: Write error at byte offset %llu, length "
 		"%i.\n", (unsigned long long)*ppos, bvec->bv_len);
 	if (bw >= 0)
 		bw = -EIO;
 	return bw;
 }
 
-static int raw_file_fmt_write_transfer(struct loop_file_fmt *lo_fmt,
-				       struct request *rq)
+/*
+ * This is the slow, transforming version that needs to double buffer the
+ * data as it cannot do the transformations in place without having direct
+ * access to the destination pages of the backing file.
+ */
+static int __raw_file_fmt_write_transfer(struct xloop_device *xlo,
+		struct request *rq, loff_t pos)
 {
-	struct bio_vec bvec, b;
+struct bio_vec bvec, b;
 	struct req_iterator iter;
 	struct page *page;
-	struct loop_device *lo;
 	int ret = 0;
-	loff_t pos;
-
-	lo = loop_file_fmt_get_lo(lo_fmt);
-	pos = __raw_file_fmt_rq_get_pos(lo_fmt, rq);
 
 	page = alloc_page(GFP_NOIO);
 	if (unlikely(!page))
 		return -ENOMEM;
 
 	rq_for_each_segment(bvec, rq, iter) {
-		ret = __raw_file_fmt_do_transfer(lo_fmt, WRITE, page, 0,
-			bvec.bv_page, bvec.bv_offset, bvec.bv_len, pos >> 9);
+		ret = __raw_file_fmt_do_transfer(xlo, WRITE, page, 0, bvec.bv_page,
+			bvec.bv_offset, bvec.bv_len, pos >> 9);
 		if (unlikely(ret))
 			break;
 
 		b.bv_page = page;
 		b.bv_offset = 0;
 		b.bv_len = bvec.bv_len;
-		ret = __raw_file_fmt_write_bvec(lo->lo_backing_file, &b,
-			&pos);
+		ret = __raw_file_fmt_write_bvec(xlo->xlo_backing_file, &b, &pos);
 		if (ret < 0)
 			break;
 	}
@@ -312,25 +302,23 @@ static int raw_file_fmt_write_transfer(struct loop_file_fmt *lo_fmt,
 	return ret;
 }
 
-static int raw_file_fmt_write(struct loop_file_fmt *lo_fmt,
+static int raw_file_fmt_write(struct xloop_file_fmt *xlo_fmt,
 			      struct request *rq)
 {
 	struct bio_vec bvec;
 	struct req_iterator iter;
-	struct loop_device *lo;
 	int ret = 0;
+	struct xloop_device *xlo;
 	loff_t pos;
 
-	lo = loop_file_fmt_get_lo(lo_fmt);
+	xlo = xloop_file_fmt_get_xlo(xlo_fmt);
+	pos = __raw_file_fmt_rq_get_pos(xlo_fmt, rq);
 
-	if (lo->transfer)
-		return raw_file_fmt_write_transfer(lo_fmt, rq);
-
-	pos = __raw_file_fmt_rq_get_pos(lo_fmt, rq);
+	if (xlo->transfer)
+		return __raw_file_fmt_write_transfer(xlo, rq, pos);
 
 	rq_for_each_segment(bvec, rq, iter) {
-		ret = __raw_file_fmt_write_bvec(lo->lo_backing_file, &bvec,
-			&pos);
+		ret = __raw_file_fmt_write_bvec(xlo->xlo_backing_file, &bvec, &pos);
 		if (ret < 0)
 			break;
 		cond_resched();
@@ -339,29 +327,32 @@ static int raw_file_fmt_write(struct loop_file_fmt *lo_fmt,
 	return ret;
 }
 
-static int raw_file_fmt_write_aio(struct loop_file_fmt *lo_fmt,
+static int raw_file_fmt_write_aio(struct xloop_file_fmt *xlo_fmt,
 				  struct request *rq)
 {
-	return __raw_file_fmt_rw_aio(lo_fmt, rq, WRITE);
+	struct xloop_device *xlo = xloop_file_fmt_get_xlo(xlo_fmt);
+	struct xloop_cmd *cmd = blk_mq_rq_to_pdu(rq);
+	loff_t pos = __raw_file_fmt_rq_get_pos(xlo_fmt, rq);
+
+	return __raw_file_fmt_rw_aio(xlo, cmd, pos, WRITE);
 }
 
-static int raw_file_fmt_discard(struct loop_file_fmt *lo_fmt,
-				struct request *rq)
+static int __raw_file_fmt_fallocate(struct xloop_device *xlo,
+			struct request *rq, loff_t pos, int mode)
 {
-	loff_t pos = __raw_file_fmt_rq_get_pos(lo_fmt, rq);
-	struct loop_device *lo = loop_file_fmt_get_lo(lo_fmt);
-
 	/*
-	 * We use punch hole to reclaim the free space used by the
-	 * image a.k.a. discard. However we do not support discard if
-	 * encryption is enabled, because it may give an attacker
-	 * useful information.
+	 * We use fallocate to manipulate the space mappings used by the image
+	 * a.k.a. discard/zerorange. However we do not support this if
+	 * encryption is enabled, because it may give an attacker useful
+	 * information.
 	 */
-	struct file *file = lo->lo_backing_file;
-	int mode = FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE;
+	struct file *file = xlo->xlo_backing_file;
+	struct request_queue *q = xlo->xlo_queue;
 	int ret;
 
-	if ((!file->f_op->fallocate) || lo->lo_encrypt_key_size) {
+	mode |= FALLOC_FL_KEEP_SIZE;
+
+	if (!blk_queue_discard(q)) {
 		ret = -EOPNOTSUPP;
 		goto out;
 	}
@@ -369,14 +360,39 @@ static int raw_file_fmt_discard(struct loop_file_fmt *lo_fmt,
 	ret = file->f_op->fallocate(file, mode, pos, blk_rq_bytes(rq));
 	if (unlikely(ret && ret != -EINVAL && ret != -EOPNOTSUPP))
 		ret = -EIO;
- out:
+out:
 	return ret;
 }
 
-static int raw_file_fmt_flush(struct loop_file_fmt *lo_fmt)
+static int raw_file_fmt_write_zeros(struct xloop_file_fmt *xlo_fmt,
+				struct request *rq)
 {
-	struct loop_device *lo = loop_file_fmt_get_lo(lo_fmt);
-	struct file *file = lo->lo_backing_file;
+	loff_t pos = __raw_file_fmt_rq_get_pos(xlo_fmt, rq);
+	struct xloop_device *xlo = xloop_file_fmt_get_xlo(xlo_fmt);
+
+	/*
+	 * If the caller doesn't want deallocation, call zeroout to
+	 * write zeroes the range. Otherwise, punch them out.
+	 */
+	return __raw_file_fmt_fallocate(xlo, rq, pos,
+			(rq->cmd_flags & REQ_NOUNMAP) ?
+			 FALLOC_FL_ZERO_RANGE :
+			 FALLOC_FL_PUNCH_HOLE);
+}
+
+static int raw_file_fmt_discard(struct xloop_file_fmt *xlo_fmt,
+				struct request *rq)
+{
+	loff_t pos = __raw_file_fmt_rq_get_pos(xlo_fmt, rq);
+	struct xloop_device *xlo = xloop_file_fmt_get_xlo(xlo_fmt);
+
+	return __raw_file_fmt_fallocate(xlo, rq, pos, FALLOC_FL_PUNCH_HOLE);
+}
+
+static int raw_file_fmt_flush(struct xloop_file_fmt *xlo_fmt)
+{
+	struct xloop_device *xlo = xloop_file_fmt_get_xlo(xlo_fmt);
+	struct file *file = xlo->xlo_backing_file;
 	int ret = vfs_fsync(file, 0);
 	if (unlikely(ret && ret != -EINVAL))
 		ret = -EIO;
@@ -384,66 +400,66 @@ static int raw_file_fmt_flush(struct loop_file_fmt *lo_fmt)
 	return ret;
 }
 
-static loff_t raw_file_fmt_sector_size(struct loop_file_fmt *lo_fmt)
+static loff_t raw_file_fmt_sector_size(struct xloop_file_fmt *xlo_fmt,
+				struct file *file, loff_t offset, loff_t sizelimit)
 {
-	struct loop_device *lo = loop_file_fmt_get_lo(lo_fmt);
-	loff_t loopsize;
+	loff_t xloopsize;
 
-	/* Compute loopsize in bytes */
-	loopsize = i_size_read(lo->lo_backing_file->f_mapping->host);
-	if (lo->lo_offset > 0)
-		loopsize -= lo->lo_offset;
+	/* Compute xloopsize in bytes */
+	xloopsize = i_size_read(file->f_mapping->host);
+	if (offset > 0)
+		xloopsize -= offset;
 	/* offset is beyond i_size, weird but possible */
-	if (loopsize < 0)
+	if (xloopsize < 0)
 		return 0;
 
-	if (lo->lo_sizelimit > 0 && lo->lo_sizelimit < loopsize)
-		loopsize = lo->lo_sizelimit;
-
+	if (sizelimit > 0 && sizelimit < xloopsize)
+		xloopsize = sizelimit;
 	/*
 	 * Unfortunately, if we want to do I/O on the device,
 	 * the number of 512-byte sectors has to fit into a sector_t.
 	 */
-	return loopsize >> 9;
+	return xloopsize >> 9;
 }
 
-static struct loop_file_fmt_ops raw_file_fmt_ops = {
+static struct xloop_file_fmt_ops raw_file_fmt_ops = {
 	.init = NULL,
 	.exit = NULL,
 	.read = raw_file_fmt_read,
 	.write = raw_file_fmt_write,
 	.read_aio = raw_file_fmt_read_aio,
 	.write_aio = raw_file_fmt_write_aio,
+	.write_zeros = raw_file_fmt_write_zeros,
 	.discard = raw_file_fmt_discard,
 	.flush = raw_file_fmt_flush,
-	.sector_size = raw_file_fmt_sector_size
+	.sector_size = raw_file_fmt_sector_size,
 };
 
-static struct loop_file_fmt_driver raw_file_fmt_driver = {
+static struct xloop_file_fmt_driver raw_file_fmt_driver = {
 	.name = "RAW",
-	.file_fmt_type = LO_FILE_FMT_RAW,
+	.file_fmt_type = XLO_FILE_FMT_RAW,
 	.ops = &raw_file_fmt_ops,
-	.owner = THIS_MODULE
+	.owner = THIS_MODULE,
 };
 
-static int __init loop_file_fmt_raw_init(void)
+static int __init xloop_file_fmt_raw_init(void)
 {
-	printk(KERN_INFO "loop_file_fmt_raw: init loop device RAW file format "
+	printk(KERN_INFO "xloop_file_fmt_raw: init xloop device RAW file format "
 		"driver");
-	return loop_file_fmt_register_driver(&raw_file_fmt_driver);
+	return xloop_file_fmt_register_driver(&raw_file_fmt_driver);
 }
 
-static void __exit loop_file_fmt_raw_exit(void)
+static void __exit xloop_file_fmt_raw_exit(void)
 {
-	printk(KERN_INFO "loop_file_fmt_raw: exit loop device RAW file format "
+	printk(KERN_INFO "xloop_file_fmt_raw: exit xloop device RAW file format "
 		"driver");
-	loop_file_fmt_unregister_driver(&raw_file_fmt_driver);
+	xloop_file_fmt_unregister_driver(&raw_file_fmt_driver);
 }
 
-module_init(loop_file_fmt_raw_init);
-module_exit(loop_file_fmt_raw_exit);
+module_init(xloop_file_fmt_raw_init);
+module_exit(xloop_file_fmt_raw_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Manuel Bentele <development@manuel-bentele.de>");
-MODULE_DESCRIPTION("Loop device RAW file format driver");
-MODULE_SOFTDEP("pre: loop");
+MODULE_DESCRIPTION("xloop device RAW file format driver");
+MODULE_SOFTDEP("pre: xloop");

@@ -3,7 +3,7 @@
 # Loop device driver configuration
 #
 
-config BLK_DEV_LOOP
+config BLK_DEV_XLOOP
 	tristate "Loopback device support"
 	---help---
 	  Saying Y here will allow you to use a regular file as a block
@@ -46,9 +46,9 @@ config BLK_DEV_LOOP
 
 	  Most users will answer N here.
 
-config BLK_DEV_LOOP_MIN_COUNT
+config BLK_DEV_XLOOP_MIN_COUNT
 	int "Number of loop devices to pre-create at init time"
-	depends on BLK_DEV_LOOP
+	depends on BLK_DEV_XLOOP
 	default 8
 	help
 	  Static number of loop devices to be unconditionally pre-created
@@ -65,7 +65,7 @@ config BLK_DEV_CRYPTOLOOP
 	tristate "Cryptoloop Support"
 	select CRYPTO
 	select CRYPTO_CBC
-	depends on BLK_DEV_LOOP
+	depends on BLK_DEV_XLOOP
 	---help---
 	  Say Y here if you want to be able to use the ciphers that are
 	  provided by the CryptoAPI as loop transformation. This might be
@@ -76,16 +76,16 @@ config BLK_DEV_CRYPTOLOOP
 	  instead, which can be configured to be on-disk compatible with the
 	  cryptoloop device.
 
-config BLK_DEV_LOOP_FILE_FMT_RAW
+config BLK_DEV_XLOOP_FILE_FMT_RAW
 	tristate "Loop device binary file format support"
-	depends on BLK_DEV_LOOP
+	depends on BLK_DEV_XLOOP
 	---help---
 	  Say Y or M here if you want to enable the binary (RAW) file format
 	  support of the loop device module.
 
-config BLK_DEV_LOOP_FILE_FMT_QCOW
+config BLK_DEV_XLOOP_FILE_FMT_QCOW
 	tristate "Loop device QCOW file format support"
-	depends on BLK_DEV_LOOP
+	depends on BLK_DEV_XLOOP
 	select ZLIB_INFLATE
 	select ZLIB_DEFLATE
 	---help---

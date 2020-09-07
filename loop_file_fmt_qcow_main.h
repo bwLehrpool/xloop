@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
- * loop_file_fmt_qcow.h
+ * xloop_file_fmt_qcow.h
  *
- * QCOW file format driver for the loop device module.
+ * QCOW file format driver for the xloop device module.
  *
  * Ported QCOW2 implementation of the QEMU project (GPL-2.0):
  * Declarations for the QCOW2 file format.
@@ -12,8 +12,8 @@
  * Copyright (C) 2019 Manuel Bentele <development@manuel-bentele.de>
  */
 
-#ifndef _LINUX_LOOP_FILE_FMT_QCOW_H
-#define _LINUX_LOOP_FILE_FMT_QCOW_H
+#ifndef _LINUX_XLOOP_FILE_FMT_QCOW_H
+#define _LINUX_XLOOP_FILE_FMT_QCOW_H
 
 #include <linux/list.h>
 #include <linux/mutex.h>
@@ -106,7 +106,7 @@ do {									\
 #define QCOW_OFFSET_BUF_LEN 32
 #define QCOW_CLUSTER_BUF_LEN 128
 
-struct loop_file_fmt_qcow_header {
+struct xloop_file_fmt_qcow_header {
 	u32 magic;
 	u32 version;
 	u64 backing_file_offset;
@@ -130,7 +130,7 @@ struct loop_file_fmt_qcow_header {
 	u32 header_length;
 } __attribute__((packed));
 
-struct loop_file_fmt_qcow_snapshot_header {
+struct xloop_file_fmt_qcow_snapshot_header {
 	/* header is 8 byte aligned */
 	u64 l1_table_offset;
 
@@ -190,7 +190,7 @@ enum {
 						QCOW_AUTOCLEAR_DATA_FILE_RAW,
 };
 
-struct loop_file_fmt_qcow_data {
+struct xloop_file_fmt_qcow_data {
 	u64 size;
 	int cluster_bits;
 	int cluster_size;
@@ -208,8 +208,8 @@ struct loop_file_fmt_qcow_data {
 	u64 l1_table_offset;
 	u64 *l1_table;
 
-	struct loop_file_fmt_qcow_cache *l2_table_cache;
-	struct loop_file_fmt_qcow_cache *refcount_block_cache;
+	struct xloop_file_fmt_qcow_cache *l2_table_cache;
+	struct xloop_file_fmt_qcow_cache *refcount_block_cache;
 
 	u64 *refcount_table;
 	u64 refcount_table_offset;
@@ -254,7 +254,7 @@ struct loop_file_fmt_qcow_data {
 #endif
 };
 
-struct loop_file_fmt_qcow_cow_region {
+struct xloop_file_fmt_qcow_cow_region {
 	/**
 	 * Offset of the COW region in bytes from the start of the first
 	 * cluster touched by the request.
@@ -265,7 +265,7 @@ struct loop_file_fmt_qcow_cow_region {
 	unsigned nb_bytes;
 };
 
-enum loop_file_fmt_qcow_cluster_type {
+enum xloop_file_fmt_qcow_cluster_type {
 	QCOW_CLUSTER_UNALLOCATED,
 	QCOW_CLUSTER_ZERO_PLAIN,
 	QCOW_CLUSTER_ZERO_ALLOC,
@@ -273,7 +273,7 @@ enum loop_file_fmt_qcow_cluster_type {
 	QCOW_CLUSTER_COMPRESSED,
 };
 
-enum loop_file_fmt_qcow_metadata_overlap {
+enum xloop_file_fmt_qcow_metadata_overlap {
 	QCOW_OL_MAIN_HEADER_BITNR      = 0,
 	QCOW_OL_ACTIVE_L1_BITNR        = 1,
 	QCOW_OL_ACTIVE_L2_BITNR        = 2,
@@ -322,75 +322,75 @@ enum loop_file_fmt_qcow_metadata_overlap {
 
 #define INV_OFFSET (-1ULL)
 
-static inline bool loop_file_fmt_qcow_has_data_file(
-	struct loop_file_fmt *lo_fmt)
+static inline bool xloop_file_fmt_qcow_has_data_file(
+	struct xloop_file_fmt *xlo_fmt)
 {
 	/* At the moment, there is no support for copy on write! */
 	return false;
 }
 
-static inline bool loop_file_fmt_qcow_data_file_is_raw(
-	struct loop_file_fmt *lo_fmt)
+static inline bool xloop_file_fmt_qcow_data_file_is_raw(
+	struct xloop_file_fmt *xlo_fmt)
 {
-	struct loop_file_fmt_qcow_data *qcow_data = lo_fmt->private_data;
+	struct xloop_file_fmt_qcow_data *qcow_data = xlo_fmt->private_data;
 	return !!(qcow_data->autoclear_features &
 		QCOW_AUTOCLEAR_DATA_FILE_RAW);
 }
 
-static inline s64 loop_file_fmt_qcow_start_of_cluster(
-	struct loop_file_fmt_qcow_data *qcow_data, s64 offset)
+static inline s64 xloop_file_fmt_qcow_start_of_cluster(
+	struct xloop_file_fmt_qcow_data *qcow_data, s64 offset)
 {
 	return offset & ~(qcow_data->cluster_size - 1);
 }
 
-static inline s64 loop_file_fmt_qcow_offset_into_cluster(
-	struct loop_file_fmt_qcow_data *qcow_data, s64 offset)
+static inline s64 xloop_file_fmt_qcow_offset_into_cluster(
+	struct xloop_file_fmt_qcow_data *qcow_data, s64 offset)
 {
 	return offset & (qcow_data->cluster_size - 1);
 }
 
-static inline s64 loop_file_fmt_qcow_size_to_clusters(
-	struct loop_file_fmt_qcow_data *qcow_data, u64 size)
+static inline s64 xloop_file_fmt_qcow_size_to_clusters(
+	struct xloop_file_fmt_qcow_data *qcow_data, u64 size)
 {
 	return (size + (qcow_data->cluster_size - 1)) >>
 		qcow_data->cluster_bits;
 }
 
-static inline s64 loop_file_fmt_qcow_size_to_l1(
-	struct loop_file_fmt_qcow_data *qcow_data, s64 size)
+static inline s64 xloop_file_fmt_qcow_size_to_l1(
+	struct xloop_file_fmt_qcow_data *qcow_data, s64 size)
 {
 	int shift = qcow_data->cluster_bits + qcow_data->l2_bits;
 	return (size + (1ULL << shift) - 1) >> shift;
 }
 
-static inline int loop_file_fmt_qcow_offset_to_l1_index(
-	struct loop_file_fmt_qcow_data *qcow_data, u64 offset)
+static inline int xloop_file_fmt_qcow_offset_to_l1_index(
+	struct xloop_file_fmt_qcow_data *qcow_data, u64 offset)
 {
 	return offset >> (qcow_data->l2_bits + qcow_data->cluster_bits);
 }
 
-static inline int loop_file_fmt_qcow_offset_to_l2_index(
-	struct loop_file_fmt_qcow_data *qcow_data, s64 offset)
+static inline int xloop_file_fmt_qcow_offset_to_l2_index(
+	struct xloop_file_fmt_qcow_data *qcow_data, s64 offset)
 {
 	return (offset >> qcow_data->cluster_bits) & (qcow_data->l2_size - 1);
 }
 
-static inline int loop_file_fmt_qcow_offset_to_l2_slice_index(
-	struct loop_file_fmt_qcow_data *qcow_data, s64 offset)
+static inline int xloop_file_fmt_qcow_offset_to_l2_slice_index(
+	struct xloop_file_fmt_qcow_data *qcow_data, s64 offset)
 {
 	return (offset >> qcow_data->cluster_bits) &
 		(qcow_data->l2_slice_size - 1);
 }
 
-static inline s64 loop_file_fmt_qcow_vm_state_offset(
-	struct loop_file_fmt_qcow_data *qcow_data)
+static inline s64 xloop_file_fmt_qcow_vm_state_offset(
+	struct xloop_file_fmt_qcow_data *qcow_data)
 {
 	return (s64)qcow_data->l1_vm_state_index <<
 		(qcow_data->cluster_bits + qcow_data->l2_bits);
 }
 
-static inline enum loop_file_fmt_qcow_cluster_type
-loop_file_fmt_qcow_get_cluster_type(struct loop_file_fmt *lo_fmt, u64 l2_entry)
+static inline enum xloop_file_fmt_qcow_cluster_type
+xloop_file_fmt_qcow_get_cluster_type(struct xloop_file_fmt *xlo_fmt, u64 l2_entry)
 {
 	if (l2_entry & QCOW_OFLAG_COMPRESSED) {
 		return QCOW_CLUSTER_COMPRESSED;
@@ -405,7 +405,7 @@ loop_file_fmt_qcow_get_cluster_type(struct loop_file_fmt *lo_fmt, u64 l2_entry)
 		 * However, all clusters in external data files always have
 		 * refcount 1, so we can rely on QCOW_OFLAG_COPIED to
 		 * disambiguate. */
-		if (loop_file_fmt_qcow_has_data_file(lo_fmt) &&
+		if (xloop_file_fmt_qcow_has_data_file(xlo_fmt) &&
 			(l2_entry & QCOW_OFLAG_COPIED)) {
 			return QCOW_CLUSTER_NORMAL;
 		} else {

@@ -2,7 +2,7 @@
 /*
  * loop_file_fmt_qcow_cache.c
  *
- * QCOW file format driver for the loop device module.
+ * QCOW file format driver for the xloop device module.
  *
  * Ported QCOW2 implementation of the QEMU project (GPL-2.0):
  * L2/refcount table cache for the QCOW2 format.
@@ -23,14 +23,14 @@
 #include "loop_file_fmt_qcow_main.h"
 #include "loop_file_fmt_qcow_cache.h"
 
-static inline void *__loop_file_fmt_qcow_cache_get_table_addr(
-	struct loop_file_fmt_qcow_cache *c, int table)
+static inline void *__xloop_file_fmt_qcow_cache_get_table_addr(
+	struct xloop_file_fmt_qcow_cache *c, int table)
 {
 	return (u8 *) c->table_array + (size_t) table * c->table_size;
 }
 
-static inline int __loop_file_fmt_qcow_cache_get_table_idx(
-	struct loop_file_fmt_qcow_cache *c, void *table)
+static inline int __xloop_file_fmt_qcow_cache_get_table_idx(
+	struct xloop_file_fmt_qcow_cache *c, void *table)
 {
 	ptrdiff_t table_offset = (u8 *) table - (u8 *) c->table_array;
 	int idx = table_offset / c->table_size;
@@ -38,10 +38,10 @@ static inline int __loop_file_fmt_qcow_cache_get_table_idx(
 	return idx;
 }
 
-static inline const char *__loop_file_fmt_qcow_cache_get_name(
-	struct loop_file_fmt *lo_fmt, struct loop_file_fmt_qcow_cache *c)
+static inline const char *__xloop_file_fmt_qcow_cache_get_name(
+	struct xloop_file_fmt *xlo_fmt, struct xloop_file_fmt_qcow_cache *c)
 {
-	struct loop_file_fmt_qcow_data *qcow_data = lo_fmt->private_data;
+	struct xloop_file_fmt_qcow_data *qcow_data = xlo_fmt->private_data;
 
 	if (c == qcow_data->refcount_block_cache) {
 		return "refcount block";
@@ -53,13 +53,13 @@ static inline const char *__loop_file_fmt_qcow_cache_get_name(
 	}
 }
 
-struct loop_file_fmt_qcow_cache *loop_file_fmt_qcow_cache_create(
-	struct loop_file_fmt *lo_fmt, int num_tables, unsigned table_size)
+struct xloop_file_fmt_qcow_cache *xloop_file_fmt_qcow_cache_create(
+	struct xloop_file_fmt *xlo_fmt, int num_tables, unsigned table_size)
 {
 #ifdef CONFIG_DEBUG_DRIVER
-	struct loop_file_fmt_qcow_data *qcow_data = lo_fmt->private_data;
+	struct xloop_file_fmt_qcow_data *qcow_data = xlo_fmt->private_data;
 #endif
-	struct loop_file_fmt_qcow_cache *c;
+	struct xloop_file_fmt_qcow_cache *c;
 
 	ASSERT(num_tables > 0);
 	ASSERT(is_power_of_2(table_size));
@@ -73,7 +73,7 @@ struct loop_file_fmt_qcow_cache *loop_file_fmt_qcow_cache_create(
 
 	c->size = num_tables;
 	c->table_size = table_size;
-	c->entries = vzalloc(sizeof(struct loop_file_fmt_qcow_cache_table) *
+	c->entries = vzalloc(sizeof(struct xloop_file_fmt_qcow_cache_table) *
 		num_tables);
 	c->table_array = vzalloc(num_tables * c->table_size);
 
@@ -87,10 +87,10 @@ struct loop_file_fmt_qcow_cache *loop_file_fmt_qcow_cache_create(
 	return c;
 }
 
-void loop_file_fmt_qcow_cache_destroy(struct loop_file_fmt *lo_fmt)
+void xloop_file_fmt_qcow_cache_destroy(struct xloop_file_fmt *xlo_fmt)
 {
-	struct loop_file_fmt_qcow_data *qcow_data = lo_fmt->private_data;
-	struct loop_file_fmt_qcow_cache *c = qcow_data->l2_table_cache;
+	struct xloop_file_fmt_qcow_data *qcow_data = xlo_fmt->private_data;
+	struct xloop_file_fmt_qcow_cache *c = qcow_data->l2_table_cache;
 	int i;
 
 	for (i = 0; i < c->size; i++) {
@@ -102,23 +102,23 @@ void loop_file_fmt_qcow_cache_destroy(struct loop_file_fmt *lo_fmt)
 	kfree(c);
 }
 
-static int __loop_file_fmt_qcow_cache_entry_flush(
-	struct loop_file_fmt_qcow_cache *c, int i)
+static int __xloop_file_fmt_qcow_cache_entry_flush(
+	struct xloop_file_fmt_qcow_cache *c, int i)
 {
 	if (!c->entries[i].dirty || !c->entries[i].offset) {
 		return 0;
 	} else {
-		printk(KERN_ERR "loop_file_fmt_qcow: Flush dirty cache tables "
+		printk(KERN_ERR "xloop_file_fmt_qcow: Flush dirty cache tables "
 			"is not supported yet\n");
 		return -ENOSYS;
 	}
 }
 
-static int __loop_file_fmt_qcow_cache_do_get(struct loop_file_fmt *lo_fmt,
-	struct loop_file_fmt_qcow_cache *c, u64 offset, void **table,
+static int __xloop_file_fmt_qcow_cache_do_get(struct xloop_file_fmt *xlo_fmt,
+	struct xloop_file_fmt_qcow_cache *c, u64 offset, void **table,
 	bool read_from_disk)
 {
-	struct loop_device *lo = loop_file_fmt_get_lo(lo_fmt);
+	struct xloop_device *xlo = xloop_file_fmt_get_xlo(xlo_fmt);
 	int i;
 	int ret;
 	int lookup_index;
@@ -130,9 +130,9 @@ static int __loop_file_fmt_qcow_cache_do_get(struct loop_file_fmt *lo_fmt,
 	ASSERT(offset != 0);
 
 	if (!IS_ALIGNED(offset, c->table_size)) {
-		printk_ratelimited(KERN_ERR "loop_file_fmt_qcow: Cannot get "
+		printk_ratelimited(KERN_ERR "xloop_file_fmt_qcow: Cannot get "
 			"entry from %s cache: offset %llx is unaligned\n",
-			__loop_file_fmt_qcow_cache_get_name(lo_fmt, c),
+			__xloop_file_fmt_qcow_cache_get_name(xlo_fmt, c),
 			offset);
 		return -EIO;
 	}
@@ -140,7 +140,7 @@ static int __loop_file_fmt_qcow_cache_do_get(struct loop_file_fmt *lo_fmt,
 	/* Check if the table is already cached */
 	i = lookup_index = (offset / c->table_size * 4) % c->size;
 	do {
-		const struct loop_file_fmt_qcow_cache_table *t =
+		const struct xloop_file_fmt_qcow_cache_table *t =
 			&c->entries[i];
 		if (t->offset == offset) {
 			goto found;
@@ -164,7 +164,7 @@ static int __loop_file_fmt_qcow_cache_do_get(struct loop_file_fmt *lo_fmt,
 	/* Cache miss: write a table back and replace it */
 	i = min_lru_index;
 
-	ret = __loop_file_fmt_qcow_cache_entry_flush(c, i);
+	ret = __xloop_file_fmt_qcow_cache_entry_flush(c, i);
 	if (ret < 0) {
 		return ret;
 	}
@@ -172,8 +172,8 @@ static int __loop_file_fmt_qcow_cache_do_get(struct loop_file_fmt *lo_fmt,
 	c->entries[i].offset = 0;
 	if (read_from_disk) {
 		read_offset = offset;
-		len = kernel_read(lo->lo_backing_file,
-			__loop_file_fmt_qcow_cache_get_table_addr(c, i),
+		len = kernel_read(xlo->xlo_backing_file,
+			__xloop_file_fmt_qcow_cache_get_table_addr(c, i),
 			c->table_size, &read_offset);
 		if (len < 0) {
 			len = ret;
@@ -186,26 +186,26 @@ static int __loop_file_fmt_qcow_cache_do_get(struct loop_file_fmt *lo_fmt,
 	/* And return the right table */
 found:
 	c->entries[i].ref++;
-	*table = __loop_file_fmt_qcow_cache_get_table_addr(c, i);
+	*table = __xloop_file_fmt_qcow_cache_get_table_addr(c, i);
 
 	return 0;
 }
 
-int loop_file_fmt_qcow_cache_get(struct loop_file_fmt *lo_fmt, u64 offset,
+int xloop_file_fmt_qcow_cache_get(struct xloop_file_fmt *xlo_fmt, u64 offset,
 	void **table)
 {
-	struct loop_file_fmt_qcow_data *qcow_data = lo_fmt->private_data;
-	struct loop_file_fmt_qcow_cache *c = qcow_data->l2_table_cache;
+	struct xloop_file_fmt_qcow_data *qcow_data = xlo_fmt->private_data;
+	struct xloop_file_fmt_qcow_cache *c = qcow_data->l2_table_cache;
 
-	return __loop_file_fmt_qcow_cache_do_get(lo_fmt, c, offset, table,
+	return __xloop_file_fmt_qcow_cache_do_get(xlo_fmt, c, offset, table,
 		true);
 }
 
-void loop_file_fmt_qcow_cache_put(struct loop_file_fmt *lo_fmt, void **table)
+void xloop_file_fmt_qcow_cache_put(struct xloop_file_fmt *xlo_fmt, void **table)
 {
-	struct loop_file_fmt_qcow_data *qcow_data = lo_fmt->private_data;
-	struct loop_file_fmt_qcow_cache *c = qcow_data->l2_table_cache;
-	int i = __loop_file_fmt_qcow_cache_get_table_idx(c, *table);
+	struct xloop_file_fmt_qcow_data *qcow_data = xlo_fmt->private_data;
+	struct xloop_file_fmt_qcow_cache *c = qcow_data->l2_table_cache;
+	int i = __xloop_file_fmt_qcow_cache_get_table_idx(c, *table);
 
 	c->entries[i].ref--;
 	*table = NULL;

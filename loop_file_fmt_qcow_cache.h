@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
- * loop_file_fmt_qcow_cache.h
+ * xloop_file_fmt_qcow_cache.h
  *
  * Ported QCOW2 implementation of the QEMU project (GPL-2.0):
  * L2/refcount table cache for the QCOW2 format.
@@ -11,21 +11,21 @@
  * Copyright (C) 2019 Manuel Bentele <development@manuel-bentele.de>
  */
 
-#ifndef _LINUX_LOOP_FILE_FMT_QCOW_CACHE_H
-#define _LINUX_LOOP_FILE_FMT_QCOW_CACHE_H
+#ifndef _LINUX_XLOOP_FILE_FMT_QCOW_CACHE_H
+#define _LINUX_XLOOP_FILE_FMT_QCOW_CACHE_H
 
 #include "loop_file_fmt.h"
 
-struct loop_file_fmt_qcow_cache_table {
+struct xloop_file_fmt_qcow_cache_table {
 	s64 offset;
 	u64 lru_counter;
 	int ref;
 	bool dirty;
 };
 
-struct loop_file_fmt_qcow_cache {
-	struct loop_file_fmt_qcow_cache_table *entries;
-	struct loop_file_fmt_qcow_cache *depends;
+struct xloop_file_fmt_qcow_cache {
+	struct xloop_file_fmt_qcow_cache_table *entries;
+	struct xloop_file_fmt_qcow_cache *depends;
 	int size;
 	int table_size;
 	bool depends_on_flush;
@@ -34,18 +34,18 @@ struct loop_file_fmt_qcow_cache {
 	u64 cache_clean_lru_counter;
 };
 
-extern struct loop_file_fmt_qcow_cache *loop_file_fmt_qcow_cache_create(
-	struct loop_file_fmt *lo_fmt,
+extern struct xloop_file_fmt_qcow_cache *xloop_file_fmt_qcow_cache_create(
+	struct xloop_file_fmt *xlo_fmt,
 	int num_tables,
 	unsigned table_size);
 
-extern void loop_file_fmt_qcow_cache_destroy(struct loop_file_fmt *lo_fmt);
+extern void xloop_file_fmt_qcow_cache_destroy(struct xloop_file_fmt *xlo_fmt);
 
-extern int loop_file_fmt_qcow_cache_get(struct loop_file_fmt *lo_fmt,
+extern int xloop_file_fmt_qcow_cache_get(struct xloop_file_fmt *xlo_fmt,
 					u64 offset,
 					void **table);
 
-extern void loop_file_fmt_qcow_cache_put(struct loop_file_fmt *lo_fmt,
+extern void xloop_file_fmt_qcow_cache_put(struct xloop_file_fmt *xlo_fmt,
 					 void **table);
 
 #endif
