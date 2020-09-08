@@ -6,3 +6,4 @@ modules.order
 *.o.cmd
 *.mod*
 *.ko.cmd
+build
