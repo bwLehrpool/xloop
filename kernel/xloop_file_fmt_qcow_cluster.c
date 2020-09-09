@@ -13,10 +13,10 @@
 #include <linux/kernel.h>
 #include <linux/string.h>
 
-#include "loop_file_fmt.h"
-#include "loop_file_fmt_qcow_main.h"
-#include "loop_file_fmt_qcow_cache.h"
-#include "loop_file_fmt_qcow_cluster.h"
+#include "xloop_file_fmt.h"
+#include "xloop_file_fmt_qcow_main.h"
+#include "xloop_file_fmt_qcow_cache.h"
+#include "xloop_file_fmt_qcow_cluster.h"
 
 /*
  * Loads a L2 slice into memory (L2 slices are the parts of L2 tables

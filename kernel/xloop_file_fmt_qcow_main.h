@@ -24,7 +24,7 @@
 #include <linux/debugfs.h>
 #endif
 
-#include "loop_file_fmt.h"
+#include "xloop_file_fmt.h"
 
 #ifdef CONFIG_DEBUG_DRIVER
 #define ASSERT(x)  							\

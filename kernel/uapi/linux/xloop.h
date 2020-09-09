@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-1.0+ WITH Linux-syscall-note */
 /*
- * include/linux/loop.h
+ * include/linux/xloop.h
  *
  * Written by Theodore Ts'o, 3/29/93.
  *

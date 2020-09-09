@@ -1,4 +1,4 @@
-_losetup_module()
+_xlosetup_module()
 {
 	local cur prev OPTS ARG
 	COMPREPLY=()
@@ -16,7 +16,7 @@ _losetup_module()
 			return 0
 			;;
 		'-c'|'--set-capacity')
-			ARG="$(for I in /dev/loop[0-9]*; do if [ -e $I ]; then echo $I; fi; done)"
+			ARG="$(for I in /dev/xloop[0-9]*; do if [ -e $I ]; then echo $I; fi; done)"
 			COMPREPLY=( $(compgen -W "$ARG" -- $cur) )
 			return 0
 			;;
@@ -82,4 +82,4 @@ _losetup_module()
 	COMPREPLY=( $(compgen -f -- $cur) )
 	return 0
 }
-complete -F _losetup_module losetup
+complete -F _xlosetup_module xlosetup

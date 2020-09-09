@@ -15,12 +15,12 @@
 #include <linux/spinlock.h>
 #include <linux/mutex.h>
 #include <linux/kthread.h>
-#include "uapi/linux/loop.h"
+#include "uapi/linux/xloop.h"
 #ifdef CONFIG_DEBUG_FS
 #include <linux/debugfs.h>
 #endif
 
-#include "loop_file_fmt.h"
+#include "xloop_file_fmt.h"
 
 /* Possible states of device */
 enum {

@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
- * loop_file_fmt.h
+ * xloop_file_fmt.h
  *
  * File format subsystem for the xloop device module.
  *
@@ -10,7 +10,7 @@
 #ifndef _LINUX_XLOOP_FILE_FMT_H
 #define _LINUX_XLOOP_FILE_FMT_H
 
-#include "loop_main.h"
+#include "xloop_main.h"
 
 struct xloop_file_fmt;
 

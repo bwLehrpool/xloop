@@ -2,11 +2,11 @@
 
 # Linux kernel module xloop
 obj-$(CONFIG_BLK_DEV_XLOOP)               += xloop.o
-xloop-objs                                += loop_main.o loop_file_fmt.o
+xloop-objs                                += xloop_main.o xloop_file_fmt.o
 
 # Linux kernel module loop_file_fmt_raw
-obj-$(CONFIG_BLK_DEV_XLOOP_FILE_FMT_RAW)  += loop_file_fmt_raw.o
+obj-$(CONFIG_BLK_DEV_XLOOP_FILE_FMT_RAW)  += xloop_file_fmt_raw.o
 
 # Linux kernel module loop_file_fmt_qcow
-obj-$(CONFIG_BLK_DEV_XLOOP_FILE_FMT_QCOW) += loop_file_fmt_qcow.o
-loop_file_fmt_qcow-objs                   += loop_file_fmt_qcow_main.o loop_file_fmt_qcow_cluster.o loop_file_fmt_qcow_cache.o
+obj-$(CONFIG_BLK_DEV_XLOOP_FILE_FMT_QCOW) += xloop_file_fmt_qcow.o
+xloop_file_fmt_qcow-objs                  += xloop_file_fmt_qcow_main.o xloop_file_fmt_qcow_cluster.o xloop_file_fmt_qcow_cache.o

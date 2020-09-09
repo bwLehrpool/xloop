@@ -13,7 +13,7 @@
 #ifndef _LINUX_XLOOP_FILE_FMT_QCOW_CLUSTER_H
 #define _LINUX_XLOOP_FILE_FMT_QCOW_CLUSTER_H
 
-#include "loop_file_fmt.h"
+#include "xloop_file_fmt.h"
 
 extern int xloop_file_fmt_qcow_cluster_get_offset(struct xloop_file_fmt *xlo_fmt,
 						 u64 offset,

@@ -22,10 +22,10 @@
 #include <linux/vmalloc.h>
 #include <linux/zlib.h>
 
-#include "loop_file_fmt.h"
-#include "loop_file_fmt_qcow_main.h"
-#include "loop_file_fmt_qcow_cache.h"
-#include "loop_file_fmt_qcow_cluster.h"
+#include "xloop_file_fmt.h"
+#include "xloop_file_fmt_qcow_main.h"
+#include "xloop_file_fmt_qcow_cache.h"
+#include "xloop_file_fmt_qcow_cluster.h"
 
 static int __qcow_file_fmt_header_read(struct file *file,
 	struct xloop_file_fmt_qcow_header *header)

@@ -21,7 +21,7 @@
 #include <linux/uio.h>
 #include <linux/version.h>
 
-#include "loop_file_fmt.h"
+#include "xloop_file_fmt.h"
 
 static inline loff_t __raw_file_fmt_rq_get_pos(struct xloop_file_fmt *xlo_fmt,
 					       struct request *rq)

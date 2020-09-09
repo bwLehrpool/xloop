@@ -14,7 +14,7 @@
 #ifndef _LINUX_XLOOP_FILE_FMT_QCOW_CACHE_H
 #define _LINUX_XLOOP_FILE_FMT_QCOW_CACHE_H
 
-#include "loop_file_fmt.h"
+#include "xloop_file_fmt.h"
 
 struct xloop_file_fmt_qcow_cache_table {
 	s64 offset;

@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
- * loop_file_fmt_qcow_cache.c
+ * xloop_file_fmt_qcow_cache.c
  *
  * QCOW file format driver for the xloop device module.
  *
@@ -20,8 +20,8 @@
 #include <linux/fs.h>
 #include <linux/vmalloc.h>
 
-#include "loop_file_fmt_qcow_main.h"
-#include "loop_file_fmt_qcow_cache.h"
+#include "xloop_file_fmt_qcow_main.h"
+#include "xloop_file_fmt_qcow_cache.h"
 
 static inline void *__xloop_file_fmt_qcow_cache_get_table_addr(
 	struct xloop_file_fmt_qcow_cache *c, int table)

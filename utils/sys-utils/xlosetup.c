@@ -2,7 +2,7 @@
  * Copyright (C) 2011 Karel Zak <kzak@redhat.com>
  * Originally from Ted's losetup.c
  *
- * losetup.c - setup and control loop devices
+ * xlosetup.c - setup and control loop devices
  */
 #include <assert.h>
 #include <stdio.h>
@@ -458,7 +458,7 @@ static void __attribute__((__noreturn__)) usage(void)
 	for (i = 0; i < ARRAY_SIZE(infos); i++)
 		fprintf(out, " %12s  %s\n", infos[i].name, _(infos[i].help));
 
-	printf(USAGE_MAN_TAIL("losetup(8)"));
+	printf(USAGE_MAN_TAIL("xlosetup(8)"));
 
 	exit(EXIT_SUCCESS);
 }
@@ -494,7 +494,7 @@ static int create_loop(struct loopdev_cxt *lc,
 	int hasdev = loopcxt_has_device(lc);
 	int rc = 0;
 
-	/* losetup --find --noverlap file.img */
+	/* xlosetup --find --noverlap file.img */
 	if (!hasdev && nooverlap) {
 		rc = loopcxt_find_overlap(lc, file, offset, sizelimit);
 		switch (rc) {
@@ -541,7 +541,7 @@ static int create_loop(struct loopdev_cxt *lc,
 	if (hasdev && !is_loopdev(loopcxt_get_device(lc)))
 		loopcxt_add_device(lc);
 
-	/* losetup --noverlap /dev/loopN file.img */
+	/* xlosetup --noverlap /dev/loopN file.img */
 	if (hasdev && nooverlap) {
 		struct loopdev_cxt lc2;
 
@@ -803,7 +803,7 @@ int main(int argc, char **argv)
 
 	if (act == A_FIND_FREE && optind < argc) {
 		/*
-		 * losetup -f <backing_file>
+		 * xlosetup -f <backing_file>
 		 */
 		act = A_CREATE;
 		file = argv[optind++];
@@ -814,15 +814,15 @@ int main(int argc, char **argv)
 
 	if (list && !act && optind == argc)
 		/*
-		 * losetup --list	defaults to --all
+		 * xlosetup --list	defaults to --all
 		 */
 		act = A_SHOW;
 
 	if (!act && optind + 1 == argc) {
 		/*
-		 * losetup [--list] <device>
+		 * xlosetup [--list] <device>
 		 * OR
-		 * losetup {--direct-io[=off]|--logical-blocksize=size}... <device>
+		 * xlosetup {--direct-io[=off]|--logical-blocksize=size}... <device>
 		 */
 		if (!(set_dio || set_blocksize))
 			act = A_SHOW_ONE;
@@ -838,7 +838,7 @@ int main(int argc, char **argv)
 	}
 	if (!act) {
 		/*
-		 * losetup <loopdev> <backing_file>
+		 * xlosetup <loopdev> <backing_file>
 		 */
 		act = A_CREATE;
 

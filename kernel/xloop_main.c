@@ -1,5 +1,5 @@
 /*
- * loop_main.c
+ * xloop_main.c
  *
  * Written by Theodore Ts'o, 3/29/93
  *
@@ -86,8 +86,8 @@
 #include <linux/debugfs.h>
 #endif
 
-#include "loop_file_fmt.h"
-#include "loop_main.h"
+#include "xloop_file_fmt.h"
+#include "xloop_main.h"
 
 #include <linux/uaccess.h>
 
@@ -2087,12 +2087,12 @@ static const struct file_operations xloop_ctl_fops = {
 };
 
 static struct miscdevice xloop_misc = {
-	.minor		= LOOP_CTRL_MINOR,
+	.minor		= XLOOP_CTRL_MINOR,
 	.name		= "xloop-control",
 	.fops		= &xloop_ctl_fops,
 };
 
-MODULE_ALIAS_MISCDEV(LOOP_CTRL_MINOR);
+MODULE_ALIAS_MISCDEV(XLOOP_CTRL_MINOR);
 MODULE_ALIAS("devname:xloop-control");
 
 static int __init xloop_init(void)

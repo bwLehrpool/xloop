@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
- * loop_file_fmt.c
+ * xloop_file_fmt.c
  *
  * File format subsystem for the xloop device module.
  *
@@ -10,7 +10,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 
-#include "loop_file_fmt.h"
+#include "xloop_file_fmt.h"
 
 /* storage for all registered file format drivers */
 static struct xloop_file_fmt_driver *xloop_file_fmt_drivers[MAX_XLO_FILE_FMT] = {

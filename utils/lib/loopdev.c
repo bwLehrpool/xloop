@@ -13,7 +13,7 @@
  *  - reads info from /sys/block/loop<N>/loop/<attr> (new kernels)
  *  - reads info by ioctl
  *  - supports *unlimited* number of loop devices
- *  - supports /dev/loop<N> as well as /dev/loop/<N>
+ *  - supports /dev/xloop<N> as well as /dev/xloop/<N>
  *  - minimize overhead (fd, loopinfo, ... are shared for all operations)
  *  - setup (associate device and backing file)
  *  - delete (dis-associate file)
@@ -77,9 +77,9 @@ static void loopdev_init_debug(void)
  * @lc: context
  * @device: device name, absolute device path or NULL to reset the current setting
  *
- * Sets device, absolute paths (e.g. "/dev/loop<N>") are unchanged, device
- * names ("loop<N>") are converted to the path (/dev/loop<N> or to
- * /dev/loop/<N>)
+ * Sets device, absolute paths (e.g. "/dev/xloop<N>") are unchanged, device
+ * names ("xloop<N>") are converted to the path (/dev/xloop<N> or to
+ * /dev/xloop/<N>)
  *
  * This sets the device name, but does not check if the device exists!
  *
@@ -107,9 +107,9 @@ int loopcxt_set_device(struct loopdev_cxt *lc, const char *device)
 		if (*device != '/') {
 			const char *dir = _PATH_DEV;
 
-			/* compose device name for /dev/loop<n> or /dev/loop/<n> */
+			/* compose device name for /dev/xloop<n> or /dev/xloop/<n> */
 			if (lc->flags & LOOPDEV_FL_DEVSUBDIR) {
-				if (strlen(device) < 5)
+				if (strlen(device) < 6)
 					return -1;
 				device += 4;
 				dir = _PATH_DEV_LOOP "/";	/* _PATH_DEV uses tailing slash */
@@ -324,7 +324,7 @@ int loopcxt_init_iterator(struct loopdev_cxt *lc, int flags)
 
 	if (!lc->extra_check) {
 		/*
-		 * Check for /dev/loop/<N> subdirectory
+		 * Check for /dev/xloop/<N> subdirectory
 		 */
 		if (!(lc->flags & LOOPDEV_FL_DEVSUBDIR) &&
 		    stat(_PATH_DEV_LOOP, &st) == 0 && S_ISDIR(st.st_mode))
@@ -438,11 +438,11 @@ static int loop_scandir(const char *dirname, int **ary, int hasprefix)
 			continue;
 
 		if (hasprefix) {
-			/* /dev/loop<N> */
-			if (sscanf(d->d_name, "loop%u", &n) != 1)
+			/* /dev/xloop<N> */
+			if (sscanf(d->d_name, "xloop%u", &n) != 1)
 				continue;
 		} else {
-			/* /dev/loop/<N> */
+			/* /dev/xloop/<N> */
 			char *end = NULL;
 
 			errno = 0;
@@ -451,7 +451,7 @@ static int loop_scandir(const char *dirname, int **ary, int hasprefix)
 				continue;
 		}
 		if (n < LOOPDEV_DEFAULT_NNODES)
-			continue;			/* ignore loop<0..7> */
+			continue;			/* ignore xloop<0..7> */
 
 		if (count + 1 > arylen) {
 			int *tmp;
@@ -542,10 +542,10 @@ static int loopcxt_next_from_sysfs(struct loopdev_cxt *lc)
 
 		if (strcmp(d->d_name, ".") == 0
 		    || strcmp(d->d_name, "..") == 0
-		    || strncmp(d->d_name, "loop", 4) != 0)
+		    || strncmp(d->d_name, "xloop", 4) != 0)
 			continue;
 
-		snprintf(name, sizeof(name), "%s/loop/backing_file", d->d_name);
+		snprintf(name, sizeof(name), "%s/xloop/backing_file", d->d_name);
 		if (fstatat(fd, name, &st, 0) != 0)
 			continue;
 
@@ -599,7 +599,7 @@ int loopcxt_next(struct loopdev_cxt *lc)
 		for (++iter->ncur; iter->ncur < LOOPDEV_DEFAULT_NNODES;
 							iter->ncur++) {
 			char name[16];
-			snprintf(name, sizeof(name), "loop%d", iter->ncur);
+			snprintf(name, sizeof(name), "xloop%d", iter->ncur);
 
 			if (loopiter_set_device(lc, name) == 0)
 				return 0;
@@ -607,7 +607,7 @@ int loopcxt_next(struct loopdev_cxt *lc)
 		iter->default_check = 0;
 	}
 
-	/* C) the worst possibility, scan whole /dev or /dev/loop/<N>
+	/* C) the worst possibility, scan whole /dev or /dev/xloop/<N>
 	 */
 	if (!iter->minors) {
 		DBG(ITER, ul_debugobj(iter, "next: scanning /dev"));
@@ -618,7 +618,7 @@ int loopcxt_next(struct loopdev_cxt *lc)
 	}
 	for (++iter->ncur; iter->ncur < iter->nminors; iter->ncur++) {
 		char name[16];
-		snprintf(name, sizeof(name), "loop%d", iter->minors[iter->ncur]);
+		snprintf(name, sizeof(name), "xloop%d", iter->minors[iter->ncur]);
 
 		if (loopiter_set_device(lc, name) == 0)
 			return 0;
@@ -694,7 +694,7 @@ char *loopcxt_get_backing_file(struct loopdev_cxt *lc)
 		 * This is always preferred, the loop_info64
 		 * has too small buffer for the filename.
 		 */
-		ul_path_read_string(sysfs, &res, "loop/backing_file");
+		ul_path_read_string(sysfs, &res, "xloop/backing_file");
 
 	if (!res && loopcxt_ioctl_enabled(lc)) {
 		struct loop_info64 *lo = loopcxt_get_info(lc);
@@ -722,7 +722,7 @@ int loopcxt_get_offset(struct loopdev_cxt *lc, uint64_t *offset)
 	int rc = -EINVAL;
 
 	if (sysfs)
-		rc = ul_path_read_u64(sysfs, offset, "loop/offset");
+		rc = ul_path_read_u64(sysfs, offset, "xloop/offset");
 
 	if (rc && loopcxt_ioctl_enabled(lc)) {
 		struct loop_info64 *lo = loopcxt_get_info(lc);
@@ -782,7 +782,7 @@ int loopcxt_get_sizelimit(struct loopdev_cxt *lc, uint64_t *size)
 	int rc = -EINVAL;
 
 	if (sysfs)
-		rc = ul_path_read_u64(sysfs, size, "loop/sizelimit");
+		rc = ul_path_read_u64(sysfs, size, "xloop/sizelimit");
 
 	if (rc && loopcxt_ioctl_enabled(lc)) {
 		struct loop_info64 *lo = loopcxt_get_info(lc);
@@ -861,7 +861,7 @@ int loopcxt_get_file_fmt_type(struct loopdev_cxt *lc, uint32_t* file_fmt_type)
 	if (sysfs) {
 		/* check if file_fmt_type is accessible and supported by the kernel module */
 		char* file_fmt_str = NULL;
-		if (ul_path_read_string(sysfs, &file_fmt_str, "loop/file_fmt_type") == 0)
+		if (ul_path_read_string(sysfs, &file_fmt_str, "xloop/file_fmt_type") == 0)
 			rc = parse_file_fmt_type(file_fmt_str, file_fmt_type);
 	} else
 		rc = -errno;
@@ -886,9 +886,9 @@ char *loopcxt_get_file_fmt_type_string(struct loopdev_cxt *lc)
 	char *res = NULL;
 
 	if (sysfs)
-		ul_path_read_string(sysfs, &res, "loop/file_fmt_type");
+		ul_path_read_string(sysfs, &res, "xloop/file_fmt_type");
 
-	DBG(CXT, ul_debugobj(lc, "loopcxt_get_file_fmt_type_string [%s]", res));
+	DBG(CXT, ul_debugobj(lc, "xloopcxt_get_file_fmt_type_string [%s]", res));
 	return res;
 }
 
@@ -1001,7 +1001,7 @@ int loopcxt_is_partscan(struct loopdev_cxt *lc)
 	if (sysfs) {
 		/* kernel >= 3.2 */
 		int fl;
-		if (ul_path_read_s32(sysfs, &fl, "loop/partscan") == 0)
+		if (ul_path_read_s32(sysfs, &fl, "xloop/partscan") == 0)
 			return fl;
 	}
 
@@ -1020,7 +1020,7 @@ int loopcxt_is_autoclear(struct loopdev_cxt *lc)
 
 	if (sysfs) {
 		int fl;
-		if (ul_path_read_s32(sysfs, &fl, "loop/autoclear") == 0)
+		if (ul_path_read_s32(sysfs, &fl, "xloop/autoclear") == 0)
 			return fl;
 	}
 
@@ -1066,7 +1066,7 @@ int loopcxt_is_dio(struct loopdev_cxt *lc)
 
 	if (sysfs) {
 		int fl;
-		if (ul_path_read_s32(sysfs, &fl, "loop/dio") == 0)
+		if (ul_path_read_s32(sysfs, &fl, "xloop/dio") == 0)
 			return fl;
 	}
 	if (loopcxt_ioctl_enabled(lc)) {
@@ -1407,8 +1407,8 @@ int loopcxt_setup_device(struct loopdev_cxt *lc)
 			break;
 		if (errno != EACCES && errno != ENOENT)
 			break;
-		/* We have permissions to open /dev/loop-control, but open
-		 * /dev/loopN failed with EACCES, it's probably because udevd
+		/* We have permissions to open /dev/xloop-control, but open
+		 * /dev/xloopN failed with EACCES, it's probably because udevd
 		 * does not applied chown yet. Let's wait a moment. */
 		xusleep(25000);
 	} while (cnt++ < 16);
@@ -1643,7 +1643,7 @@ int loopcxt_find_unused(struct loopdev_cxt *lc)
 			rc = ioctl(ctl, LOOP_CTL_GET_FREE);
 		if (rc >= 0) {
 			char name[16];
-			snprintf(name, sizeof(name), "loop%d", rc);
+			snprintf(name, sizeof(name), "xloop%d", rc);
 
 			rc = loopiter_set_device(lc, name);
 		}
