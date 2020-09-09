@@ -357,7 +357,7 @@ static inline int is_xloop_device(struct file *file)
 {
 	struct inode *i = file->f_mapping->host;
 
-	return i && S_ISBLK(i->i_mode) && MAJOR(i->i_rdev) == LOOP_MAJOR;
+	return i && S_ISBLK(i->i_mode) && MAJOR(i->i_rdev) == XLOOP_MAJOR;
 }
 
 static int xloop_validate_file(struct file *file, struct block_device *bdev)
@@ -1698,7 +1698,7 @@ MODULE_PARM_DESC(max_xloop, "Maximum number of xloop devices");
 module_param(max_part, int, 0444);
 MODULE_PARM_DESC(max_part, "Maximum number of partitions per xloop device");
 MODULE_LICENSE("GPL");
-MODULE_ALIAS_BLOCKDEV_MAJOR(LOOP_MAJOR);
+MODULE_ALIAS_BLOCKDEV_MAJOR(XLOOP_MAJOR);
 
 int xloop_register_transfer(struct xloop_func_table *funcs)
 {
@@ -1923,7 +1923,7 @@ static int xloop_add(struct xloop_device **l, int i)
 	atomic_set(&xlo->xlo_refcnt, 0);
 	xlo->xlo_number		= i;
 	spin_lock_init(&xlo->xlo_lock);
-	disk->major		= LOOP_MAJOR;
+	disk->major		= XLOOP_MAJOR;
 	disk->first_minor	= i << part_shift;
 	disk->fops		= &xlo_fops;
 	disk->private_data	= xlo;
@@ -2136,7 +2136,7 @@ static int __init xloop_init(void)
 	 * a 'dead' device node.
 	 */
 	if (max_xloop) {
-		nr = CONFIG_BLK_DEV_LOOP_MIN_COUNT;
+		nr = CONFIG_BLK_DEV_XLOOP_MIN_COUNT;
 		range = 1UL << MINORBITS;
 	}
 
@@ -2145,7 +2145,7 @@ static int __init xloop_init(void)
 		goto err_out;
 
 
-	if (register_blkdev(LOOP_MAJOR, "xloop")) {
+	if (register_blkdev(XLOOP_MAJOR, "xloop")) {
 		err = -EIO;
 		goto misc_out;
 	}
@@ -2158,7 +2158,7 @@ static int __init xloop_init(void)
 	}
 #endif
 
-	blk_register_region(MKDEV(LOOP_MAJOR, 0), range,
+	blk_register_region(MKDEV(XLOOP_MAJOR, 0), range,
 				  THIS_MODULE, xloop_probe, NULL, NULL);
 
 	/* pre-create number of devices given by config or max_xloop */
@@ -2195,8 +2195,8 @@ static void __exit xloop_exit(void)
 	idr_for_each(&xloop_index_idr, &xloop_exit_cb, NULL);
 	idr_destroy(&xloop_index_idr);
 
-	blk_unregister_region(MKDEV(LOOP_MAJOR, 0), range);
-	unregister_blkdev(LOOP_MAJOR, "xloop");
+	blk_unregister_region(MKDEV(XLOOP_MAJOR, 0), range);
+	unregister_blkdev(XLOOP_MAJOR, "xloop");
 
 #ifdef CONFIG_DEBUG_FS
 	debugfs_remove(xloop_dbgfs_dir);

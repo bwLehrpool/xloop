@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0
-include $(PWD)/Kbuild.in
+include $(PWD)/Kbuild
 
 ifndef KDIR
 	KDIR = /lib/modules/$(shell uname -r)/build
