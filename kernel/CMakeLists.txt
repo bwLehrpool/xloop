@@ -8,15 +8,15 @@ include(kernel)
 
 # set Linux kernel directory
 set(KERNEL_DIR "/lib/modules/${CMAKE_SYSTEM_VERSION}"
-    CACHE PATH "Path to kernel sources to compile against")
+    CACHE PATH "Path to Linux kernel modules to compile against")
 
 # define xloop device specific options
 set(XLOOP_CTRL_MINOR 15
-   CACHE STRING "Minor number for xloop-control device")
+   CACHE STRING "Minor number for the xloop-control device")
 
 # print configured settings
-message(STATUS "Kernel module path is " ${KERNEL_DIR})
-message(STATUS "Minor number for xloop-control device is " ${XLOOP_CTRL_MINOR})
+message(STATUS "Path to Linux kernel modules to compile against is " ${KERNEL_DIR})
+message(STATUS "Minor number for the xloop-control device is " ${XLOOP_CTRL_MINOR})
 
 # set C flags for a Linux kernel module
 set(KERNEL_C_FLAGS "-DCONFIG_BLK_DEV_XLOOP_MIN_COUNT=${BLK_DEV_XLOOP_MIN_COUNT} -DXLOOP_MAJOR=${XLOOP_MAJOR} -DXLOOP_CTRL_MINOR=${XLOOP_CTRL_MINOR}"
