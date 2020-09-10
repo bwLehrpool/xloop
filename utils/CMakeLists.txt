@@ -7,8 +7,12 @@ project(xloop-utils)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# add include of config.h to each source file
-add_compile_options(-include ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
+# prepare date for configuring config.h
+string(TIMESTAMP DATE "%d-%b-%Y")
+
+# configure configuration config.h and add it to each source file
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+add_compile_options(-include ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 # add xloop specific compile options
 add_definitions(-DCONFIG_BLK_DEV_XLOOP_MIN_COUNT=${BLK_DEV_XLOOP_MIN_COUNT} -DXLOOP_MAJOR=${XLOOP_MAJOR})

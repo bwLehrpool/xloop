@@ -19,13 +19,6 @@ extern "C" {
 #include <sys/types.h>
 
 /**
- * LIBSMARTCOLS_VERSION:
- *
- * Library version string
- */
-#define LIBSMARTCOLS_VERSION   "2.36.97"
-
-/**
  * libscols_iter:
  *
  * Generic iterator
