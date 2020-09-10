@@ -11,17 +11,11 @@ set(KERNEL_DIR "/lib/modules/${CMAKE_SYSTEM_VERSION}"
     CACHE PATH "Path to kernel sources to compile against")
 
 # define xloop device specific options
-set(BLK_DEV_XLOOP_MIN_COUNT 8
-               CACHE STRING "Number of xloop devices to pre-create at init time")
-set(XLOOP_MAJOR 120
-   CACHE STRING "Major number for xloop devices")
 set(XLOOP_CTRL_MINOR 15
    CACHE STRING "Minor number for xloop-control device")
 
 # print configured settings
 message(STATUS "Kernel module path is " ${KERNEL_DIR})
-message(STATUS "Number of xloop devices to pre-create at init time is " ${BLK_DEV_XLOOP_MIN_COUNT})
-message(STATUS "Major number for xloop devices is " ${XLOOP_MAJOR})
 message(STATUS "Minor number for xloop-control device is " ${XLOOP_CTRL_MINOR})
 
 # set C flags for a Linux kernel module

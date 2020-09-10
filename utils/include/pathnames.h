@@ -144,8 +144,8 @@
 
 #define _PATH_DEV_MEM		"/dev/mem"
 
-#define _PATH_DEV_LOOP		"/dev/loop"
-#define _PATH_DEV_LOOPCTL	"/dev/loop-control"
+#define _PATH_DEV_LOOP		"/dev/xloop"
+#define _PATH_DEV_LOOPCTL	"/dev/xloop-control"
 
 /* udev paths */
 #define _PATH_DEV_BYLABEL	"/dev/disk/by-label"

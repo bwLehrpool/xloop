@@ -10,6 +10,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 # add include of config.h to each source file
 add_compile_options(-include ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
 
+# add xloop specific compile options
+add_definitions(-DCONFIG_BLK_DEV_XLOOP_MIN_COUNT=${BLK_DEV_XLOOP_MIN_COUNT} -DXLOOP_MAJOR=${XLOOP_MAJOR})
+
 add_subdirectory(lib)
 add_subdirectory(libsmartcols)
 add_subdirectory(sys-utils)

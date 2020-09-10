@@ -75,8 +75,8 @@ struct loop_info64 {
 	uint32_t	lo_file_fmt_type;
 };
 
-#define LOOPDEV_MAJOR		7	/* loop major number */
-#define LOOPDEV_DEFAULT_NNODES	8	/* default number of loop devices */
+#define LOOPDEV_MAJOR	XLOOP_MAJOR	/* loop major number */
+#define LOOPDEV_DEFAULT_NNODES	CONFIG_BLK_DEV_XLOOP_MIN_COUNT	/* default number of loop devices */
 
 struct loopdev_iter {
 	FILE		*proc;		/* /proc/partitions */

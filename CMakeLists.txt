@@ -3,6 +3,17 @@ cmake_minimum_required(VERSION 3.10)
 # set the project name
 project(xloop)
 
+# define project specific settings
+set(BLK_DEV_XLOOP_MIN_COUNT 8
+               CACHE STRING "Number of xloop devices to pre-create at init time")
+set(XLOOP_MAJOR 120
+   CACHE STRING "Major number for xloop devices")
+
+# print configured settings
+message(STATUS "Number of xloop devices to pre-create at init time is " ${BLK_DEV_XLOOP_MIN_COUNT})
+message(STATUS "Major number for xloop devices is " ${XLOOP_MAJOR})
+
+# set compilation in debug mode as default configuration
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug")
 endif()

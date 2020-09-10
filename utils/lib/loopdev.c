@@ -109,9 +109,9 @@ int loopcxt_set_device(struct loopdev_cxt *lc, const char *device)
 
 			/* compose device name for /dev/xloop<n> or /dev/xloop/<n> */
 			if (lc->flags & LOOPDEV_FL_DEVSUBDIR) {
-				if (strlen(device) < 6)
+				if (strlen(device) <= 5)
 					return -1;
-				device += 4;
+				device += 5;
 				dir = _PATH_DEV_LOOP "/";	/* _PATH_DEV uses tailing slash */
 			}
 			snprintf(lc->device, sizeof(lc->device), "%s%s",
@@ -188,7 +188,7 @@ int loopcxt_init(struct loopdev_cxt *lc, int flags)
 
 	if (!(lc->flags & LOOPDEV_FL_CONTROL) && !stat(_PATH_DEV_LOOPCTL, &st)) {
 		lc->flags |= LOOPDEV_FL_CONTROL;
-		DBG(CXT, ul_debugobj(lc, "init: loop-control detected "));
+		DBG(CXT, ul_debugobj(lc, "init: xloop-control detected "));
 	}
 
 	return 0;
@@ -1605,7 +1605,7 @@ int loopcxt_add_device(struct loopdev_cxt *lc)
 	}
 
 	p = strrchr(dev, '/');
-	if (!p || (sscanf(p, "/loop%d", &nr) != 1 && sscanf(p, "/%d", &nr) != 1)
+	if (!p || (sscanf(p, "/xloop%d", &nr) != 1 && sscanf(p, "/%d", &nr) != 1)
 	       || nr < 0)
 		goto done;
 
@@ -1636,7 +1636,7 @@ int loopcxt_find_unused(struct loopdev_cxt *lc)
 	if (lc->flags & LOOPDEV_FL_CONTROL) {
 		int ctl;
 
-		DBG(CXT, ul_debugobj(lc, "using loop-control"));
+		DBG(CXT, ul_debugobj(lc, "using xloop-control"));
 
 		ctl = open(_PATH_DEV_LOOPCTL, O_RDWR|O_CLOEXEC);
 		if (ctl >= 0)
@@ -1650,7 +1650,7 @@ int loopcxt_find_unused(struct loopdev_cxt *lc)
 		lc->control_ok = ctl >= 0 && rc == 0 ? 1 : 0;
 		if (ctl >= 0)
 			close(ctl);
-		DBG(CXT, ul_debugobj(lc, "find_unused by loop-control [rc=%d]", rc));
+		DBG(CXT, ul_debugobj(lc, "find_unused by xloop-control [rc=%d]", rc));
 	}
 
 	if (rc < 0) {

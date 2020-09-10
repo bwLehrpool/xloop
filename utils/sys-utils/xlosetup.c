@@ -2,7 +2,7 @@
  * Copyright (C) 2011 Karel Zak <kzak@redhat.com>
  * Originally from Ted's losetup.c
  *
- * xlosetup.c - setup and control loop devices
+ * xlosetup.c - setup and control xloop devices
  */
 #include <assert.h>
 #include <stdio.h>
@@ -36,7 +36,7 @@ enum {
 	A_FIND_FREE,		/* find first unused */
 	A_SET_CAPACITY,		/* set device capacity */
 	A_SET_DIRECT_IO,	/* set accessing backing file by direct io */
-	A_SET_BLOCKSIZE,	/* set logical block size of the loop device */
+	A_SET_BLOCKSIZE,	/* set logical block size of the xloop device */
 };
 
 enum {
@@ -75,12 +75,12 @@ static struct colinfo infos[] = {
 	[COL_FILE_FMT_TYPE] = { "FILE-FORMAT",  1, 0, N_("backing file format")},
 	[COL_BACK_INO]      = { "BACK-INO",     4, SCOLS_FL_RIGHT, N_("backing file inode number"), SCOLS_JSON_NUMBER},
 	[COL_BACK_MAJMIN]   = { "BACK-MAJ:MIN", 6, 0, N_("backing file major:minor device number")},
-	[COL_NAME]          = { "NAME",      0.25, 0, N_("loop device name")},
+	[COL_NAME]          = { "NAME",      0.25, 0, N_("xloop device name")},
 	[COL_OFFSET]        = { "OFFSET",       5, SCOLS_FL_RIGHT, N_("offset from the beginning"), SCOLS_JSON_NUMBER},
 	[COL_PARTSCAN]      = { "PARTSCAN",     1, SCOLS_FL_RIGHT, N_("partscan flag set"), SCOLS_JSON_BOOLEAN},
 	[COL_RO]            = { "RO",           1, SCOLS_FL_RIGHT, N_("read-only device"), SCOLS_JSON_BOOLEAN},
 	[COL_SIZELIMIT]     = { "SIZELIMIT",    5, SCOLS_FL_RIGHT, N_("size limit of the file in bytes"), SCOLS_JSON_NUMBER},
-	[COL_MAJMIN]        = { "MAJ:MIN",      3, 0, N_("loop device major:minor number")},
+	[COL_MAJMIN]        = { "MAJ:MIN",      3, 0, N_("xloop device major:minor number")},
 	[COL_DIO]           = { "DIO",          1, SCOLS_FL_RIGHT, N_("access backing file with direct-io"), SCOLS_JSON_BOOLEAN},
 	[COL_LOGSEC]        = { "LOG-SEC",      4, SCOLS_FL_RIGHT, N_("logical sector size in bytes"), SCOLS_JSON_NUMBER},
 };
@@ -343,7 +343,7 @@ static int show_table(struct loopdev_cxt *lc,
 	scols_table_enable_noheadings(tb, no_headings);
 
 	if (json)
-		scols_table_set_name(tb, "loopdevices");
+		scols_table_set_name(tb, "xloopdevices");
 
 	for (i = 0; i < ncolumns; i++) {
 		struct colinfo *ci = get_column_info(i);
@@ -356,14 +356,14 @@ static int show_table(struct loopdev_cxt *lc,
 			scols_column_set_json_type(cl, ci->json_type);
 	}
 
-	/* only one loopdev requested (already assigned to loopdev_cxt) */
+	/* only one xloopdev requested (already assigned to loopdev_cxt) */
 	if (loopcxt_get_device(lc)) {
 		ln = scols_table_new_line(tb, NULL);
 		if (!ln)
 			err(EXIT_FAILURE, _("failed to allocate output line"));
 		rc = set_scols_data(lc, ln);
 
-	/* list all loopdevs */
+	/* list all xloopdevs */
 	} else {
 		char *cn_file = NULL;
 
@@ -413,20 +413,20 @@ static void __attribute__((__noreturn__)) usage(void)
 	fputs(USAGE_HEADER, out);
 
 	fprintf(out,
-	      _(" %1$s [options] [<loopdev>]\n"
-		" %1$s [options] -f | <loopdev> <file>\n"),
+	      _(" %1$s [options] [<xloopdev>]\n"
+		" %1$s [options] -f | <xloopdev> <file>\n"),
 		program_invocation_short_name);
 
 	fputs(USAGE_SEPARATOR, out);
-	fputs(_("Set up and control loop devices.\n"), out);
+	fputs(_("Set up and control xloop devices.\n"), out);
 
 	/* commands */
 	fputs(USAGE_OPTIONS, out);
 	fputs(_(" -a, --all                     list all used devices\n"), out);
-	fputs(_(" -d, --detach <loopdev>...     detach one or more devices\n"), out);
+	fputs(_(" -d, --detach <xloopdev>...    detach one or more devices\n"), out);
 	fputs(_(" -D, --detach-all              detach all used devices\n"), out);
 	fputs(_(" -f, --find                    find first unused device\n"), out);
-	fputs(_(" -c, --set-capacity <loopdev>  resize the device\n"), out);
+	fputs(_(" -c, --set-capacity <xloopdev> resize the device\n"), out);
 	fputs(_(" -j, --associated <file>       list all devices associated with <file>\n"), out);
 	fputs(_(" -L, --nooverlap               avoid possible conflict between devices\n"), out);
 
@@ -435,8 +435,8 @@ static void __attribute__((__noreturn__)) usage(void)
 	fputs(_(" -o, --offset <num>            start at offset <num> into file\n"), out);
 	fputs(_("     --sizelimit <num>         device is limited to <num> bytes of the file\n"), out);
 	fputs(_(" -b, --sector-size <num>       set the logical sector size to <num>\n"), out);
-	fputs(_(" -P, --partscan                create a partitioned loop device\n"), out);
-	fputs(_(" -r, --read-only               set up a read-only loop device\n"), out);
+	fputs(_(" -P, --partscan                create a partitioned xloop device\n"), out);
+	fputs(_(" -r, --read-only               set up a read-only xloop device\n"), out);
 	fputs(_("     --direct-io[=<on|off>]    open backing file with O_DIRECT\n"), out);
 	fputs(_("     --show                    print device name after setup (with -f)\n"), out);
 	fputs(_(" -t, --type                    set file format type of the loop device\n"), out);
@@ -477,7 +477,7 @@ static void warn_size(const char *filename, uint64_t size, uint64_t offset, int 
 	}
 
 	if (size < 512)
-		warnx(_("%s: Warning: file is smaller than 512 bytes; the loop device "
+		warnx(_("%s: Warning: file is smaller than 512 bytes; the xloop device "
 			"may be useless or invisible for system tools."),
 			filename);
 	else if (size % 512)
@@ -503,37 +503,37 @@ static int create_loop(struct loopdev_cxt *lc,
 
 		case 1:	/* overlap */
 			loopcxt_deinit(lc);
-			errx(EXIT_FAILURE, _("%s: overlapping loop device exists"), file);
+			errx(EXIT_FAILURE, _("%s: overlapping xloop device exists"), file);
 
 		case 2: /* overlap -- full size and offset match (reuse) */
 		{
 			uint32_t lc_encrypt_type;
 
-			/* Once a loop is initialized RO, there is no
+			/* Once a xloop is initialized RO, there is no
 			 * way to change its parameters. */
 			if (loopcxt_is_readonly(lc)
 			    && !(lo_flags & LO_FLAGS_READ_ONLY)) {
 				loopcxt_deinit(lc);
-				errx(EXIT_FAILURE, _("%s: overlapping read-only loop device exists"), file);
+				errx(EXIT_FAILURE, _("%s: overlapping read-only xloop device exists"), file);
 			}
 
 			/* This is no more supported, but check to be safe. */
 			if (loopcxt_get_encrypt_type(lc, &lc_encrypt_type) == 0
 			    && lc_encrypt_type != LO_CRYPT_NONE) {
 				loopcxt_deinit(lc);
-				errx(EXIT_FAILURE, _("%s: overlapping encrypted loop device exists"), file);
+				errx(EXIT_FAILURE, _("%s: overlapping encrypted xloop device exists"), file);
 			}
 
 			lc->info.lo_flags &= ~LO_FLAGS_AUTOCLEAR;
 			if (loopcxt_ioctl_status(lc)) {
 				loopcxt_deinit(lc);
-				errx(EXIT_FAILURE, _("%s: failed to re-use loop device"), file);
+				errx(EXIT_FAILURE, _("%s: failed to re-use xloop device"), file);
 			}
 			return 0;	/* success, re-use */
 		}
 		default: /* error */
 			loopcxt_deinit(lc);
-			errx(EXIT_FAILURE, _("failed to inspect loop devices"));
+			errx(EXIT_FAILURE, _("failed to inspect xloop devices"));
 			return -errno;
 		}
 	}
@@ -541,7 +541,7 @@ static int create_loop(struct loopdev_cxt *lc,
 	if (hasdev && !is_loopdev(loopcxt_get_device(lc)))
 		loopcxt_add_device(lc);
 
-	/* xlosetup --noverlap /dev/loopN file.img */
+	/* xlosetup --noverlap /dev/xloopN file.img */
 	if (hasdev && nooverlap) {
 		struct loopdev_cxt lc2;
 
@@ -555,8 +555,8 @@ static int create_loop(struct loopdev_cxt *lc,
 		if (rc) {
 			loopcxt_deinit(lc);
 			if (rc > 0)
-				errx(EXIT_FAILURE, _("%s: overlapping loop device exists"), file);
-			err(EXIT_FAILURE, _("%s: failed to check for conflicting loop devices"), file);
+				errx(EXIT_FAILURE, _("%s: overlapping xloop device exists"), file);
+			err(EXIT_FAILURE, _("%s: failed to check for conflicting xloop devices"), file);
 		}
 	}
 
@@ -568,7 +568,7 @@ static int create_loop(struct loopdev_cxt *lc,
 		 * loopcxt struct.
 		 */
 		if (!hasdev && (rc = loopcxt_find_unused(lc))) {
-			warnx(_("cannot find an unused loop device"));
+			warnx(_("cannot find an unused xloop device"));
 			break;
 		}
 		if (flags & LOOPDEV_FL_OFFSET)
@@ -600,7 +600,7 @@ static int create_loop(struct loopdev_cxt *lc,
 		/* errors */
 		errpre = hasdev && loopcxt_get_fd(lc) < 0 ?
 				 loopcxt_get_device(lc) : file;
-		warn(_("%s: failed to set up loop device"), errpre);
+		warn(_("%s: failed to set up xloop device"), errpre);
 		break;
 	} while (hasdev == 0);
 
@@ -838,12 +838,12 @@ int main(int argc, char **argv)
 	}
 	if (!act) {
 		/*
-		 * xlosetup <loopdev> <backing_file>
+		 * xlosetup <xloopdev> <backing_file>
 		 */
 		act = A_CREATE;
 
 		if (optind >= argc)
-			errx(EXIT_FAILURE, _("no loop device specified"));
+			errx(EXIT_FAILURE, _("no xloop device specified"));
 		/* don't use is_loopdev() here, the device does not have exist yet */
 		if (loopcxt_set_device(&lc, argv[optind]))
 			err(EXIT_FAILURE, _("%s: failed to use device"),
@@ -858,7 +858,7 @@ int main(int argc, char **argv)
 	if (act != A_CREATE &&
 	    (sizelimit || lo_flags || showdev || use_file_fmt_type))
 		errx(EXIT_FAILURE,
-			_("the options %s are allowed during loop device setup only"),
+			_("the options %s are allowed during xloop device setup only"),
 			"--{sizelimit,partscan,read-only,show,type}");
 
 	if ((flags & LOOPDEV_FL_OFFSET) &&
@@ -906,7 +906,7 @@ int main(int argc, char **argv)
 			else
 				errno = errsv;
 
-			warn(_("cannot find an unused loop device"));
+			warn(_("cannot find an unused xloop device"));
 		} else
 			printf("%s\n", loopcxt_get_device(&lc));
 		break;
