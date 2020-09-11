@@ -1,40 +1,40 @@
-.TH LOSETUP 8 "November 2015" "util-linux" "System Administration"
+.TH XLOSETUP 8 "September 2020" "util-linux" "System Administration"
 .SH NAME
-losetup \- set up and control loop devices
+xlosetup \- set up and control xloop devices
 .SH SYNOPSIS
 .ad l
 Get info:
 .sp
 .in +5
-.B losetup
-[\fIloopdev\fP]
+.B xlosetup
+[\fIxloopdev\fP]
 .sp
-.B losetup \-l
+.B xlosetup \-l
 .RB [ \-a ]
 .sp
-.B losetup \-j
+.B xlosetup \-j
 .I file
 .RB [ \-o
 .IR offset ]
 .sp
 .in -5
-Detach a loop device:
+Detach a xloop device:
 .sp
 .in +5
-.B "losetup \-d"
-.IR loopdev ...
+.B "xlosetup \-d"
+.IR xloopdev ...
 .sp
 .in -5
-Detach all associated loop devices:
+Detach all associated xloop devices:
 .sp
 .in +5
-.B "losetup \-D"
+.B "xlosetup \-D"
 .sp
 .in -5
-Set up a loop device:
+Set up a xloop device:
 .sp
 .in +5
-.B losetup
+.B xlosetup
 .RB [ \-o
 .IR offset ]
 .RB [ \-\-sizelimit
@@ -43,28 +43,28 @@ Set up a loop device:
 .IR size ]
 .in +8
 .RB [ \-Pr ]
-.RB [ \-\-show ]  " \-f" | \fIloopdev\fP
+.RB [ \-\-show ]  " \-f" | \fIxloopdev\fP
 .I file
 .sp
 .in -13
-Resize a loop device:
+Resize a xloop device:
 .sp
 .in +5
-.B "losetup \-c"
-.I loopdev
+.B "xlosetup \-c"
+.I xloopdev
 .in -5
 .ad b
 .SH DESCRIPTION
-.B losetup
-is used to associate loop devices with regular files or block devices,
-to detach loop devices, and to query the status of a loop device.  If only the
-\fIloopdev\fP argument is given, the status of the corresponding loop
-device is shown.  If no option is given, all loop devices are shown.
+.B xlosetup
+is used to associate xloop devices with regular files or block devices,
+to detach xloop devices, and to query the status of a xloop device.  If only the
+\fIxloopdev\fP argument is given, the status of the corresponding xloop
+device is shown.  If no option is given, all xloop devices are shown.
 .sp
-Note that the old output format (i.e., \fBlosetup \-a\fR) with comma-delimited
+Note that the old output format (i.e., \fBxlosetup \-a\fR) with comma-delimited
 strings is deprecated in favour of the \fB\-\-list\fR output format.
 .sp
-It's possible to create more independent loop devices for the same backing
+It's possible to create more independent xloop devices for the same backing
 file.
 .B This setup may be dangerous, can cause data loss, corruption and overwrites.
 Use \fB\-\-nooverlap\fR with \fB\-\-find\fR during setup to avoid this problem.
@@ -78,34 +78,34 @@ KB (=1000), MB (=1000*1000), and so on for GB, TB, PB, EB, ZB and YB.
 
 .TP
 .BR \-a , " \-\-all"
-Show the status of all loop devices.  Note that not all information is accessible
+Show the status of all xloop devices.  Note that not all information is accessible
 for non-root users.  See also \fB\-\-list\fR.  The old output format (as printed
 without \fB\-\-list)\fR is deprecated.
 .TP
-.BR \-d , " \-\-detach " \fIloopdev\fR...
-Detach the file or device associated with the specified loop device(s). Note
+.BR \-d , " \-\-detach " \fIxloopdev\fR...
+Detach the file or device associated with the specified xloop device(s). Note
 that since Linux v3.7 kernel uses "lazy device destruction".  The detach
 operation does not return EBUSY error anymore if device is actively used by
 system, but it is marked by autoclear flag and destroyed later.
 .TP
 .BR \-D , " \-\-detach\-all"
-Detach all associated loop devices.
+Detach all associated xloop devices.
 .TP
 .BR \-f , " \-\-find " "\fR[\fIfile\fR]"
-Find the first unused loop device.  If a \fIfile\fR argument is present, use
-the found device as loop device.  Otherwise, just print its name.
+Find the first unused xloop device.  If a \fIfile\fR argument is present, use
+the found device as xloop device.  Otherwise, just print its name.
 .IP "\fB\-\-show\fP"
-Display the name of the assigned loop device if the \fB\-f\fP option and a
+Display the name of the assigned xloop device if the \fB\-f\fP option and a
 \fIfile\fP argument are present.
 .TP
 .BR \-L , " \-\-nooverlap"
-Check for conflicts between loop devices to avoid situation when the same
-backing file is shared between more loop devices. If the file is already used
+Check for conflicts between xloop devices to avoid situation when the same
+backing file is shared between more xloop devices. If the file is already used
 by another device then re-use the device rather than a new one. The option
 makes sense only with \fB\-\-find\fP.
 .TP
 .BR \-j , " \-\-associated " \fIfile\fR " \fR[\fB\-o \fIoffset\fR]"
-Show the status of all loop devices associated with the given \fIfile\fR.
+Show the status of all xloop devices associated with the given \fIfile\fR.
 .TP
 .BR \-o , " \-\-offset " \fIoffset
 The data start is moved \fIoffset\fP bytes into the specified file or device.  The \fIoffset\fP
@@ -115,21 +115,21 @@ The data end is set to no more than \fIsize\fP bytes after the data start.  The 
 may be followed by the multiplicative suffixes; see above.
 .TP
 .BR \-b , " \-\-sector-size " \fIsize
-Set the logical sector size of the loop device in bytes (since Linux 4.14). The
-option may be used when create a new loop device as well as stand-alone command
-to modify sector size of the already existing loop device.
+Set the logical sector size of the xloop device in bytes (since Linux 4.14). The
+option may be used when create a new xloop device as well as stand-alone command
+to modify sector size of the already existing xloop device.
 .TP
-.BR \-c , " \-\-set\-capacity " \fIloopdev
-Force the loop driver to reread the size of the file associated with the
-specified loop device.
+.BR \-c , " \-\-set\-capacity " \fIxloopdev
+Force the xloop driver to reread the size of the file associated with the
+specified xloop device.
 .TP
 .BR \-P , " \-\-partscan"
-Force the kernel to scan the partition table on a newly created loop device.  Note that the
+Force the kernel to scan the partition table on a newly created xloop device.  Note that the
 partition table parsing depends on sector sizes.  The default is sector size is 512 bytes,
 otherwise you need to use the option \fB\-\-sector\-size\fR together with \fB\-\-partscan\fR.
 .TP
 .BR \-r , " \-\-read\-only"
-Set up a read-only loop device.
+Set up a read-only xloop device.
 .TP
 .BR \-\-direct\-io [ =on | off ]
 Enable or disable direct I/O for the backing file.  The optional argument
@@ -137,7 +137,7 @@ can be either \fBon\fR or \fBoff\fR.  If the argument is omitted, it defaults
 to \fBoff\fR.
 .TP
 .BR \-t , " \-\-type \fIformat\fR"
-Set the file format type of the loop device. If no file format type is specified,
+Set the file format type of the xloop device. If no file format type is specified,
 the RAW file format is used by default. Valid file formats are: \fBRAW\fR,
 \fBQCOW\fR, \fBVDI\fR, \fBVMDK\fR.
 .TP
@@ -145,8 +145,8 @@ the RAW file format is used by default. Valid file formats are: \fBRAW\fR,
 Verbose mode.
 .TP
 .BR \-l , " \-\-list"
-If a loop device or the \fB\-a\fR option is specified, print the default columns
-for either the specified loop device or all loop devices; the default is to
+If a xloop device or the \fB\-a\fR option is specified, print the default columns
+for either the specified xloop device or all xloop devices; the default is to
 print info about all devices.  See also \fB\-\-output\fP, \fB\-\-noheadings\fP,
 \fB\-\-raw\fP, and \fB\-\-json\fP.
 .TP
@@ -176,10 +176,10 @@ Display help text and exit.
 .B For more details see cryptsetup(8).
 
 .SH EXIT STATUS
-.B losetup
+.B xlosetup
 returns 0 on success, nonzero on failure.  When
-.B losetup
-displays the status of a loop device, it returns 1 if the device
+.B xlosetup
+displays the status of a xloop device, it returns 1 if the device
 is not configured and 2 if an error occurred which prevented
 determining the status of the device.
 
@@ -189,27 +189,27 @@ enables debug output.
 
 .SH FILES
 .TP
-.I /dev/loop[0..N]
-loop block devices
+.I /dev/xloop[0..N]
+xloop block devices
 .TP
-.I /dev/loop-control
-loop control device
+.I /dev/xloop-control
+xloop control device
 .SH EXAMPLE
-The following commands can be used as an example of using the loop device.
+The following commands can be used as an example of using the xloop device.
 .nf
 .IP
 # dd if=/dev/zero of=~/file.img bs=1024k count=10
-# losetup \-\-find \-\-show ~/file.img
-/dev/loop0
-# mkfs \-t ext2 /dev/loop0
-# mount /dev/loop0 /mnt
+# xlosetup \-\-find \-\-show ~/file.img
+/dev/xloop0
+# mkfs \-t ext2 /dev/xloop0
+# mount /dev/xloop0 /mnt
  ...
-# umount /dev/loop0
-# losetup \-\-detach /dev/loop0
+# umount /dev/xloop0
+# xlosetup \-\-detach /dev/xloop0
 .fi
 .SH AUTHORS
 Karel Zak <kzak@redhat.com>, based on the original version from
 Theodore Ts'o <tytso@athena.mit.edu>
 .SH AVAILABILITY
-The losetup command is part of the util-linux package and is available from
+The xlosetup command is part of the util-linux package and is available from
 https://www.kernel.org/pub/linux/utils/util-linux/.
