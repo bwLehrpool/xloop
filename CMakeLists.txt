@@ -52,7 +52,7 @@ if(${CMAKE_BUILD_TYPE} MATCHES Release)
     set(CPACK_SET_DESTDIR True)
     set(CMAKE_INSTALL_PREFIX /usr)
     # set DEB generator specific packaging options
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6")
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc-bin")
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/package/deb/postinst "depmod -a\n")
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/package/deb/postrm "depmod -a\n")
     set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA ${CMAKE_CURRENT_BINARY_DIR}/package/deb/postinst

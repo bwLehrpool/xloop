@@ -68,3 +68,7 @@ add_kernel_module(xloop_file_fmt_qcow "${KERNEL_DIR}"
                                       "${KERNEL_MODULE_XLOOP_QCOW_HEADER_FILES}"
                                       ${CMAKE_CURRENT_BINARY_DIR}/Kbuild
                                       xloop)
+
+if(${CMAKE_BUILD_TYPE} MATCHES Debug)
+    add_subdirectory(tests)
+endif()
