@@ -28,7 +28,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <linux/loop.h>
+#include <linux/xloop.h>
 #include <stdint.h>
 #include <inttypes.h>
 #include <sys/sysmacros.h>
@@ -36,11 +36,11 @@
 #include "test.h"
 #include "safe_macros.h"
 
-#ifndef LOOP_CTL_GET_FREE
-# define LOOP_CTL_GET_FREE 0x4C82
+#ifndef XLOOP_CTL_GET_FREE
+# define XLOOP_CTL_GET_FREE 0x4C82
 #endif
 
-#define LOOP_CONTROL_FILE "/dev/loop-control"
+#define XLOOP_CONTROL_FILE "/dev/xloop-control"
 
 #define DEV_FILE "test_dev.img"
 #define DEV_SIZE_MB 256u
@@ -50,9 +50,9 @@ static int device_acquired;
 static unsigned long prev_dev_sec_write;
 
 static const char *dev_variants[] = {
-	"/dev/loop%i",
-	"/dev/loop/%i",
-	"/dev/block/loop%i"
+	"/dev/xloop%i",
+	"/dev/xloop/%i",
+	"/dev/block/xloop%i"
 };
 
 static int set_dev_path(int dev, char *path, size_t path_len)
@@ -70,17 +70,17 @@ static int set_dev_path(int dev, char *path, size_t path_len)
 	return 0;
 }
 
-int tst_find_free_loopdev(char *path, size_t path_len)
+int tst_find_free_xloopdev(char *path, size_t path_len)
 {
 	int ctl_fd, dev_fd, rc, i;
-	struct loop_info loopinfo;
+	struct xloop_info xloopinfo;
 	char buf[1024];
 
 	/* since Linux 3.1 */
-	ctl_fd = open(LOOP_CONTROL_FILE, O_RDWR);
+	ctl_fd = open(XLOOP_CONTROL_FILE, O_RDWR);
 
 	if (ctl_fd > 0) {
-		rc = ioctl(ctl_fd, LOOP_CTL_GET_FREE);
+		rc = ioctl(ctl_fd, XLOOP_CTL_GET_FREE);
 		close(ctl_fd);
 		if (rc >= 0) {
 			if (path)
@@ -89,7 +89,7 @@ int tst_find_free_loopdev(char *path, size_t path_len)
 				rc, path ?: "");
 			return rc;
 		}
-		tst_resm(TINFO, "Couldn't find free loop device");
+		tst_resm(TINFO, "Couldn't find free xloop device");
 		return -1;
 	}
 
@@ -98,16 +98,16 @@ int tst_find_free_loopdev(char *path, size_t path_len)
 	break;
 	case EACCES:
 		tst_resm(TINFO | TERRNO,
-		         "Not allowed to open " LOOP_CONTROL_FILE ". "
+		         "Not allowed to open " XLOOP_CONTROL_FILE ". "
 			 "Are you root?");
 	break;
 	default:
-		tst_resm(TBROK | TERRNO, "Failed to open " LOOP_CONTROL_FILE);
+		tst_resm(TBROK | TERRNO, "Failed to open " XLOOP_CONTROL_FILE);
 	}
 
 	/*
-	 * Older way is to iterate over /dev/loop%i and /dev/loop/%i and try
-	 * LOOP_GET_STATUS ioctl() which fails for free loop devices.
+	 * Older way is to iterate over /dev/xloop%i and /dev/xloop/%i and try
+	 * XLOOP_GET_STATUS ioctl() which fails for free xloop devices.
 	 */
 	for (i = 0; i < 256; i++) {
 
@@ -119,7 +119,7 @@ int tst_find_free_loopdev(char *path, size_t path_len)
 		if (dev_fd < 0)
 			continue;
 
-		if (ioctl(dev_fd, LOOP_GET_STATUS, &loopinfo) == 0) {
+		if (ioctl(dev_fd, XLOOP_GET_STATUS, &xloopinfo) == 0) {
 			tst_resm(TINFO, "Device '%s' in use", buf);
 		} else {
 			if (errno != ENXIO)
@@ -144,7 +144,7 @@ int tst_find_free_loopdev(char *path, size_t path_len)
 int tst_attach_device(const char *dev, const char *file)
 {
 	int dev_fd, file_fd;
-	struct loop_info loopinfo;
+	struct xloop_info xloopinfo;
 
 	dev_fd = open(dev, O_RDWR);
 	if (dev_fd < 0) {
@@ -159,26 +159,26 @@ int tst_attach_device(const char *dev, const char *file)
 		return 1;
 	}
 
-	if (ioctl(dev_fd, LOOP_SET_FD, file_fd) < 0) {
+	if (ioctl(dev_fd, XLOOP_SET_FD, file_fd) < 0) {
 		close(dev_fd);
 		close(file_fd);
-		tst_resm(TWARN | TERRNO, "ioctl(%s, LOOP_SET_FD, %s) failed",
+		tst_resm(TWARN | TERRNO, "ioctl(%s, XLOOP_SET_FD, %s) failed",
 			 dev, file);
 		return 1;
 	}
 
-	/* Old mkfs.btrfs use LOOP_GET_STATUS instead of backing_file to get
+	/* Old mkfs.btrfs use XLOOP_GET_STATUS instead of backing_file to get
 	 * associated filename, so we need to set up the device by calling
-	 * LOOP_SET_FD and LOOP_SET_STATUS.
+	 * XLOOP_SET_FD and XLOOP_SET_STATUS.
 	 */
-	memset(&loopinfo, 0, sizeof(loopinfo));
-	strcpy(loopinfo.lo_name, file);
+	memset(&xloopinfo, 0, sizeof(xloopinfo));
+	strcpy(xloopinfo.xlo_name, file);
 
-	if (ioctl(dev_fd, LOOP_SET_STATUS, &loopinfo)) {
+	if (ioctl(dev_fd, XLOOP_SET_STATUS, &xloopinfo)) {
 		close(dev_fd);
 		close(file_fd);
 		tst_resm(TWARN | TERRNO,
-			 "ioctl(%s, LOOP_SET_STATUS, %s) failed", dev, file);
+			 "ioctl(%s, XLOOP_SET_STATUS, %s) failed", dev, file);
 		return 1;
 	}
 
@@ -191,17 +191,17 @@ int tst_detach_device_by_fd(const char *dev, int dev_fd)
 {
 	int ret, i;
 
-	/* keep trying to clear LOOPDEV until we get ENXIO, a quick succession
+	/* keep trying to clear XLOOPDEV until we get ENXIO, a quick succession
 	 * of attach/detach might not give udev enough time to complete */
 	for (i = 0; i < 40; i++) {
-		ret = ioctl(dev_fd, LOOP_CLR_FD, 0);
+		ret = ioctl(dev_fd, XLOOP_CLR_FD, 0);
 
 		if (ret && (errno == ENXIO))
 			return 0;
 
 		if (ret && (errno != EBUSY)) {
 			tst_resm(TWARN,
-				 "ioctl(%s, LOOP_CLR_FD, 0) unexpectedly failed with: %s",
+				 "ioctl(%s, XLOOP_CLR_FD, 0) unexpectedly failed with: %s",
 				 dev, tst_strerrno(errno));
 			return 1;
 		}
@@ -210,7 +210,7 @@ int tst_detach_device_by_fd(const char *dev, int dev_fd)
 	}
 
 	tst_resm(TWARN,
-		"ioctl(%s, LOOP_CLR_FD, 0) no ENXIO for too long", dev);
+		"ioctl(%s, XLOOP_CLR_FD, 0) no ENXIO for too long", dev);
 	return 1;
 }
 
@@ -234,7 +234,7 @@ int tst_dev_sync(int fd)
 	return syscall(__NR_syncfs, fd);
 }
 
-const char *tst_acquire_loop_device(unsigned int size, const char *filename)
+const char *tst_acquire_xloop_device(unsigned int size, const char *filename)
 {
 	unsigned int acq_dev_size = MAX(size, DEV_SIZE_MB);
 
@@ -243,7 +243,7 @@ const char *tst_acquire_loop_device(unsigned int size, const char *filename)
 		return NULL;
 	}
 
-	if (tst_find_free_loopdev(dev_path, sizeof(dev_path)) == -1)
+	if (tst_find_free_xloopdev(dev_path, sizeof(dev_path)) == -1)
 		return NULL;
 
 	if (tst_attach_device(dev_path, filename))
@@ -306,7 +306,7 @@ const char *tst_acquire_device__(unsigned int size)
 				ltp_dev_size, acq_dev_size);
 	}
 
-	dev = tst_acquire_loop_device(acq_dev_size, DEV_FILE);
+	dev = tst_acquire_xloop_device(acq_dev_size, DEV_FILE);
 
 	if (dev)
 		device_acquired = 1;

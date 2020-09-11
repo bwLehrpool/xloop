@@ -4,6 +4,7 @@ project(xloop-kernel-test)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/old)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../uapi)
 
 # configure configuration config.h and add it to the include directories
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)

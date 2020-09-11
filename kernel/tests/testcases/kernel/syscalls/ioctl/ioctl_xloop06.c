@@ -3,56 +3,56 @@
  * Copyright (c) 2020 FUJITSU LIMITED. All rights reserved.
  * Author: Yang Xu <xuyang2018.jy@cn.jujitsu.com>
  *
- * This is a basic error test about the invalid block size of loopdevice
- * by using LOOP_SET_BLOCK_SIZE or LOOP_CONFIGURE ioctl.
+ * This is a basic error test about the invalid block size of xloopdevice
+ * by using XLOOP_SET_BLOCK_SIZE or XLOOP_CONFIGURE ioctl.
  */
 
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <stdlib.h>
-#include "lapi/loop.h"
+#include "lapi/xloop.h"
 #include "tst_test.h"
 
 static char dev_path[1024];
-static int dev_num, dev_fd, file_fd, attach_flag, loop_configure_sup = 1;
+static int dev_num, dev_fd, file_fd, attach_flag, xloop_configure_sup = 1;
 static unsigned int invalid_value, half_value, unalign_value;
-static struct loop_config loopconfig;
+static struct xloop_config xloopconfig;
 
 static struct tcase {
 	unsigned int *setvalue;
 	int ioctl_flag;
 	char *message;
 } tcases[] = {
-	{&half_value, LOOP_SET_BLOCK_SIZE,
-	"Using LOOP_SET_BLOCK_SIZE with arg < 512"},
+	{&half_value, XLOOP_SET_BLOCK_SIZE,
+	"Using XLOOP_SET_BLOCK_SIZE with arg < 512"},
 
-	{&invalid_value, LOOP_SET_BLOCK_SIZE,
-	"Using LOOP_SET_BLOCK_SIZE with arg > PAGE_SIZE"},
+	{&invalid_value, XLOOP_SET_BLOCK_SIZE,
+	"Using XLOOP_SET_BLOCK_SIZE with arg > PAGE_SIZE"},
 
-	{&unalign_value, LOOP_SET_BLOCK_SIZE,
-	"Using LOOP_SET_BLOCK_SIZE with arg != power_of_2"},
+	{&unalign_value, XLOOP_SET_BLOCK_SIZE,
+	"Using XLOOP_SET_BLOCK_SIZE with arg != power_of_2"},
 
-	{&half_value, LOOP_CONFIGURE,
-	"Using LOOP_CONFIGURE with block_size < 512"},
+	{&half_value, XLOOP_CONFIGURE,
+	"Using XLOOP_CONFIGURE with block_size < 512"},
 
-	{&invalid_value, LOOP_CONFIGURE,
-	"Using LOOP_CONFIGURE with block_size > PAGE_SIZE"},
+	{&invalid_value, XLOOP_CONFIGURE,
+	"Using XLOOP_CONFIGURE with block_size > PAGE_SIZE"},
 
-	{&unalign_value, LOOP_CONFIGURE,
-	"Using LOOP_CONFIGURE with block_size != power_of_2"},
+	{&unalign_value, XLOOP_CONFIGURE,
+	"Using XLOOP_CONFIGURE with block_size != power_of_2"},
 };
 
-static void verify_ioctl_loop(unsigned int n)
+static void verify_ioctl_xloop(unsigned int n)
 {
-	if (tcases[n].ioctl_flag == LOOP_CONFIGURE)
-		TEST(ioctl(dev_fd, LOOP_CONFIGURE, &loopconfig));
+	if (tcases[n].ioctl_flag == XLOOP_CONFIGURE)
+		TEST(ioctl(dev_fd, XLOOP_CONFIGURE, &xloopconfig));
 	else
-		TEST(ioctl(dev_fd, LOOP_SET_BLOCK_SIZE, *(tcases[n].setvalue)));
+		TEST(ioctl(dev_fd, XLOOP_SET_BLOCK_SIZE, *(tcases[n].setvalue)));
 
 	if (TST_RET == 0) {
 		tst_res(TFAIL, "Set block size succeed unexpectedly");
-		if (tcases[n].ioctl_flag == LOOP_CONFIGURE)
+		if (tcases[n].ioctl_flag == XLOOP_CONFIGURE)
 			tst_detach_device_by_fd(dev_path, dev_fd);
 		return;
 	}
@@ -67,25 +67,25 @@ static void run(unsigned int n)
 	struct tcase *tc = &tcases[n];
 
 	tst_res(TINFO, "%s", tc->message);
-	if (tc->ioctl_flag == LOOP_SET_BLOCK_SIZE) {
+	if (tc->ioctl_flag == XLOOP_SET_BLOCK_SIZE) {
 		if (!attach_flag) {
 			tst_attach_device(dev_path, "test.img");
 			attach_flag = 1;
 		}
-		verify_ioctl_loop(n);
+		verify_ioctl_xloop(n);
 		return;
 	}
 
-	if (tc->ioctl_flag == LOOP_CONFIGURE && !loop_configure_sup) {
-		tst_res(TCONF, "LOOP_CONFIGURE ioctl not supported");
+	if (tc->ioctl_flag == XLOOP_CONFIGURE && !xloop_configure_sup) {
+		tst_res(TCONF, "XLOOP_CONFIGURE ioctl not supported");
 		return;
 	}
 	if (attach_flag) {
 		tst_detach_device_by_fd(dev_path, dev_fd);
 		attach_flag = 0;
 	}
-	loopconfig.block_size = *(tc->setvalue);
-	verify_ioctl_loop(n);
+	xloopconfig.block_size = *(tc->setvalue);
+	verify_ioctl_xloop(n);
 }
 
 static void setup(void)
@@ -93,9 +93,9 @@ static void setup(void)
 	unsigned int pg_size;
 	int ret;
 
-	dev_num = tst_find_free_loopdev(dev_path, sizeof(dev_path));
+	dev_num = tst_find_free_xloopdev(dev_path, sizeof(dev_path));
 	if (dev_num < 0)
-		tst_brk(TBROK, "Failed to find free loop device");
+		tst_brk(TBROK, "Failed to find free xloop device");
 
 	tst_fill_file("test.img", 0, 1024, 1024);
 	half_value = 256;
@@ -105,18 +105,18 @@ static void setup(void)
 
 	dev_fd = SAFE_OPEN(dev_path, O_RDWR);
 
-	if (ioctl(dev_fd, LOOP_SET_BLOCK_SIZE, 512) && errno == EINVAL)
-		tst_brk(TCONF, "LOOP_SET_BLOCK_SIZE is not supported");
+	if (ioctl(dev_fd, XLOOP_SET_BLOCK_SIZE, 512) && errno == EINVAL)
+		tst_brk(TCONF, "XLOOP_SET_BLOCK_SIZE is not supported");
 
 	file_fd = SAFE_OPEN("test.img", O_RDWR);
-	loopconfig.fd = -1;
-	ret = ioctl(dev_fd, LOOP_CONFIGURE, &loopconfig);
+	xloopconfig.fd = -1;
+	ret = ioctl(dev_fd, XLOOP_CONFIGURE, &xloopconfig);
 	if (ret && errno != EBADF) {
-		tst_res(TINFO | TERRNO, "LOOP_CONFIGURE is not supported");
-		loop_configure_sup = 0;
+		tst_res(TINFO | TERRNO, "XLOOP_CONFIGURE is not supported");
+		xloop_configure_sup = 0;
 		return;
 	}
-	loopconfig.fd = file_fd;
+	xloopconfig.fd = file_fd;
 }
 
 static void cleanup(void)
@@ -137,7 +137,8 @@ static struct tst_test test = {
 	.needs_root = 1,
 	.needs_tmpdir = 1,
 	.needs_drivers = (const char *const []) {
-		"loop",
+		"xloop",
+		"xloop_file_fmt_raw",
 		NULL
 	}
 };

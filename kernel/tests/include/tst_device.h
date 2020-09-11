@@ -42,34 +42,34 @@ int tst_is_mounted_at_tmpdir(const char *path);
 int tst_clear_device(const char *dev);
 
 /*
- * Finds a free loop device for use and returns the free loopdev minor(-1 for no
- * free loopdev). If path is non-NULL, it will be filled with free loopdev path.
+ * Finds a free xloop device for use and returns the free xloopdev minor(-1 for no
+ * free xloopdev). If path is non-NULL, it will be filled with free xloopdev path.
  *
  */
-int tst_find_free_loopdev(const char *path, size_t path_len);
+int tst_find_free_xloopdev(const char *path, size_t path_len);
 
 /*
- * Attaches a file to a loop device.
+ * Attaches a file to a xloop device.
  *
- * @dev_path Path to the loop device e.g. /dev/loop0
+ * @dev_path Path to the xloop device e.g. /dev/xloop0
  * @file_path Path to a file e.g. disk.img
  * @return Zero on success, non-zero otherwise.
  */
 int tst_attach_device(const char *dev_path, const char *file_path);
 
 /*
- * Detaches a file from a loop device fd.
+ * Detaches a file from a xloop device fd.
  *
- * @dev_path Path to the loop device e.g. /dev/loop0
- * @dev_fd a open fd for the loop device
+ * @dev_path Path to the xloop device e.g. /dev/xloop0
+ * @dev_fd a open fd for the xloop device
  * @return Zero on succes, non-zero otherwise.
  */
 int tst_detach_device_by_fd(const char *dev_path, int dev_fd);
 
 /*
- * Detaches a file from a loop device.
+ * Detaches a file from a xloop device.
  *
- * @dev_path Path to the loop device e.g. /dev/loop0
+ * @dev_path Path to the xloop device e.g. /dev/xloop0
  * @return Zero on succes, non-zero otherwise.
  *
  * Internally this function opens the device and calls

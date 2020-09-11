@@ -8,7 +8,7 @@
 
 #include "config.h"
 #include <linux/types.h>
-#include <linux/loop.h>
+#include <linux/xloop.h>
 
 #ifndef LO_FLAGS_PARTSCAN
 # define LO_FLAGS_PARTSCAN 8
@@ -44,10 +44,10 @@
  * This structure is used with the LOOP_CONFIGURE ioctl, and can be used to
  * atomically setup and configure all loop device parameters at once.
  */
-struct loop_config {
+struct xloop_config {
 	__u32			fd;
 	__u32                   block_size;
-	struct loop_info64	info;
+	struct xloop_info64	info;
 	__u64			__reserved[8];
 };
 #endif
