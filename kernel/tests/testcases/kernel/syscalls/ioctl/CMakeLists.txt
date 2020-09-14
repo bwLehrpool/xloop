@@ -5,7 +5,6 @@ project(xloop-kernel-test-ioctl_xloop)
 # test ioctl_xloop01
 add_executable(tst_ioctl_xloop01 ${CMAKE_CURRENT_SOURCE_DIR}/ioctl_xloop01.c)
 target_link_libraries(tst_ioctl_xloop01 LINK_PUBLIC libltp)
-install(TARGETS tst_ioctl_xloop01 DESTINATION bin)
 
 # test ioctl_xloop02
 add_executable(tst_ioctl_xloop02 ${CMAKE_CURRENT_SOURCE_DIR}/ioctl_xloop02.c)

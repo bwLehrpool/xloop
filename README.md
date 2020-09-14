@@ -51,6 +51,7 @@ Optionally, the output files can be installed with superuser permissions on the 
 
 ```shell
 sudo make install
+sudo depmod -a
 ```
 
 

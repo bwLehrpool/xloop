@@ -30,9 +30,6 @@ if(CMAKE_BUILD_TYPE MATCHES Debug)
     set(KERNEL_C_FLAGS "${KERNEL_C_FLAGS} ${KERNEL_C_FLAGS_DEBUG}")
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
-# preparation of the Kbuild file
-add_kernel_build(prepare ${CMAKE_CURRENT_SOURCE_DIR}/Kbuild)
-
 # xloop main Linux kernel module
 set(KERNEL_MODULE_XLOOP_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt.c
                                      ${CMAKE_CURRENT_SOURCE_DIR}/xloop_main.c)
@@ -43,16 +40,18 @@ add_kernel_module(xloop "${KERNEL_DIR}"
                         "CONFIG_BLK_DEV_XLOOP=m"
                         "${KERNEL_MODULE_XLOOP_SOURCE_FILES}"
                         "${KERNEL_MODULE_XLOOP_HEADER_FILES}"
-                        ${CMAKE_CURRENT_BINARY_DIR}/Kbuild)
+                        ${CMAKE_CURRENT_SOURCE_DIR}/Kbuild)
 
 # xloop_file_fmt_raw Linux kernel module
 set(KERNEL_MODULE_XLOOP_RAW_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt_raw.c)
-set(KERNEL_MODULE_XLOOP_RAW_HEADER_FILES )
+set(KERNEL_MODULE_XLOOP_RAW_HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt.h
+                                         ${CMAKE_CURRENT_SOURCE_DIR}/xloop_main.h
+                                         ${CMAKE_CURRENT_SOURCE_DIR}/uapi)
 add_kernel_module(xloop_file_fmt_raw "${KERNEL_DIR}"
                                      "CONFIG_BLK_DEV_XLOOP_FILE_FMT_RAW=m"
                                      "${KERNEL_MODULE_XLOOP_RAW_SOURCE_FILES}"
                                      "${KERNEL_MODULE_XLOOP_RAW_HEADER_FILES}"
-                                     ${CMAKE_CURRENT_BINARY_DIR}/Kbuild
+                                     ${CMAKE_CURRENT_SOURCE_DIR}/Kbuild
                                      xloop)
 
 # xloop_file_fmt_qcow Linux kernel module
@@ -61,12 +60,15 @@ set(KERNEL_MODULE_XLOOP_QCOW_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file
                                           ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt_qcow_main.c)
 set(KERNEL_MODULE_XLOOP_QCOW_HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt_qcow_cache.h
                                           ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt_qcow_cluster.h
-                                          ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt_qcow_main.h)
+                                          ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt_qcow_main.h
+                                          ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt.h
+                                          ${CMAKE_CURRENT_SOURCE_DIR}/xloop_main.h
+                                          ${CMAKE_CURRENT_SOURCE_DIR}/uapi)
 add_kernel_module(xloop_file_fmt_qcow "${KERNEL_DIR}"
                                       "CONFIG_BLK_DEV_XLOOP_FILE_FMT_QCOW=m"
                                       "${KERNEL_MODULE_XLOOP_QCOW_SOURCE_FILES}"
                                       "${KERNEL_MODULE_XLOOP_QCOW_HEADER_FILES}"
-                                      ${CMAKE_CURRENT_BINARY_DIR}/Kbuild
+                                      ${CMAKE_CURRENT_SOURCE_DIR}/Kbuild
                                       xloop)
 
 if(${CMAKE_BUILD_TYPE} MATCHES Debug)
