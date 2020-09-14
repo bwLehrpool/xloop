@@ -7,6 +7,8 @@
  * Copyright (C) 2019 Manuel Bentele <development@manuel-bentele.de>
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
@@ -27,8 +29,8 @@
 #include "xloop_file_fmt_qcow_cache.h"
 #include "xloop_file_fmt_qcow_cluster.h"
 
-static int __qcow_file_fmt_header_read(struct file *file,
-	struct xloop_file_fmt_qcow_header *header)
+static int __qcow_file_fmt_header_read(struct xloop_file_fmt *xlo_fmt,
+	struct file *file, struct xloop_file_fmt_qcow_header *header)
 {
 	ssize_t len;
 	loff_t offset;
@@ -38,8 +40,8 @@ static int __qcow_file_fmt_header_read(struct file *file,
 	offset = 0;
 	len = kernel_read(file, header, sizeof(*header), &offset);
 	if (len < 0) {
-		printk(KERN_ERR "xloop_file_fmt_qcow: could not read QCOW "
-			"header");
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "could not read QCOW "
+			"header\n");
 		return len;
 	}
 
@@ -61,14 +63,14 @@ static int __qcow_file_fmt_header_read(struct file *file,
 
 	/* check QCOW file format and header version */
 	if (header->magic != QCOW_MAGIC) {
-		printk(KERN_ERR "xloop_file_fmt_qcow: image is not in QCOW "
-			"format");
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "image is not in QCOW "
+			"format\n");
 		return -EINVAL;
 	}
 
 	if (header->version < 2 || header->version > 3) {
-		printk(KERN_ERR "xloop_file_fmt_qcow: unsupported QCOW version "
-			"%d", header->version);
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "unsupported QCOW "
+			"version %d\n", header->version);
 		return -ENOTSUPP;
 	}
 
@@ -90,8 +92,7 @@ static int __qcow_file_fmt_header_read(struct file *file,
 		header->header_length = be32_to_cpu(header->header_length);
 
 		if (header->header_length < 104) {
-			printk(KERN_ERR "xloop_file_fmt_qcow: QCOW header too "
-				"short");
+			dev_err(xloop_file_fmt_to_dev(xlo_fmt), "QCOW header too short\n");
 			return -EINVAL;
 		}
 	}
@@ -106,8 +107,7 @@ static int __qcow_file_fmt_validate_table(struct xloop_file_fmt *xlo_fmt,
 	struct xloop_file_fmt_qcow_data *qcow_data = xlo_fmt->private_data;
 
 	if (entries > max_size_bytes / entry_len) {
-		printk(KERN_INFO "xloop_file_fmt_qcow: %s too large",
-			table_name);
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "%s too large\n", table_name);
 		return -EFBIG;
 	}
 
@@ -116,7 +116,7 @@ static int __qcow_file_fmt_validate_table(struct xloop_file_fmt *xlo_fmt,
 	if ((S64_MAX - entries * entry_len < offset) || (
 		xloop_file_fmt_qcow_offset_into_cluster(qcow_data, offset) != 0)
 	) {
-		printk(KERN_INFO "xloop_file_fmt_qcow: %s offset invalid",
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "%s offset invalid",
 			table_name);
 		return -EINVAL;
 	}
@@ -405,7 +405,7 @@ static int qcow_file_fmt_init(struct xloop_file_fmt *xlo_fmt)
 	xlo_fmt->private_data = qcow_data;
 
 	/* read the QCOW file header */
-	ret = __qcow_file_fmt_header_read(xlo->xlo_backing_file, &header);
+	ret = __qcow_file_fmt_header_read(xlo_fmt, xlo->xlo_backing_file, &header);
 	if (ret)
 		goto free_qcow_data;
 
@@ -420,8 +420,8 @@ static int qcow_file_fmt_init(struct xloop_file_fmt *xlo_fmt)
 	/* Initialise cluster size */
 	if (header.cluster_bits < QCOW_MIN_CLUSTER_BITS
 		|| header.cluster_bits > QCOW_MAX_CLUSTER_BITS) {
-		printk(KERN_ERR "xloop_file_fmt_qcow: unsupported cluster "
-			"size: 2^%d", header.cluster_bits);
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "unsupported cluster size: "
+			"2^%d\n", header.cluster_bits);
 		ret = -EINVAL;
 		goto free_qcow_data;
 	}
@@ -432,22 +432,22 @@ static int qcow_file_fmt_init(struct xloop_file_fmt *xlo_fmt)
 		(qcow_data->cluster_bits - SECTOR_SHIFT);
 
 	if (header.header_length > qcow_data->cluster_size) {
-		printk(KERN_ERR "xloop_file_fmt_qcow: QCOW header exceeds "
-			"cluster size");
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "QCOW header exceeds cluster "
+			"size\n");
 		ret = -EINVAL;
 		goto free_qcow_data;
 	}
 
 	if (header.backing_file_offset > qcow_data->cluster_size) {
-		printk(KERN_ERR "xloop_file_fmt_qcow: invalid backing file "
-			"offset");
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "invalid backing file "
+			"offset\n");
 		ret = -EINVAL;
 		goto free_qcow_data;
 	}
 
 	if (header.backing_file_offset) {
-		printk(KERN_ERR "xloop_file_fmt_qcow: backing file support not "
-			"available");
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "backing file support not "
+			"available\n");
 		ret = -ENOTSUPP;
 		goto free_qcow_data;
 	}
@@ -458,30 +458,30 @@ static int qcow_file_fmt_init(struct xloop_file_fmt *xlo_fmt)
 	qcow_data->autoclear_features = header.autoclear_features;
 
 	if (qcow_data->incompatible_features & QCOW_INCOMPAT_DIRTY) {
-		printk(KERN_ERR "xloop_file_fmt_qcow: image contains "
-			"inconsistent refcounts");
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "image contains inconsistent "
+			"refcounts\n");
 		ret = -EACCES;
 		goto free_qcow_data;
 	}
 
 	if (qcow_data->incompatible_features & QCOW_INCOMPAT_CORRUPT) {
-		printk(KERN_ERR "xloop_file_fmt_qcow: image is corrupt; cannot "
-			"be opened read/write");
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "image is corrupt; cannot be "
+			"opened read/write\n");
 		ret = -EACCES;
 		goto free_qcow_data;
 	}
 
 	if (qcow_data->incompatible_features & QCOW_INCOMPAT_DATA_FILE) {
-		printk(KERN_ERR "xloop_file_fmt_qcow: clusters in the external "
-			"data file are not refcounted");
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "clusters in the external "
+			"data file are not refcounted\n");
 		ret = -EACCES;
 		goto free_qcow_data;
 	}
 
 	/* Check support for various header values */
 	if (header.refcount_order > 6) {
-		printk(KERN_ERR "xloop_file_fmt_qcow: reference count entry "
-			"width too large; may not exceed 64 bits");
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "reference count entry width "
+			"too large; may not exceed 64 bits\n");
 		ret = -EINVAL;
 		goto free_qcow_data;
 	}
@@ -492,8 +492,8 @@ static int qcow_file_fmt_init(struct xloop_file_fmt *xlo_fmt)
 
 	qcow_data->crypt_method_header = header.crypt_method;
 	if (qcow_data->crypt_method_header) {
-		printk(KERN_ERR "xloop_file_fmt_qcow: encryption support not "
-			"available");
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "encryption support not "
+			"available\n");
 		ret = -ENOTSUPP;
 		goto free_qcow_data;
 	}
@@ -515,8 +515,8 @@ static int qcow_file_fmt_init(struct xloop_file_fmt *xlo_fmt)
 		(qcow_data->cluster_bits - 3);
 
 	if (header.refcount_table_clusters == 0) {
-		printk(KERN_ERR "xloop_file_fmt_qcow: image does not contain a "
-			"reference count table");
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "image does not contain a "
+			"reference count table\n");
 		ret = -EINVAL;
 		goto free_qcow_data;
 	}
@@ -555,7 +555,7 @@ static int qcow_file_fmt_init(struct xloop_file_fmt *xlo_fmt)
 	l1_vm_state_index = xloop_file_fmt_qcow_size_to_l1(qcow_data,
 		header.size);
 	if (l1_vm_state_index > INT_MAX) {
-		printk(KERN_ERR "xloop_file_fmt_qcow: image is too big");
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "image is too big\n");
 		ret = -EFBIG;
 		goto free_qcow_data;
 	}
@@ -564,7 +564,7 @@ static int qcow_file_fmt_init(struct xloop_file_fmt *xlo_fmt)
 	/* the L1 table must contain at least enough entries to put header.size
 	 * bytes */
 	if (qcow_data->l1_size < qcow_data->l1_vm_state_index) {
-		printk(KERN_ERR "xloop_file_fmt_qcow: L1 table is too small");
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "L1 table is too small\n");
 		ret = -EINVAL;
 		goto free_qcow_data;
 	}
@@ -573,8 +573,8 @@ static int qcow_file_fmt_init(struct xloop_file_fmt *xlo_fmt)
 		qcow_data->l1_table = vzalloc(round_up(qcow_data->l1_size *
 			sizeof(u64), 512));
 		if (qcow_data->l1_table == NULL) {
-			printk(KERN_ERR "xloop_file_fmt_qcow: could not "
-				"allocate L1 table");
+			dev_err(xloop_file_fmt_to_dev(xlo_fmt), "could not allocate "
+				"L1 table\n");
 			ret = -ENOMEM;
 			goto free_qcow_data;
 		}
@@ -582,8 +582,8 @@ static int qcow_file_fmt_init(struct xloop_file_fmt *xlo_fmt)
 			qcow_data->l1_size * sizeof(u64),
 			&qcow_data->l1_table_offset);
 		if (len < 0) {
-			printk(KERN_ERR "xloop_file_fmt_qcow: could not read L1 "
-				"table");
+			dev_err(xloop_file_fmt_to_dev(xlo_fmt), "could not read "
+				"L1 table\n");
 			ret = len;
 			goto free_l1_table;
 		}
@@ -598,8 +598,8 @@ static int qcow_file_fmt_init(struct xloop_file_fmt *xlo_fmt)
 	qcow_data->nb_snapshots = header.nb_snapshots;
 
 	if (qcow_data->nb_snapshots > 0) {
-		printk(KERN_ERR "xloop_file_fmt_qcow: snapshots support not "
-			"available");
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "snapshots support not "
+			"available\n");
 		ret = -ENOTSUPP;
 		goto free_l1_table;
 	}
@@ -619,7 +619,7 @@ static int qcow_file_fmt_init(struct xloop_file_fmt *xlo_fmt)
 	}
 
 	if (l2_cache_size > INT_MAX) {
-		printk(KERN_ERR "xloop_file_fmt_qcow: L2 cache size too big");
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "L2 cache size too big\n");
 		ret = -EINVAL;
 		goto free_l1_table;
 	}
@@ -889,7 +889,7 @@ static loff_t qcow_file_fmt_sector_size(struct xloop_file_fmt *xlo_fmt,
 	int ret;
 
 	/* temporary read the QCOW file header of other QCOW image file */
-	ret = __qcow_file_fmt_header_read(file, &header);
+	ret = __qcow_file_fmt_header_read(xlo_fmt, file, &header);
 	if (ret)
 		return 0;
 
@@ -932,15 +932,13 @@ static struct xloop_file_fmt_driver qcow_file_fmt_driver = {
 
 static int __init xloop_file_fmt_qcow_init(void)
 {
-	printk(KERN_INFO "xloop_file_fmt_qcow: init xloop device QCOW file "
-		"format driver");
+	pr_info("init xloop device QCOW file format driver\n");
 	return xloop_file_fmt_register_driver(&qcow_file_fmt_driver);
 }
 
 static void __exit xloop_file_fmt_qcow_exit(void)
 {
-	printk(KERN_INFO "xloop_file_fmt_qcow: exit xloop device QCOW file "
-		"format driver");
+	pr_info("exit xloop device QCOW file format driver\n");
 	xloop_file_fmt_unregister_driver(&qcow_file_fmt_driver);
 }
 

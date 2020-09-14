@@ -7,10 +7,13 @@
  * Copyright (C) 2019 Manuel Bentele <development@manuel-bentele.de>
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/kernel.h>
 #include <linux/module.h>
 
 #include "xloop_file_fmt.h"
+#include "xloop_main.h"
 
 /* storage for all registered file format drivers */
 static struct xloop_file_fmt_driver *xloop_file_fmt_drivers[MAX_XLO_FILE_FMT] = {
@@ -29,11 +32,9 @@ int xloop_file_fmt_register_driver(struct xloop_file_fmt_driver *drv)
 
 	if (xloop_file_fmt_drivers[drv->file_fmt_type] == NULL) {
 		xloop_file_fmt_drivers[drv->file_fmt_type] = drv;
-		printk(KERN_INFO "xloop_file_fmt: successfully registered file "
-			"format driver %s", drv->name);
+		pr_info("successfully registered file format driver %s\n", drv->name);
 	} else {
-		printk(KERN_WARNING "xloop_file_fmt: driver for file format "
-			"already registered");
+		pr_warn("driver for file format already registered\n");
 		ret = -EBUSY;
 	}
 
@@ -50,8 +51,7 @@ void xloop_file_fmt_unregister_driver(struct xloop_file_fmt_driver *drv)
 		return;
 
 	xloop_file_fmt_drivers[drv->file_fmt_type] = NULL;
-	printk(KERN_INFO "xloop_file_fmt: successfully unregistered file "
-		"format driver %s", drv->name);
+	pr_info("successfully unregistered file format driver %s\n", drv->name);
 }
 EXPORT_SYMBOL(xloop_file_fmt_unregister_driver);
 
@@ -82,6 +82,13 @@ struct xloop_device *xloop_file_fmt_get_xlo(struct xloop_file_fmt *xlo_fmt)
 }
 EXPORT_SYMBOL(xloop_file_fmt_get_xlo);
 
+struct device *xloop_file_fmt_to_dev(struct xloop_file_fmt *xlo_fmt)
+{
+	struct xloop_device *xlo = xloop_file_fmt_get_xlo(xlo_fmt);
+	return xloop_device_to_dev(xlo);
+}
+EXPORT_SYMBOL(xloop_file_fmt_to_dev);
+
 int xloop_file_fmt_init(struct xloop_file_fmt *xlo_fmt,
 		       u32 file_fmt_type)
 {
@@ -95,25 +102,25 @@ int xloop_file_fmt_init(struct xloop_file_fmt *xlo_fmt,
 	xlo_fmt->file_fmt_type = file_fmt_type;
 
 	if (xlo_fmt->file_fmt_state != file_fmt_uninitialized) {
-		printk(KERN_WARNING "xloop_file_fmt: file format is "
-			"initialized already");
+		dev_warn(xloop_file_fmt_to_dev(xlo_fmt), "file format is "
+			"initialized already\n");
 		return -EINVAL;
 	}
 
 	/* check if new file format driver is registered */
 	if (xloop_file_fmt_drivers[xlo_fmt->file_fmt_type] == NULL) {
-		printk(KERN_ERR "xloop_file_fmt: file format driver is not "
-			"available");
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "file format driver is "
+			"not available\n");
 		return -ENODEV;
 	}
 
-	printk(KERN_INFO "xloop_file_fmt: use file format driver %s",
+	dev_info(xloop_file_fmt_to_dev(xlo_fmt), "use file format driver %s\n",
 		xloop_file_fmt_drivers[xlo_fmt->file_fmt_type]->name);
 
 	drv = xloop_file_fmt_drivers[xlo_fmt->file_fmt_type]->owner;
 	if (!try_module_get(drv)) {
-		printk(KERN_ERR "xloop_file_fmt: file format driver %s can not "
-			"be accessed",
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "file format driver %s can "
+			"not be accessed\n",
 			xloop_file_fmt_drivers[xlo_fmt->file_fmt_type]->name);
 		return -ENODEV;
 	}
@@ -143,8 +150,8 @@ void xloop_file_fmt_exit(struct xloop_file_fmt *xlo_fmt)
 	struct module *drv;
 
 	if (xlo_fmt->file_fmt_state != file_fmt_initialized) {
-		printk(KERN_WARNING "xloop_file_fmt: file format is "
-			"uninitialized already");
+		dev_warn(xloop_file_fmt_to_dev(xlo_fmt), "file format is "
+		"uninitialized already\n");
 		return;
 	}
 
@@ -166,8 +173,8 @@ int xloop_file_fmt_read(struct xloop_file_fmt *xlo_fmt,
 	struct xloop_file_fmt_ops *ops;
 
 	if (unlikely(xlo_fmt->file_fmt_state != file_fmt_initialized)) {
-		printk(KERN_ERR "xloop_file_fmt: file format is "
-			"not initialized, can not read");
+		dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "file format "
+			"is not initialized, can not read\n");
 		return -EINVAL;
 	}
 
@@ -184,8 +191,8 @@ int xloop_file_fmt_read_aio(struct xloop_file_fmt *xlo_fmt,
 	struct xloop_file_fmt_ops *ops;
 
 	if (unlikely(xlo_fmt->file_fmt_state != file_fmt_initialized)) {
-		printk(KERN_ERR "xloop_file_fmt: file format is "
-				"not initialized, can not read aio");
+		dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "file format "
+			"is not initialized, can not read aio\n");
 		return -EINVAL;
 	}
 
@@ -202,8 +209,8 @@ int xloop_file_fmt_write(struct xloop_file_fmt *xlo_fmt,
 	struct xloop_file_fmt_ops *ops;
 
 	if (unlikely(xlo_fmt->file_fmt_state != file_fmt_initialized)) {
-		printk(KERN_ERR "xloop_file_fmt: file format is "
-				"not initialized, can not write");
+		dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "file format "
+			"is not initialized, can not write\n");
 		return -EINVAL;
 	}
 
@@ -220,8 +227,8 @@ int xloop_file_fmt_write_aio(struct xloop_file_fmt *xlo_fmt,
 	struct xloop_file_fmt_ops *ops;
 
 	if (unlikely(xlo_fmt->file_fmt_state != file_fmt_initialized)) {
-		printk(KERN_ERR "xloop_file_fmt: file format is "
-				"not initialized, can not write aio");
+		dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "file format "
+			"is not initialized, can not write aio\n");
 		return -EINVAL;
 	}
 
@@ -238,8 +245,8 @@ int xloop_file_fmt_write_zeros(struct xloop_file_fmt *xlo_fmt,
 	struct xloop_file_fmt_ops *ops;
 
 	if (unlikely(xlo_fmt->file_fmt_state != file_fmt_initialized)) {
-		printk(KERN_ERR "xloop_file_fmt: file format is "
-				"not initialized, can not write zeros");
+		dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "file format "
+			"is not initialized, can not write zeros\n");
 		return -EINVAL;
 	}
 
@@ -256,8 +263,8 @@ int xloop_file_fmt_discard(struct xloop_file_fmt *xlo_fmt,
 	struct xloop_file_fmt_ops *ops;
 
 	if (unlikely(xlo_fmt->file_fmt_state != file_fmt_initialized)) {
-		printk(KERN_ERR "xloop_file_fmt: file format is "
-				"not initialized, can not discard");
+		dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "file format "
+			"is not initialized, can not discard\n");
 		return -EINVAL;
 	}
 
@@ -273,8 +280,8 @@ int xloop_file_fmt_flush(struct xloop_file_fmt *xlo_fmt)
 	struct xloop_file_fmt_ops *ops;
 
 	if (unlikely(xlo_fmt->file_fmt_state != file_fmt_initialized)) {
-		printk(KERN_ERR "xloop_file_fmt: file format is "
-				"not initialized, can not flush");
+		dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "file format "
+			"is not initialized, can not flush\n");
 		return -EINVAL;
 	}
 
@@ -291,8 +298,8 @@ loff_t xloop_file_fmt_sector_size(struct xloop_file_fmt *xlo_fmt,
 	struct xloop_file_fmt_ops *ops;
 
 	if (unlikely(xlo_fmt->file_fmt_state != file_fmt_initialized)) {
-		printk(KERN_ERR "xloop_file_fmt: file format is "
-				"not initialized, can not read sector size");
+		dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "file format "
+			"is not initialized, can not read sector size\n");
 		return 0;
 	}
 
@@ -308,6 +315,8 @@ int xloop_file_fmt_change(struct xloop_file_fmt *xlo_fmt,
 {
 	if (file_fmt_type_new > MAX_XLO_FILE_FMT)
 		return -EINVAL;
+
+	dev_info(xloop_file_fmt_to_dev(xlo_fmt), "change file format\n");
 
 	/* Unload the old file format driver if the file format is
 	 * initialized */

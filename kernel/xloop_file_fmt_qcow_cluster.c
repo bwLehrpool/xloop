@@ -10,6 +10,8 @@
  * Copyright (C) 2019 Manuel Bentele <development@manuel-bentele.de>
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/kernel.h>
 #include <linux/string.h>
 
@@ -160,9 +162,8 @@ int xloop_file_fmt_qcow_cluster_get_offset(struct xloop_file_fmt *xlo_fmt,
 	}
 
 	if (xloop_file_fmt_qcow_offset_into_cluster(qcow_data, l2_offset)) {
-		printk_ratelimited(KERN_ERR "xloop_file_fmt_qcow: L2 table "
-			"offset %llx unaligned (L1 index: %llx)", l2_offset,
-			l1_index);
+		dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "L2 table offset "
+			"%llx unaligned (L1 index: %llx)", l2_offset, l1_index);
 		return -EIO;
 	}
 
@@ -189,19 +190,18 @@ int xloop_file_fmt_qcow_cluster_get_offset(struct xloop_file_fmt *xlo_fmt,
 	if (qcow_data->qcow_version < 3 && (
 			type == QCOW_CLUSTER_ZERO_PLAIN ||
 			type == QCOW_CLUSTER_ZERO_ALLOC)) {
-		printk_ratelimited(KERN_ERR "xloop_file_fmt_qcow: zero cluster "
-			"entry found in pre-v3 image (L2 offset: %llx, "
-			"L2 index: %x)\n", l2_offset, l2_index);
+		dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "zero cluster "
+			"entry found in pre-v3 image (L2 offset: %llx, L2 index: %x)\n",
+			l2_offset, l2_index);
 		ret = -EIO;
 		goto fail;
 	}
 	switch (type) {
 	case QCOW_CLUSTER_COMPRESSED:
 		if (xloop_file_fmt_qcow_has_data_file(xlo_fmt)) {
-			printk_ratelimited(KERN_ERR "xloop_file_fmt_qcow: "
-				"compressed cluster entry found in image with "
-				"external data file (L2 offset: %llx, "
-				"L2 index: %x)", l2_offset, l2_index);
+			dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "compressed "
+				"cluster entry found in image with external data file "
+				"(L2 offset: %llx, L2 index: %x)\n", l2_offset, l2_index);
 			ret = -EIO;
 			goto fail;
 		}
@@ -225,19 +225,17 @@ int xloop_file_fmt_qcow_cluster_get_offset(struct xloop_file_fmt *xlo_fmt,
 		*cluster_offset &= L2E_OFFSET_MASK;
 		if (xloop_file_fmt_qcow_offset_into_cluster(qcow_data,
 				*cluster_offset)) {
-			printk_ratelimited(KERN_ERR "xloop_file_fmt_qcow: "
-				"cluster allocation offset %llx unaligned "
-				"(L2 offset: %llx, L2 index: %x)\n",
-				*cluster_offset, l2_offset, l2_index);
+			dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "cluster "
+				"allocation offset %llx unaligned (L2 offset: %llx, "
+				"L2 index: %x)\n", *cluster_offset, l2_offset, l2_index);
 			ret = -EIO;
 			goto fail;
 		}
 		if (xloop_file_fmt_qcow_has_data_file(xlo_fmt) &&
 			*cluster_offset != offset - offset_in_cluster) {
-			printk_ratelimited(KERN_ERR "xloop_file_fmt_qcow: "
-				"external data file host cluster offset %llx "
-				"does not match guest cluster offset: %llx, "
-				"L2 index: %x)", *cluster_offset,
+			dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "external "
+				"data file host cluster offset %llx  does not match guest "
+				"cluster offset: %llx, L2 index: %x)\n", *cluster_offset,
 				offset - offset_in_cluster, l2_index);
 			ret = -EIO;
 			goto fail;

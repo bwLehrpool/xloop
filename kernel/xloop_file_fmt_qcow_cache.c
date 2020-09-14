@@ -13,6 +13,8 @@
  * Copyright (C) 2019 Manuel Bentele <development@manuel-bentele.de>
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/kernel.h>
 #include <linux/log2.h>
 #include <linux/types.h>
@@ -103,13 +105,13 @@ void xloop_file_fmt_qcow_cache_destroy(struct xloop_file_fmt *xlo_fmt)
 }
 
 static int __xloop_file_fmt_qcow_cache_entry_flush(
-	struct xloop_file_fmt_qcow_cache *c, int i)
+	struct xloop_file_fmt *xlo_fmt, struct xloop_file_fmt_qcow_cache *c, int i)
 {
 	if (!c->entries[i].dirty || !c->entries[i].offset) {
 		return 0;
 	} else {
-		printk(KERN_ERR "xloop_file_fmt_qcow: Flush dirty cache tables "
-			"is not supported yet\n");
+		dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "flush dirty "
+			"cache tables is not supported yet\n");
 		return -ENOSYS;
 	}
 }
@@ -130,10 +132,9 @@ static int __xloop_file_fmt_qcow_cache_do_get(struct xloop_file_fmt *xlo_fmt,
 	ASSERT(offset != 0);
 
 	if (!IS_ALIGNED(offset, c->table_size)) {
-		printk_ratelimited(KERN_ERR "xloop_file_fmt_qcow: Cannot get "
-			"entry from %s cache: offset %llx is unaligned\n",
-			__xloop_file_fmt_qcow_cache_get_name(xlo_fmt, c),
-			offset);
+		dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "cannot get entry "
+			"from %s cache: offset %llx is unaligned\n", 
+			__xloop_file_fmt_qcow_cache_get_name(xlo_fmt, c), offset);
 		return -EIO;
 	}
 
@@ -164,7 +165,7 @@ static int __xloop_file_fmt_qcow_cache_do_get(struct xloop_file_fmt *xlo_fmt,
 	/* Cache miss: write a table back and replace it */
 	i = min_lru_index;
 
-	ret = __xloop_file_fmt_qcow_cache_entry_flush(c, i);
+	ret = __xloop_file_fmt_qcow_cache_entry_flush(xlo_fmt, c, i);
 	if (ret < 0) {
 		return ret;
 	}

@@ -232,6 +232,14 @@ extern int xloop_file_fmt_set_xlo(struct xloop_file_fmt *xlo_fmt,
 extern struct xloop_device *xloop_file_fmt_get_xlo(struct xloop_file_fmt *xlo_fmt);
 
 /**
+ * xloop_file_fmt_to_dev - Get the xloop file format's disk device
+ * @xlo_fmt: xloop file format
+ *
+ * Returns a pointer to the disk device of the xloop file format's xloop device.
+ */
+extern inline struct device *xloop_file_fmt_to_dev(struct xloop_file_fmt *xlo_fmt);
+
+/**
  * xloop_file_fmt_init - Initialize a xloop file format
  * @xlo_fmt: xloop file format
  * @file_fmt_type: Type of the file format

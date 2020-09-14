@@ -99,6 +99,8 @@ struct xloop_func_table {
 	struct module *owner;
 }; 
 
+extern inline struct device *xloop_device_to_dev(struct xloop_device *xlo);
+
 int xloop_register_transfer(struct xloop_func_table *funcs);
 int xloop_unregister_transfer(int number); 
 

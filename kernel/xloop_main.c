@@ -52,6 +52,8 @@
  *
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/sched.h>
@@ -96,6 +98,12 @@ static DEFINE_MUTEX(xloop_ctl_mutex);
 
 static int max_part;
 static int part_shift;
+
+struct device *xloop_device_to_dev(struct xloop_device *xlo)
+{
+	return disk_to_dev(xlo->xlo_disk);
+}
+EXPORT_SYMBOL(xloop_device_to_dev);
 
 static int transfer_xor(struct xloop_device *xlo, int cmd,
 			struct page *raw_page, unsigned raw_off,
@@ -349,8 +357,8 @@ static void xloop_reread_partitions(struct xloop_device *xlo,
 #endif
 	mutex_unlock(&bdev->bd_mutex);
 	if (rc)
-		pr_warn("%s: partition scan of xloop%d (%s) failed (rc=%d)\n",
-			__func__, xlo->xlo_number, xlo->xlo_file_name, rc);
+		dev_warn(xloop_device_to_dev(xlo), "partition scan failed (rc=%d)\n",
+			rc);
 }
 
 static inline int is_xloop_device(struct file *file)
@@ -1007,8 +1015,8 @@ out_unlock:
 		if (!release)
 			mutex_unlock(&bdev->bd_mutex);
 		if (err)
-			pr_warn("%s: partition scan of xloop%d failed (rc=%d)\n",
-				__func__, xlo_number, err);
+			dev_warn(xloop_device_to_dev(xlo), "partition scan failed "
+				"(rc=%d)\n", err);
 		/* Device is gone, no point in returning error */
 		err = 0;
 	}
@@ -1109,8 +1117,8 @@ xloop_set_status(struct xloop_device *xlo, const struct xloop_info64 *info)
 	if (size_changed && xlo->xlo_device->bd_inode->i_mapping->nrpages) {
 		/* If any pages were dirtied after invalidate_bdev(), try again */
 		err = -EAGAIN;
-		pr_warn("%s: xloop%d (%s) has still dirty pages (nrpages=%lu)\n",
-			__func__, xlo->xlo_number, xlo->xlo_file_name,
+		dev_warn(xloop_device_to_dev(xlo), "xloop device has still dirty "
+			"pages (nrpages=%lu)\n",
 			xlo->xlo_device->bd_inode->i_mapping->nrpages);
 		goto out_unfreeze;
 	}
@@ -1366,8 +1374,8 @@ static int xloop_set_block_size(struct xloop_device *xlo, unsigned long arg)
 	/* invalidate_bdev should have truncated all the pages */
 	if (xlo->xlo_device->bd_inode->i_mapping->nrpages) {
 		err = -EAGAIN;
-		pr_warn("%s: xloop%d (%s) has still dirty pages (nrpages=%lu)\n",
-			__func__, xlo->xlo_number, xlo->xlo_file_name,
+		dev_warn(xloop_device_to_dev(xlo), "xloop device has still dirty "
+			"pages (nrpages=%lu)\n",
 			xlo->xlo_device->bd_inode->i_mapping->nrpages);
 		goto out_unfreeze;
 	}
@@ -2167,7 +2175,7 @@ static int __init xloop_init(void)
 		xloop_add(&xlo, i);
 	mutex_unlock(&xloop_ctl_mutex);
 
-	printk(KERN_INFO "xloop: module loaded\n");
+	pr_info("module loaded\n");
 	return 0;
 
 misc_out:
@@ -2205,6 +2213,8 @@ static void __exit xloop_exit(void)
 	misc_deregister(&xloop_misc);
 
 	mutex_unlock(&xloop_ctl_mutex);
+
+	pr_info("exit module\n");
 }
 
 module_init(xloop_init);

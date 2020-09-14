@@ -7,6 +7,8 @@
  * Copyright (C) 2019 Manuel Bentele <development@manuel-bentele.de>
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
@@ -42,8 +44,7 @@ static inline int __raw_file_fmt_do_transfer(struct xloop_device *xlo, int cmd,
 	if (likely(!ret))
 		return 0;
 
-	printk_ratelimited(KERN_ERR
-		"xloop_file_fmt_raw: Transfer error at byte offset %llu, length %i.\n",
+	pr_err_ratelimited("transfer error at byte offset %llu, length %i.\n",
 		(unsigned long long)rblock << 9, size);
 	return ret;
 }
@@ -259,9 +260,8 @@ static int __raw_file_fmt_write_bvec(struct file *file,
 	if (likely(bw ==  bvec->bv_len))
 		return 0;
 
-	printk_ratelimited(KERN_ERR
-		"xloop_file_fmt_raw: Write error at byte offset %llu, length "
-		"%i.\n", (unsigned long long)*ppos, bvec->bv_len);
+	pr_err_ratelimited("write error at byte offset %llu, length %i.\n",
+		(unsigned long long)*ppos, bvec->bv_len);
 	if (bw >= 0)
 		bw = -EIO;
 	return bw;
@@ -444,15 +444,13 @@ static struct xloop_file_fmt_driver raw_file_fmt_driver = {
 
 static int __init xloop_file_fmt_raw_init(void)
 {
-	printk(KERN_INFO "xloop_file_fmt_raw: init xloop device RAW file format "
-		"driver");
+	pr_info("init xloop device RAW file format driver\n");
 	return xloop_file_fmt_register_driver(&raw_file_fmt_driver);
 }
 
 static void __exit xloop_file_fmt_raw_exit(void)
 {
-	printk(KERN_INFO "xloop_file_fmt_raw: exit xloop device RAW file format "
-		"driver");
+	pr_info("exit xloop device RAW file format driver\n");
 	xloop_file_fmt_unregister_driver(&raw_file_fmt_driver);
 }
 
