@@ -349,13 +349,13 @@ static void xloop_reread_partitions(struct xloop_device *xlo,
 {
 	int rc;
 
-	mutex_lock(&bdev->bd_mutex);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0)
+	mutex_lock(&bdev->bd_mutex);
 	rc = bdev_disk_changed(bdev, false);
+	mutex_unlock(&bdev->bd_mutex);
 #else
 	rc = blkdev_reread_part(bdev);
 #endif
-	mutex_unlock(&bdev->bd_mutex);
 	if (rc)
 		dev_warn(xloop_device_to_dev(xlo), "partition scan failed (rc=%d)\n",
 			rc);
@@ -1005,15 +1005,17 @@ out_unlock:
 		 * must be at least one and it can only become zero when the
 		 * current holder is released.
 		 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0)
 		if (!release)
 			mutex_lock(&bdev->bd_mutex);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0)
 		err = bdev_disk_changed(bdev, false);
 #else
 		err = blkdev_reread_part(bdev);
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0)
 		if (!release)
 			mutex_unlock(&bdev->bd_mutex);
+#endif
 		if (err)
 			dev_warn(xloop_device_to_dev(xlo), "partition scan failed "
 				"(rc=%d)\n", err);
@@ -1550,6 +1552,7 @@ xloop_info64_to_compat(const struct xloop_info64 *info64,
 	info.xlo_flags = info64->xlo_flags;
 	info.xlo_init[0] = info64->xlo_init[0];
 	info.xlo_init[1] = info64->xlo_init[1];
+	info.xlo_file_fmt_type = info64->xlo_file_fmt_type;
 	if (info.xlo_encrypt_type == XLO_CRYPT_CRYPTOAPI)
 		memcpy(info.xlo_name, info64->xlo_crypt_name, XLO_NAME_SIZE);
 	else
@@ -1562,7 +1565,8 @@ xloop_info64_to_compat(const struct xloop_info64 *info64,
 	    info.xlo_inode != info64->xlo_inode ||
 	    info.xlo_offset != info64->xlo_offset ||
 	    info.xlo_init[0] != info64->xlo_init[0] ||
-	    info.xlo_init[1] != info64->xlo_init[1])
+	    info.xlo_init[1] != info64->xlo_init[1] ||
+		info.xlo_file_fmt_type != info64->xlo_file_fmt_type)
 		return -EOVERFLOW;
 
 	if (copy_to_user(arg, &info, sizeof(info)))
