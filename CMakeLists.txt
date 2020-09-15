@@ -35,7 +35,7 @@ set(VERSION ${LINUX_KERNEL_VERSION}-${REPOSITORY_VERSION})
 
 # define packaging if Release build is enabled
 if(${CMAKE_BUILD_TYPE} MATCHES Release)
-    set(CPACK_GENERATOR "DEB;TGZ")
+    set(CPACK_GENERATOR "DEB;RPM;TGZ")
     set(CPACK_SOURCE_GENERATOR "TGZ;ZIP")
     set(CPACK_PACKAGE_NAME ${CMAKE_PROJECT_NAME})
     set(CPACK_MONOLITHIC_INSTALL True)
@@ -49,14 +49,29 @@ if(${CMAKE_BUILD_TYPE} MATCHES Release)
     set(CPACK_PACKAGE_FILE_NAME ${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_${CMAKE_SYSTEM_PROCESSOR})
     set(CPACK_SOURCE_PACKAGE_FILE_NAME ${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_source)
     set(CPACK_STRIP_FILES True)
+    set(CPACK_PACKAGE_RELOCATABLE False)
     set(CPACK_SET_DESTDIR True)
-    set(CMAKE_INSTALL_PREFIX /usr)
+    set(CMAKE_INSTALL_PREFIX "/usr")
+    set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
     # set DEB generator specific packaging options
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc-bin")
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/package/deb/postinst "depmod -a\n")
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/package/deb/postrm "depmod -a\n")
     set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA ${CMAKE_CURRENT_BINARY_DIR}/package/deb/postinst
                                            ${CMAKE_CURRENT_BINARY_DIR}/package/deb/postrm)
+    # set RPM generator specific packaging options
+    set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "/lib"
+                                                      "/lib/modules"
+                                                      "/lib/modules/${CMAKE_SYSTEM_VERSION}"
+                                                      "/lib/modules/${CMAKE_SYSTEM_VERSION}/extra"
+                                                      "${CPACK_PACKAGING_INSTALL_PREFIX}/share/bash-completion"
+                                                      "${CPACK_PACKAGING_INSTALL_PREFIX}/share/bash-completion/completions"
+                                                      "${CPACK_PACKAGING_INSTALL_PREFIX}/share/man"
+                                                      "${CPACK_PACKAGING_INSTALL_PREFIX}/share/man/man8")
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/package/rpm/post "depmod -a\n")
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/package/rpm/postun "depmod -a\n")
+    set(CPACK_RPM_POST_INSTALL_SCRIPT_FILE ${CMAKE_CURRENT_BINARY_DIR}/package/rpm/post)
+    set(CPACK_RPM_POST_UNINSTALL_SCRIPT_FILE ${CMAKE_CURRENT_BINARY_DIR}/package/rpm/postun)
     # include CPack functionality
     include(CPack)
 endif()

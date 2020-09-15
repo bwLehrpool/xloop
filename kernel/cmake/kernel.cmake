@@ -22,7 +22,7 @@ macro(add_kernel_module MODULE_NAME KERNEL_DIR MODULE_MACRO MODULE_SOURCE_FILES 
     endif()
     # define build command
     set(MODULE_BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} ${MODULE_MACRO}
-                                                   -C ${KERNEL_DIR}/build
+                                                   -C /${KERNEL_DIR}/build
                                                     M=${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME} modules
                                                     EXTRA_CFLAGS=${KERNEL_C_FLAGS}
                                                     KBUILD_EXTRA_SYMBOLS=${MODULE_EXTRA_SYMBOLS})
@@ -32,7 +32,7 @@ macro(add_kernel_module MODULE_NAME KERNEL_DIR MODULE_MACRO MODULE_SOURCE_FILES 
                        DEPENDS ${MODULE_SOURCE_FILES} ${MODULE_HEADER_FILES} ${BUILD_SOURCE_FILE}
 		               VERBATIM)
     add_custom_target(${MODULE_NAME} ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}/${MODULE_NAME}.ko ${ARGV6})
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}/${MODULE_NAME}.ko
+    install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}/${MODULE_NAME}.ko
             DESTINATION ${KERNEL_DIR}/extra
             PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
             COMPONENT main)

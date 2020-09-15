@@ -22,6 +22,6 @@ add_subdirectory(libsmartcols)
 add_subdirectory(sys-utils)
 
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/bash-completion/xlosetup
-        DESTINATION /usr/share/bash-completion/completions
+        DESTINATION share/bash-completion/completions
         PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
         COMPONENT main)

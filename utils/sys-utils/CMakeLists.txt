@@ -10,7 +10,10 @@ target_include_directories(xlosetup PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../lib ${
 install(TARGETS xlosetup DESTINATION bin
         COMPONENT main)
 
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/xlosetup.8
-        DESTINATION /usr/share/man/man8
-        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
-        COMPONENT main)
+# install xlosetup man page
+# NOTE: installation is done via a directory install with file matching pattern to support CPackRPM's automatic compression of man pages
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
+        DESTINATION share/man/man8
+        COMPONENT main
+        USE_SOURCE_PERMISSIONS
+        FILES_MATCHING PATTERN *.8*)
