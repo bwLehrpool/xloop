@@ -1471,7 +1471,11 @@ static int xlo_ioctl(struct block_device *bdev, fmode_t mode,
 	case XLOOP_SET_BLOCK_SIZE:
 		if (!(mode & FMODE_WRITE) && !capable(CAP_SYS_ADMIN))
 			return -EPERM;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
 		fallthrough;
+#else
+		/* fall through */
+#endif
 	default:
 		err = xlo_simple_ioctl(xlo, cmd, arg);
 		break;
@@ -1623,7 +1627,11 @@ static int xlo_compat_ioctl(struct block_device *bdev, fmode_t mode,
 	case XLOOP_SET_STATUS64:
 	case XLOOP_CONFIGURE:
 		arg = (unsigned long) compat_ptr(arg);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
 		fallthrough;
+#else
+		/* fall through */
+#endif
 	case XLOOP_SET_FD:
 	case XLOOP_CHANGE_FD:
 	case XLOOP_SET_BLOCK_SIZE:

@@ -176,11 +176,16 @@ static int __raw_file_fmt_rw_aio(struct xloop_device *xlo,
 	int nr_bvec = 0;
 	int ret;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 	rq_for_each_bvec(tmp, rq, rq_iter)
 		nr_bvec++;
+#endif
 
 	if (rq->bio != rq->biotail) {
-
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
+		__rq_for_each_bio(bio, rq)
+			nr_bvec += bio_segments(bio);
+#endif
 		bvec = kmalloc_array(nr_bvec, sizeof(struct bio_vec),
 				     GFP_NOIO);
 		if (!bvec)
@@ -193,7 +198,11 @@ static int __raw_file_fmt_rw_aio(struct xloop_device *xlo,
 		 * copy bio->bi_iov_vec to new bvec. The rq_for_each_bvec
 		 * API will take care of all details for us.
 		 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 		rq_for_each_bvec(tmp, rq, rq_iter) {
+#else
+		rq_for_each_segment(tmp, rq, rq_iter) {
+#endif
 			*bvec = tmp;
 			bvec++;
 		}
@@ -207,6 +216,9 @@ static int __raw_file_fmt_rw_aio(struct xloop_device *xlo,
 		 */
 		offset = bio->bi_iter.bi_bvec_done;
 		bvec = __bvec_iter_bvec(bio->bi_io_vec, bio->bi_iter);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
+		nr_bvec = bio_segments(bio);
+#endif
 	}
 	atomic_set(&cmd->ref, 2);
 
