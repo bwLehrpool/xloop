@@ -6,8 +6,7 @@ include(version)
 
 # define root CMake project
 project(xloop
-        DESCRIPTION "xloop Kernel modules and utility"
-        HOMEPAGE_URL "https://git.openslx.org/openslx-ng/xloop.git/"
+        DESCRIPTION "xloop Linux kernel modules and utility"
         LANGUAGES C)
 
 # define project specific settings
@@ -45,6 +44,7 @@ if(${CMAKE_BUILD_TYPE} MATCHES Release)
     set(CPACK_PACKAGE_SECTION admin)
     set(CPACK_PACKAGE_VENDOR "University of Freiburg")
     set(CPACK_PACKAGE_CONTACT "Christian Rößler <christian.roessler@rz.uni-freiburg.de>")
+    set(CPACK_PACKAGE_HOMEPAGE_URL "https://git.openslx.org/openslx-ng/xloop.git/")
     set(CPACK_PACKAGE_CHECKSUM SHA256)
     set(CPACK_PACKAGE_FILE_NAME ${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_${CMAKE_SYSTEM_PROCESSOR})
     set(CPACK_SOURCE_PACKAGE_FILE_NAME ${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_source)
