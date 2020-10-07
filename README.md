@@ -8,10 +8,58 @@ This repository contains the source code for the xloop Linux kernel modules
   - **xloop_file_format_raw**: file format subsystem driver for RAW files
   - **xloop_file_format_qcow**: file format subsystem driver for QCOW files
 
-and the user space utility **xlosetup** to configure xloop devices.
+and the user space utility **xlosetup** to configure xloop devices. The xloop Linux kernel modules can be built for the following Linux kernel versions and Linux distributions:
+
+  - Archlinux with **Linux kernel 5.9.x** or **5.4.x**
+  - Ubuntu 20.04 with **Linux kernel 5.4.x**
+  - CentOS 8 with **Linux kernel 4.18.x**
 
 
 ## Build
+
+### Preliminaries
+A build of the xloop Linux kernel modules and the xlosetup utility requires the installation of the following build tools and libraries under your supported Linux distribution.
+
+#### Archlinux with Linux kernel 5.9.x or 5.4.x
+```shell
+pacman -S git \
+          make \
+          cmake \
+          gcc \
+          linux-headers \  # or linux-lts-headers
+          libcap \
+          ncurses \
+          dpkg \
+          rpm-tools
+```
+
+#### Ubuntu 20.04 with Linux kernel 5.4.x
+```shell
+apt-get install git \
+                make \
+                cmake \
+                gcc \
+                g++ \
+                linux-headers-generic \
+                libcap-dev \
+                libncurses-dev \
+                rpm
+```
+
+#### CentOS 8 with Linux kernel 4.18.x
+```shell
+yum install git \
+            make \
+            cmake \
+            gcc \
+            gcc-c++ \
+            kernel-devel \
+            elfutils-libelf-devel \
+            libcap-devel \
+            ncurses-devel \
+            rpm-build
+```
+
 
 ### Preparation
 Before a build takes place, you should create a `build` directory inside the root folder of the repository. After that, change your working directory to that new directory as follows:
@@ -23,7 +71,7 @@ cd build
 
 
 ### Configuration
-A build of the xloop Linux kernel modules and the xlosetup utiliy can be configured and customized by the following configuration variables (CMake cache entries):
+A build of the xloop Linux kernel modules and the xlosetup utility can be configured and customized by the following configuration variables (CMake cache entries):
 
 | Variable                  | Type   | Values                                  | Default value           | Description                                         |
 |:--------------------------|:-------|:----------------------------------------|:------------------------|-----------------------------------------------------|
