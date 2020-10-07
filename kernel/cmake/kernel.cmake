@@ -22,7 +22,7 @@ macro(add_kernel_module MODULE_NAME KERNEL_DIR MODULE_MACRO MODULE_SOURCE_FILES 
     endif()
     # define build command
     set(MODULE_BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} ${MODULE_MACRO}
-                                                   -C /${KERNEL_DIR}/build
+                                                   -C ${KERNEL_DIR}/build
                                                     M=${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME} modules
                                                     EXTRA_CFLAGS=${KERNEL_C_FLAGS}
                                                     KBUILD_EXTRA_SYMBOLS=${MODULE_EXTRA_SYMBOLS})
