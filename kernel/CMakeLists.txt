@@ -74,3 +74,9 @@ add_kernel_module(xloop_file_fmt_qcow "${KERNEL_DIR}"
 if(${CMAKE_BUILD_TYPE} MATCHES Debug)
     add_subdirectory(tests)
 endif()
+
+# install udev rules for xloop devices exposed by the xloop kernel module
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/udev/50-xloop.rules
+        DESTINATION /lib/udev/rules.d
+        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+        COMPONENT main)

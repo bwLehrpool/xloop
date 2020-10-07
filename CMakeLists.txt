@@ -55,21 +55,23 @@ if(${CMAKE_BUILD_TYPE} MATCHES Release)
     set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
     # set DEB generator specific packaging options
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc-bin")
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/package/deb/postinst "depmod -a\n")
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/package/deb/postrm "depmod -a\n")
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/package/deb/postinst "depmod -a\nudevadm control --reload-rules\n")
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/package/deb/postrm "depmod -a\nudevadm control --reload-rules\n")
     set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA ${CMAKE_CURRENT_BINARY_DIR}/package/deb/postinst
                                            ${CMAKE_CURRENT_BINARY_DIR}/package/deb/postrm)
     # set RPM generator specific packaging options
     set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "/lib"
                                                       "/lib/modules"
+                                                      "/lib/udev"
                                                       "/lib/modules/${CMAKE_SYSTEM_VERSION}"
                                                       "/lib/modules/${CMAKE_SYSTEM_VERSION}/extra"
+                                                      "/lib/udev/rules.d"
                                                       "${CPACK_PACKAGING_INSTALL_PREFIX}/share/bash-completion"
                                                       "${CPACK_PACKAGING_INSTALL_PREFIX}/share/bash-completion/completions"
                                                       "${CPACK_PACKAGING_INSTALL_PREFIX}/share/man"
                                                       "${CPACK_PACKAGING_INSTALL_PREFIX}/share/man/man8")
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/package/rpm/post "depmod -a\n")
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/package/rpm/postun "depmod -a\n")
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/package/rpm/post "depmod -a\nudevadm control --reload-rules\n")
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/package/rpm/postun "depmod -a\nudevadm control --reload-rules\n")
     set(CPACK_RPM_POST_INSTALL_SCRIPT_FILE ${CMAKE_CURRENT_BINARY_DIR}/package/rpm/post)
     set(CPACK_RPM_POST_UNINSTALL_SCRIPT_FILE ${CMAKE_CURRENT_BINARY_DIR}/package/rpm/postun)
     # include CPack functionality
