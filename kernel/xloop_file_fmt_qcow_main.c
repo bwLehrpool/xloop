@@ -1280,3 +1280,4 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Manuel Bentele <development@manuel-bentele.de>");
 MODULE_DESCRIPTION("xloop device QCOW file format driver");
 MODULE_SOFTDEP("pre: xloop");
+MODULE_VERSION(__stringify(VERSION));

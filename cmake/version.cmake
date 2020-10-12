@@ -4,12 +4,9 @@
 # Copyright (C) 2020 Manuel Bentele <development@manuel-bentele.de>
 #
 
-# macro to get Linux kernel version
-macro(get_kernel_version LINUX_KERNEL_VERSION)
-    execute_process(COMMAND uname -r 
-                    OUTPUT_VARIABLE UNAME_RESULT
-                    OUTPUT_STRIP_TRAILING_WHITESPACE)
-    string(REGEX MATCH "[0-9]+.[0-9]+.[0-9]+" LINUX_KERNEL_VERSION ${UNAME_RESULT})
+# macro to get Linux kernel version from KERNEL_BUILD_DIR
+macro(get_kernel_version LINUX_KERNEL_VERSION KERNEL_BUILD_DIR)
+    string(REGEX MATCH "[0-9]+.[0-9]+.[0-9]+" LINUX_KERNEL_VERSION ${KERNEL_BUILD_DIR})
 endmacro(get_kernel_version)
 
 # macro to get short hash of latest commit

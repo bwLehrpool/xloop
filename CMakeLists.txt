@@ -9,15 +9,28 @@ project(xloop
         DESCRIPTION "xloop Linux kernel modules and utility"
         LANGUAGES C)
 
+include(GNUInstallDirs)
+
 # define project specific settings
 set(BLK_DEV_XLOOP_MIN_COUNT 8
                CACHE STRING "Number of xloop devices to pre-create at init time")
 set(XLOOP_MAJOR 120
    CACHE STRING "Major number for xloop devices")
+set(XLOOP_CTRL_MINOR 15
+        CACHE STRING "Minor number for the xloop-control device")
+
+# set Linux kernel directories
+set(KERNEL_BUILD_DIR "/${CMAKE_INSTALL_LIBDIR}/modules/${CMAKE_SYSTEM_VERSION}/build"
+    CACHE PATH "Path to Linux kernel modules to compile against")
+set(KERNEL_INSTALL_DIR "/${CMAKE_INSTALL_LIBDIR}/modules/${CMAKE_SYSTEM_VERSION}/extra"
+    CACHE PATH "Path to install Linux kernel modules")
 
 # print configured settings
+message(STATUS "Path to Linux kernel modules to compile against is " ${KERNEL_BUILD_DIR})
+message(STATUS "Path to install Linux kernel modules is " ${KERNEL_INSTALL_DIR})
 message(STATUS "Number of xloop devices to pre-create at init time is " ${BLK_DEV_XLOOP_MIN_COUNT})
 message(STATUS "Major number for xloop devices is " ${XLOOP_MAJOR})
+message(STATUS "Minor number for the xloop-control device is " ${XLOOP_CTRL_MINOR})
 
 # set supported build configurations
 set(CMAKE_CONFIGURATION_TYPES Debug Release)
@@ -29,7 +42,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # get versions to define project version
-get_kernel_version(LINUX_KERNEL_VERSION)
+get_kernel_version(LINUX_KERNEL_VERSION ${KERNEL_BUILD_DIR})
 get_repository_version(REPOSITORY_VERSION)
 set(VERSION ${LINUX_KERNEL_VERSION}-${REPOSITORY_VERSION}
     CACHE STRING "Version of xloop package")
@@ -61,12 +74,12 @@ if(${CMAKE_BUILD_TYPE} MATCHES Release)
     set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA ${CMAKE_CURRENT_BINARY_DIR}/package/deb/postinst
                                            ${CMAKE_CURRENT_BINARY_DIR}/package/deb/postrm)
     # set RPM generator specific packaging options
-    set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "/lib"
-                                                      "/lib/modules"
-                                                      "/lib/udev"
-                                                      "/lib/modules/${CMAKE_SYSTEM_VERSION}"
-                                                      "/lib/modules/${CMAKE_SYSTEM_VERSION}/extra"
-                                                      "/lib/udev/rules.d"
+    set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "/${CMAKE_INSTALL_LIBDIR}"
+                                                      "/${CMAKE_INSTALL_LIBDIR}/modules"
+                                                      "/${CMAKE_INSTALL_LIBDIR}/modules/${CMAKE_SYSTEM_VERSION}"
+                                                      "/${CMAKE_INSTALL_LIBDIR}/modules/${CMAKE_SYSTEM_VERSION}/extra"
+                                                      "/${CMAKE_INSTALL_LIBDIR}/udev"
+                                                      "/${CMAKE_INSTALL_LIBDIR}/udev/rules.d"
                                                       "${CPACK_PACKAGING_INSTALL_PREFIX}/share/bash-completion"
                                                       "${CPACK_PACKAGING_INSTALL_PREFIX}/share/bash-completion/completions"
                                                       "${CPACK_PACKAGING_INSTALL_PREFIX}/share/man"
