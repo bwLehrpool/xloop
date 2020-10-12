@@ -2187,7 +2187,7 @@ static int __init xloop_init(void)
 		xloop_add(&xlo, i);
 	mutex_unlock(&xloop_ctl_mutex);
 
-	pr_info("module loaded\n");
+	pr_info("module in version %s loaded\n", __stringify(VERSION));
 	return 0;
 
 misc_out:

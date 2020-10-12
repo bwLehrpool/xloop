@@ -31,7 +31,8 @@ endif()
 # get versions to define project version
 get_kernel_version(LINUX_KERNEL_VERSION)
 get_repository_version(REPOSITORY_VERSION)
-set(VERSION ${LINUX_KERNEL_VERSION}-${REPOSITORY_VERSION})
+set(VERSION ${LINUX_KERNEL_VERSION}-${REPOSITORY_VERSION}
+    CACHE STRING "Version of xloop package")
 
 # define packaging if Release build is enabled
 if(${CMAKE_BUILD_TYPE} MATCHES Release)

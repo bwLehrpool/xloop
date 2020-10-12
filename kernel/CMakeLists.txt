@@ -19,7 +19,7 @@ message(STATUS "Path to Linux kernel modules to compile against is " ${KERNEL_DI
 message(STATUS "Minor number for the xloop-control device is " ${XLOOP_CTRL_MINOR})
 
 # set C flags for a Linux kernel module
-set(KERNEL_C_FLAGS "-DCONFIG_BLK_DEV_XLOOP_MIN_COUNT=${BLK_DEV_XLOOP_MIN_COUNT} -DXLOOP_MAJOR=${XLOOP_MAJOR} -DXLOOP_CTRL_MINOR=${XLOOP_CTRL_MINOR}"
+set(KERNEL_C_FLAGS "-DCONFIG_BLK_DEV_XLOOP_MIN_COUNT=${BLK_DEV_XLOOP_MIN_COUNT} -DXLOOP_MAJOR=${XLOOP_MAJOR} -DXLOOP_CTRL_MINOR=${XLOOP_CTRL_MINOR} -DVERSION=${VERSION}"
       CACHE STRING "C flags to be used for building the kernel module")
 # set C flags for the debug mode of a Linux kernel module
 set(KERNEL_C_FLAGS_DEBUG "-g -DDEBUG"
