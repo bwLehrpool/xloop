@@ -48,13 +48,13 @@
 static UL_DEBUG_DEFINE_MASK(loopdev);
 UL_DEBUG_DEFINE_MASKNAMES(loopdev) = UL_DEBUG_EMPTY_MASKNAMES;
 
-#define LOOPDEV_DEBUG_INIT	(1 << 1)
-#define LOOPDEV_DEBUG_CXT	(1 << 2)
-#define LOOPDEV_DEBUG_ITER	(1 << 3)
-#define LOOPDEV_DEBUG_SETUP	(1 << 4)
+#define XLOOPDEV_DEBUG_INIT	(1 << 1)
+#define XLOOPDEV_DEBUG_CXT	(1 << 2)
+#define XLOOPDEV_DEBUG_ITER	(1 << 3)
+#define XLOOPDEV_DEBUG_SETUP	(1 << 4)
 
-#define DBG(m, x)       __UL_DBG(loopdev, LOOPDEV_DEBUG_, m, x)
-#define ON_DBG(m, x)    __UL_DBG_CALL(loopdev, LOOPDEV_DEBUG_, m, x)
+#define DBG(m, x)       __UL_DBG(loopdev, XLOOPDEV_DEBUG_, m, x)
+#define ON_DBG(m, x)    __UL_DBG_CALL(loopdev, XLOOPDEV_DEBUG_, m, x)
 
 #define UL_DEBUG_CURRENT_MASK	UL_DEBUG_MASK(loopdev)
 #include "debugobj.h"
@@ -63,7 +63,7 @@ static void loopdev_init_debug(void)
 {
 	if (loopdev_debug_mask)
 		return;
-	__UL_INIT_DEBUG_FROM_ENV(loopdev, LOOPDEV_DEBUG_, 0, LOOPDEV_DEBUG);
+	__UL_INIT_DEBUG_FROM_ENV(loopdev, XLOOPDEV_DEBUG_, 0, XLOOPDEV_DEBUG);
 }
 
 /*

@@ -121,3 +121,39 @@ make package_source
 ```
 
 This target creates compressed archives (\*_sources.tar.gz and \*_sources.zip) containing the source code of this repository for code distribution purposes.
+
+
+## Debugging
+Debugging of the Linux kernel modules and the user space utility requires this project to be built in the `Debug` configuration.
+
+### Linux kernel modules
+The Linux kernel modules **xloop**, **xloop_file_fmt_raw** and **xloop_file_fmt_qcow** support the Linux kernel's dynamic debug feature if the Linux kernel is built with the enabled kernel configuration `CONFIG_DYNAMIC_DEBUG`. The dynamic debug feature allows the printing of customizable debug messages into the Linux kernel's message buffer.
+
+Dynamic debug for the modules can be either enabled at module initialization or during operation. At module initialization, dynamic debug can be enabled by modprobe using the "fake" module parameter `dyndbg`:
+
+```shell
+modprobe xloop dyndbg=+pflmt
+modprobe xloop_file_fmt_raw dyndbg=+pflmt
+modprobe xloop_file_fmt_qcow dyndbg=+pflmt
+```
+
+The module parameter `dyndbg` customizes the debug messages written into the Linux kernel's message buffer. The specific value `+pflmt` enables all debug messages in the source code and includes function name (`f`), line number (`l`), module name (`m`) and thread ID (`t`) for each executed debug statement from the source code.
+
+During operation, debug messages from debug statements in the code can be customized and enabled dynamically as well using the debugfs control file `<DEBUG_FS>/dynamic_debug/control` where `DEBUG_FS` is the mount point of a mounted DebugFS, eg. `/sys/kernel/debug`:
+
+```shell
+echo "module xloop +pflmt" > <DEBUG_FS>/dynamic_debug/control
+echo "module xloop_file_fmt_raw +pflmt" > <DEBUG_FS>/dynamic_debug/control
+echo "module xloop_file_fmt_qcow +pflmt" > <DEBUG_FS>/dynamic_debug/control
+```
+
+More information regarding the Linux kernel's dynamic debug feature can be found in the (https://www.kernel.org/doc/html/latest/admin-guide/dynamic-debug-howto.html)[Linux kernel documentation].
+
+
+### User space utility
+Built-in debug messages from the user space utility **xlosetup** can be enabled by setting the following environment variables before any execution of xlosetup:
+
+```shell
+export XLOOPDEV_DEBUG=all
+export LIBSMARTCOLS_DEBUG=all
+```
