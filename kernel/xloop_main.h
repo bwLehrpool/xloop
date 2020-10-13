@@ -15,7 +15,7 @@
 #include <linux/spinlock.h>
 #include <linux/mutex.h>
 #include <linux/kthread.h>
-#include "uapi/linux/xloop.h"
+#include "uapi_xloop.h"
 #ifdef CONFIG_DEBUG_FS
 #include <linux/debugfs.h>
 #endif

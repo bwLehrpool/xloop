@@ -8,7 +8,7 @@
 
 #include "config.h"
 #include <linux/types.h>
-#include <linux/xloop.h>
+#include <uapi_xloop.h>
 
 #ifndef LO_FLAGS_PARTSCAN
 # define LO_FLAGS_PARTSCAN 8

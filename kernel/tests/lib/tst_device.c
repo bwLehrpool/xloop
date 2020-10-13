@@ -28,7 +28,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <linux/xloop.h>
+#include <uapi_xloop.h>
 #include <stdint.h>
 #include <inttypes.h>
 #include <sys/sysmacros.h>

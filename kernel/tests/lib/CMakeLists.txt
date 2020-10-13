@@ -67,3 +67,4 @@ add_library(libltp STATIC ${CMAKE_CURRENT_SOURCE_DIR}/cloner.c
                           ${CMAKE_CURRENT_SOURCE_DIR}/tst_virt.c
                           ${CMAKE_CURRENT_SOURCE_DIR}/tst_wallclock.c)
 target_include_directories(libltp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_options(libltp PUBLIC "-Wno-deprecated-declarations")

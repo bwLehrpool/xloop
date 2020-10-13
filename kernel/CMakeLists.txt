@@ -23,7 +23,7 @@ set(KERNEL_MODULE_XLOOP_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt.
                                      ${CMAKE_CURRENT_SOURCE_DIR}/xloop_main.c)
 set(KERNEL_MODULE_XLOOP_HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt.h
                                      ${CMAKE_CURRENT_SOURCE_DIR}/xloop_main.h
-                                     ${CMAKE_CURRENT_SOURCE_DIR}/uapi)
+                                     ${CMAKE_CURRENT_SOURCE_DIR}/uapi_xloop.h)
 add_kernel_module(xloop "${KERNEL_BUILD_DIR}"
                         "${KERNEL_INSTALL_DIR}"
                         "CONFIG_BLK_DEV_XLOOP=m"
@@ -35,7 +35,7 @@ add_kernel_module(xloop "${KERNEL_BUILD_DIR}"
 set(KERNEL_MODULE_XLOOP_RAW_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt_raw.c)
 set(KERNEL_MODULE_XLOOP_RAW_HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt.h
                                          ${CMAKE_CURRENT_SOURCE_DIR}/xloop_main.h
-                                         ${CMAKE_CURRENT_SOURCE_DIR}/uapi)
+                                         ${CMAKE_CURRENT_SOURCE_DIR}/uapi_xloop.h)
 add_kernel_module(xloop_file_fmt_raw "${KERNEL_BUILD_DIR}"
                                      "${KERNEL_INSTALL_DIR}"
                                      "CONFIG_BLK_DEV_XLOOP_FILE_FMT_RAW=m"
@@ -53,7 +53,7 @@ set(KERNEL_MODULE_XLOOP_QCOW_HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file
                                           ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt_qcow_main.h
                                           ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt.h
                                           ${CMAKE_CURRENT_SOURCE_DIR}/xloop_main.h
-                                          ${CMAKE_CURRENT_SOURCE_DIR}/uapi)
+                                          ${CMAKE_CURRENT_SOURCE_DIR}/uapi_xloop.h)
 add_kernel_module(xloop_file_fmt_qcow "${KERNEL_BUILD_DIR}"
                                       "${KERNEL_INSTALL_DIR}"
                                       "CONFIG_BLK_DEV_XLOOP_FILE_FMT_QCOW=m"
@@ -68,6 +68,6 @@ endif()
 
 # install udev rules for xloop devices exposed by the xloop kernel module
 install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/udev/50-xloop.rules
-        DESTINATION /${CMAKE_INSTALL_LIBDIR}/udev/rules.d
+        DESTINATION /lib/udev/rules.d
         PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
         COMPONENT main)
