@@ -6,7 +6,10 @@
 
 # macro to get Linux kernel version from KERNEL_BUILD_DIR
 macro(get_kernel_version LINUX_KERNEL_VERSION KERNEL_BUILD_DIR)
-    string(REGEX MATCH "[0-9]+.[0-9]+.[0-9]+" LINUX_KERNEL_VERSION ${KERNEL_BUILD_DIR})
+    string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+" LINUX_KERNEL_VERSION ${KERNEL_BUILD_DIR})
+    if(LINUX_KERNEL_VERSION STREQUAL "")
+        set(LINUX_KERNEL_VERSION "unknown")
+    endif()
 endmacro(get_kernel_version)
 
 # macro to get short hash of latest commit
