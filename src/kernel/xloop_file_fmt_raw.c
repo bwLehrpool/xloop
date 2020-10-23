@@ -23,6 +23,8 @@
 #include <linux/uio.h>
 #include <linux/version.h>
 
+#include <xloop/version.h>
+
 #include "xloop_file_fmt.h"
 
 static inline loff_t __raw_file_fmt_rq_get_pos(struct xloop_file_fmt *xlo_fmt,
@@ -473,4 +475,4 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Manuel Bentele <development@manuel-bentele.de>");
 MODULE_DESCRIPTION("xloop device RAW file format driver");
 MODULE_SOFTDEP("pre: xloop");
-MODULE_VERSION(__stringify(VERSION));
+MODULE_VERSION(XLOOP_VERSION);

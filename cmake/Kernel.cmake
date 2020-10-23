@@ -49,8 +49,9 @@ macro(add_kernel_module MODULE_NAME KERNEL_BUILD_DIR KERNEL_INSTALL_DIR MODULE_M
                        DEPENDS ${BUILD_SOURCE_FILE_PREPARED} ${MODULE_HEADER_FILES_PREPARED} ${MODULE_SOURCE_FILES_PREPARED}
                        VERBATIM)
     add_custom_target(${MODULE_NAME} ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}/${MODULE_NAME}.ko ${ARGV7})
+    # install kernel module
     install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}/${MODULE_NAME}.ko
             DESTINATION ${KERNEL_INSTALL_DIR}
             PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
-            COMPONENT main)
+            COMPONENT kernel)
 endmacro(add_kernel_module)

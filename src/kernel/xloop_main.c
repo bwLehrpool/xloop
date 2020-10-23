@@ -88,6 +88,8 @@
 #include <linux/debugfs.h>
 #endif
 
+#include <xloop/version.h>
+
 #include "xloop_file_fmt.h"
 #include "xloop_main.h"
 
@@ -1719,7 +1721,7 @@ module_param(max_part, int, 0444);
 MODULE_PARM_DESC(max_part, "Maximum number of partitions per xloop device");
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Manuel Bentele <development@manuel-bentele.de>");
-MODULE_VERSION(__stringify(VERSION));
+MODULE_VERSION(XLOOP_VERSION);
 MODULE_ALIAS_BLOCKDEV_MAJOR(XLOOP_MAJOR);
 
 int xloop_register_transfer(struct xloop_func_table *funcs)
@@ -2189,7 +2191,7 @@ static int __init xloop_init(void)
 		xloop_add(&xlo, i);
 	mutex_unlock(&xloop_ctl_mutex);
 
-	pr_info("module in version %s loaded\n", __stringify(VERSION));
+	pr_info("module in version %s loaded\n", XLOOP_VERSION);
 	return 0;
 
 misc_out:

@@ -27,6 +27,8 @@
 #include <linux/zstd.h>
 #endif
 
+#include <xloop/version.h>
+
 #include "xloop_file_fmt.h"
 #include "xloop_file_fmt_qcow_main.h"
 #include "xloop_file_fmt_qcow_cache.h"
@@ -1280,4 +1282,4 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Manuel Bentele <development@manuel-bentele.de>");
 MODULE_DESCRIPTION("xloop device QCOW file format driver");
 MODULE_SOFTDEP("pre: xloop");
-MODULE_VERSION(__stringify(VERSION));
+MODULE_VERSION(XLOOP_VERSION);

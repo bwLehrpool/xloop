@@ -1,6 +1,8 @@
 /* config.h.  Generated from config.h.in by configure.  */
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
+#include <xloop/version.h>
+
 /* Define if building universal (internal helper macro) */
 /* #undef AC_APPLE_UNIVERSAL_BUILD */
 
@@ -693,20 +695,17 @@
 /* Define to 1 if you have the `__secure_getenv' function. */
 /* #undef HAVE___SECURE_GETENV */
 
-/* libblkid date string */
-#define LIBBLKID_DATE "@DATE@"
-
 /* libblkid version string */
-#define LIBBLKID_VERSION "@VERSION@"
+#define LIBBLKID_VERSION XLOOP_VERSION
 
 /* libfdisk version string */
-#define LIBFDISK_VERSION "@VERSION@"
+#define LIBFDISK_VERSION XLOOP_VERSION
 
 /* libmount version string */
-#define LIBMOUNT_VERSION "@VERSION@"
+#define LIBMOUNT_VERSION XLOOP_VERSION
 
 /* libsmartcols version string */
-#define LIBSMARTCOLS_VERSION "@VERSION@"
+#define LIBSMARTCOLS_VERSION XLOOP_VERSION
 
 /* Should login chown /dev/vcsN? */
 /* #undef LOGIN_CHOWN_VCS */
@@ -736,7 +735,7 @@
 #define PACKAGE_NAME "util-linux"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "util-linux @VERSION@"
+#define PACKAGE_STRING ("util-linux " XLOOP_VERSION)
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "util-linux"
@@ -745,7 +744,7 @@
 #define PACKAGE_URL "http://www.kernel.org/pub/linux/utils/util-linux/"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "@VERSION@"
+#define PACKAGE_VERSION XLOOP_VERSION
 
 /* Should pg ring the bell on invalid keys? */
 #define PG_BELL 1
@@ -848,7 +847,7 @@
 /* #undef USE_VENDORDIR */
 
 /* Version number of package */
-#define VERSION "@VERSION@"
+#define VERSION XLOOP_VERSION
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */

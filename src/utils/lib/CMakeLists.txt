@@ -42,3 +42,4 @@ add_library(libcommon STATIC ${CMAKE_CURRENT_SOURCE_DIR}/blkdev.c
                              ${CMAKE_CURRENT_SOURCE_DIR}/timer.c
                              ${CMAKE_CURRENT_SOURCE_DIR}/timeutils.c
                              ${CMAKE_CURRENT_SOURCE_DIR}/ttyutils.c)
+target_link_libraries(libcommon xloop-version)

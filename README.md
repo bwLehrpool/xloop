@@ -111,17 +111,17 @@ In the `Release` build configuration, installation packages can be built by call
 make package
 ```
 
-This target creates a Debian installation package (\*.deb) and a compressed archive (\*.tar.gz) containing the built xloop Linux kernel modules and the xlosetup utility executable as well as its man page and bash-completion support.
+This target creates a Debian installation package (\*.deb), a RPM installation package (\*.rpm) and a compressed archive (\*.tar.gz) containing the built xloop Linux kernel modules and the xlosetup utility executable as well as its man page and bash-completion support.
 
 
 ### Sources
-In the `Release` build configuration, sources can be built by calling the make target `package_source`:
+In the `Release` build configuration, sources can be built by calling the make target `source`:
 
 ```shell
-make package_source
+make source
 ```
 
-This target creates compressed archives (\*_sources.tar.gz and \*_sources.zip) containing the source code of this repository for code distribution purposes.
+This target creates compressed archives (\*_source.tar.gz and \*_source.zip) containing the source code of this repository for code distribution purposes.
 
 
 ## Debugging
