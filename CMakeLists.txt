@@ -90,9 +90,8 @@ if(${CMAKE_BUILD_TYPE} MATCHES Release)
     include(CPack)
 endif()
 
-# add subprojects
-add_subdirectory(kernel)
-add_subdirectory(utils)
+# add all xloop related projects from the source code directory
+add_subdirectory(src)
 
 # print version information
 message(STATUS "Configured ${CMAKE_PROJECT_NAME} in version ${VERSION}")
