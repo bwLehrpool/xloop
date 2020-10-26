@@ -30,18 +30,10 @@ include(Version)
 include(Build)
 
 # search for required packages
-find_package(Git)
-
-# abort if a required package is not available
-if(NOT GIT_FOUND)
-	message(FATAL_ERROR "No Git found, can't determine xloop project version number!")
-endif(NOT GIT_FOUND)
-
-# set Linux kernel directories
-set(KERNEL_BUILD_DIR "/lib/modules/${CMAKE_SYSTEM_VERSION}/build"
-    CACHE PATH "Path to Linux kernel modules to compile against")
-set(KERNEL_INSTALL_DIR "/lib/modules/${CMAKE_SYSTEM_VERSION}/extra"
-    CACHE PATH "Path to install Linux kernel modules")
+find_package(Git REQUIRED)
+find_package(Libcap REQUIRED)
+find_package(Libncurses REQUIRED)
+find_package(KernelHeaders REQUIRED)
 
 # set linux kernel modules specific default settings
 set(BLK_DEV_XLOOP_MIN_COUNT 8
@@ -57,9 +49,6 @@ message(STATUS "Path to install Linux kernel modules is " ${KERNEL_INSTALL_DIR})
 message(STATUS "Number of xloop devices to pre-create at init time is " ${BLK_DEV_XLOOP_MIN_COUNT})
 message(STATUS "Major number for xloop devices is " ${XLOOP_MAJOR})
 message(STATUS "Minor number for the xloop-control device is " ${XLOOP_CTRL_MINOR})
-
-# get the Linux kernel version
-get_kernel_version(LINUX_KERNEL_VERSION ${KERNEL_BUILD_DIR})
 
 # set include directories
 set(PROJECT_GEN_DIR ${CMAKE_BINARY_DIR}/generated)
@@ -96,7 +85,11 @@ if(CMAKE_BUILD_TYPE MATCHES "Release")
     get_repository_version(REPOSITORY_VERSION ${INCLUDE_VERSION_HEADER} ${CMAKE_BUILD_TYPE})
 
     # define project version
-    set(REPOSITORY_VERSION_FULL ${REPOSITORY_VERSION}-${LINUX_KERNEL_VERSION})
+    if(KernelHeaders_VERSION)
+        set(REPOSITORY_VERSION_FULL ${REPOSITORY_VERSION}-${KernelHeaders_VERSION})
+    else(KernelHeaders_VERSION)
+        set(REPOSITORY_VERSION_FULL ${REPOSITORY_VERSION})
+    endif(KernelHeaders_VERSION)
 
     set(CPACK_GENERATOR "DEB;RPM;TGZ")
     set(CPACK_PACKAGE_NAME ${CMAKE_PROJECT_NAME})
