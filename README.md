@@ -148,7 +148,7 @@ echo "module xloop_file_fmt_raw +pflmt" > <DEBUG_FS>/dynamic_debug/control
 echo "module xloop_file_fmt_qcow +pflmt" > <DEBUG_FS>/dynamic_debug/control
 ```
 
-More information regarding the Linux kernel's dynamic debug feature can be found in the (https://www.kernel.org/doc/html/latest/admin-guide/dynamic-debug-howto.html)[Linux kernel documentation].
+More information regarding the Linux kernel's dynamic debug feature can be found in the [Linux kernel documentation](https://www.kernel.org/doc/html/latest/admin-guide/dynamic-debug-howto.html).
 
 
 ### User space utility
