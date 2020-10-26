@@ -4,11 +4,9 @@ project(xloop-kernel-test)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/old)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 
-# configure configuration config.h and add it to the include directories
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+# include parent directory for the xloop's uapi
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 add_subdirectory(lib)
 add_subdirectory(testcases/kernel/syscalls/ioctl)

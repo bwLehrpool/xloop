@@ -1,6 +1,8 @@
 /* include/config.h.  Generated from config.h.in by configure.  */
 /* include/config.h.in.  Generated from configure.ac by autoheader.  */
 
+#include <xloop/version.h>
+
 /* Define to 1 if clone() supports 7 arguments. */
 #define CLONE_SUPPORTS_7_ARGS 1
 
@@ -566,7 +568,7 @@
 #define PACKAGE_NAME "ltp"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "ltp @VERSION@"
+#define PACKAGE_STRING ("ltp " XLOOP_VERSION)
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "ltp"
@@ -575,7 +577,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "@VERSION@"
+#define PACKAGE_VERSION XLOOP_VERSION
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
@@ -584,7 +586,7 @@
 /* #undef UCLINUX */
 
 /* Version number of package */
-#define VERSION "@VERSION@"
+#define VERSION XLOOP_VERSION
 
 /* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
    `char[]'. */
