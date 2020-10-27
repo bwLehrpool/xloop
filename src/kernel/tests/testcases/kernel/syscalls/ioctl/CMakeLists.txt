@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(xloop-kernel-test-ioctl_xloop)
+project(xloop-kernel-test-ioctl_xloop
+        LANGUAGES C)
 
 # test ioctl_xloop01
 add_executable(ioctl_xloop01 ${CMAKE_CURRENT_SOURCE_DIR}/ioctl_xloop01.c)

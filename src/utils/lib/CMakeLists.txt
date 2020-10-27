@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 
 # set the project name
-project(xloop-utils-lib)
+project(xloop-utils-lib
+        LANGUAGES C)
 
 add_library(libcommon STATIC ${CMAKE_CURRENT_SOURCE_DIR}/blkdev.c
                              ${CMAKE_CURRENT_SOURCE_DIR}/canonicalize.c

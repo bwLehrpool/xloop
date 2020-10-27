@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 
 # set the project name
-project(xloop-utils-libsmartcols)
+project(xloop-utils-libsmartcols
+        LANGUAGES C)
 
 add_library(libsmartcols STATIC ${CMAKE_CURRENT_SOURCE_DIR}/src/buffer.c
                                 ${CMAKE_CURRENT_SOURCE_DIR}/src/calculate.c

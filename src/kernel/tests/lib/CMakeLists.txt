@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(xloop-kernel-test-lib)
+project(xloop-kernel-test-lib
+        LANGUAGES C)
 
 add_library(libltp STATIC ${CMAKE_CURRENT_SOURCE_DIR}/cloner.c
                           ${CMAKE_CURRENT_SOURCE_DIR}/get_path.c

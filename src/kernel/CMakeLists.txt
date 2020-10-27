@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 
 # set the project name
-project(xloop-kernel)
+project(xloop-kernel-modules
+        LANGUAGES C)
 
 # include macros to define Linux kernel build targets
 include(Kernel)

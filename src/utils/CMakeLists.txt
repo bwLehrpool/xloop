@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 
 # set the project name
-project(xloop-utils)
+project(xloop-utils
+        LANGUAGES C)
 
 # include global headers
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)

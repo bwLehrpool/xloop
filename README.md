@@ -39,7 +39,6 @@ apt-get install git \
                 make \
                 cmake \
                 gcc \
-                g++ \
                 linux-headers-generic \
                 libcap-dev \
                 libncurses-dev \
@@ -52,7 +51,6 @@ yum install git \
             make \
             cmake \
             gcc \
-            gcc-c++ \
             kernel-devel \
             elfutils-libelf-devel \
             libcap-devel \
