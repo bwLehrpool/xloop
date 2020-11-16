@@ -254,9 +254,16 @@ static void xloop_set_size(struct xloop_device *xlo, loff_t size)
 	sector_t capacity;
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
+	bd_set_nr_sectors(bdev, size);
+#else
 	bd_set_size(bdev, size << SECTOR_SHIFT);
+#endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
+	if (!set_capacity_revalidate_and_notify(xlo->xlo_disk, size, false))
+		kobject_uevent(&disk_to_dev(bdev->bd_disk)->kobj, KOBJ_CHANGE);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)
 	set_capacity_revalidate_and_notify(xlo->xlo_disk, size, false);
 #else
 	capacity = get_capacity(xlo->xlo_disk);
@@ -792,7 +799,9 @@ static int xloop_configure(struct xloop_device *xlo, fmode_t mode,
 	struct file	*file;
 	struct inode	*inode;
 	struct address_space *mapping;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0)
 	struct block_device *claimed_bdev = NULL;
+#endif
 	int		error;
 	loff_t		size;
 	bool		partscan;
@@ -816,12 +825,17 @@ static int xloop_configure(struct xloop_device *xlo, fmode_t mode,
 		error = bd_prepare_to_claim(bdev, claimed_bdev, xloop_configure);
 		if (error)
 			goto out_putf;
-#else
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0)
 		claimed_bdev = bd_start_claiming(bdev, xloop_configure);
 		if (IS_ERR(claimed_bdev)) {
 			error = PTR_ERR(claimed_bdev);
 			goto out_putf;
 		}
+#else
+		bdgrab(bdev);
+		error = blkdev_get(bdev, mode | FMODE_EXCL, xloop_configure);
+		if (error)
+			goto out_putf;
 #endif
 	}
 
@@ -915,15 +929,25 @@ static int xloop_configure(struct xloop_device *xlo, fmode_t mode,
 	mutex_unlock(&xloop_ctl_mutex);
 	if (partscan)
 		xloop_reread_partitions(xlo, bdev);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0)
 	if (claimed_bdev)
 		bd_abort_claiming(bdev, claimed_bdev, xloop_configure);
+#else
+	if (!(mode & FMODE_EXCL))
+		blkdev_put(bdev, mode | FMODE_EXCL);
+#endif
 	return 0;
 
 out_unlock:
 	mutex_unlock(&xloop_ctl_mutex);
 out_bdev:
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0)
 	if (claimed_bdev)
 		bd_abort_claiming(bdev, claimed_bdev, xloop_configure);
+#else
+	if (!(mode & FMODE_EXCL))
+		blkdev_put(bdev, mode | FMODE_EXCL);
+#endif
 out_putf:
 	fput(file);
 out:
@@ -984,7 +1008,11 @@ static int __xloop_clr_fd(struct xloop_device *xlo, bool release)
 	set_capacity(xlo->xlo_disk, 0);
 	xloop_sysfs_exit(xlo);
 	if (bdev) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
+		bd_set_nr_sectors(bdev, 0);
+#else
 		bd_set_size(bdev, 0);
+#endif
 		/* let user-space know about this change */
 		kobject_uevent(&disk_to_dev(bdev->bd_disk)->kobj, KOBJ_CHANGE);
 	}

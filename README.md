@@ -12,6 +12,7 @@ and the user space utility **xlosetup** to configure xloop devices. The xloop Li
 
   - Archlinux with **Linux kernel 5.9.x** or **5.4.x**
   - Ubuntu 20.04 with **Linux kernel 5.4.x**
+  - Ubuntu 18.04 with **Linux kernel 4.19.x**
   - CentOS 8 with **Linux kernel 4.18.x**
 
 
@@ -34,6 +35,18 @@ pacman -S git \
 ```
 
 #### Ubuntu 20.04 with Linux kernel 5.4.x
+```shell
+apt-get install git \
+                make \
+                cmake \
+                gcc \
+                linux-headers-generic \
+                libcap-dev \
+                libncurses-dev \
+                rpm
+```
+
+#### Ubuntu 18.04 with Linux kernel 4.19.x
 ```shell
 apt-get install git \
                 make \
