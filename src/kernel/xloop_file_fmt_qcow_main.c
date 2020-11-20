@@ -26,6 +26,7 @@
 #ifdef CONFIG_ZSTD_DECOMPRESS
 #include <linux/zstd.h>
 #endif
+#include <linux/math64.h>
 
 #include <xloop/version.h>
 
@@ -119,7 +120,7 @@ static int __qcow_file_fmt_validate_table(struct xloop_file_fmt *xlo_fmt,
 {
 	struct xloop_file_fmt_qcow_data *qcow_data = xlo_fmt->private_data;
 
-	if (entries > max_size_bytes / entry_len) {
+	if (entries > div_s64(max_size_bytes, entry_len)) {
 		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "%s too large\n", table_name);
 		return -EFBIG;
 	}
@@ -776,7 +777,7 @@ static int qcow_file_fmt_init(struct xloop_file_fmt *xlo_fmt)
 
 	/* create cache for L2 */
 	virtual_disk_size = qcow_data->size;
-	max_l2_entries = DIV_ROUND_UP(virtual_disk_size, qcow_data->cluster_size);
+	max_l2_entries = DIV64_U64_ROUND_UP(virtual_disk_size, qcow_data->cluster_size);
 	max_l2_cache = round_up(
 		max_l2_entries * xloop_file_fmt_qcow_l2_entry_size(qcow_data), 
 		qcow_data->cluster_size);
@@ -791,7 +792,7 @@ static int qcow_file_fmt_init(struct xloop_file_fmt *xlo_fmt)
 	l2_cache_entry_size = min(qcow_data->cluster_size, (int)PAGE_SIZE);
 
 	/* calculate the number of cache tables */
-	l2_cache_size /= l2_cache_entry_size;
+	l2_cache_size = div_u64(l2_cache_size, l2_cache_entry_size);
 	if (l2_cache_size < QCOW_MIN_L2_CACHE_SIZE) {
 		l2_cache_size = QCOW_MIN_L2_CACHE_SIZE;
 	}
@@ -802,8 +803,8 @@ static int qcow_file_fmt_init(struct xloop_file_fmt *xlo_fmt)
 		goto free_l1_table;
 	}
 
-	qcow_data->l2_slice_size = 
-		l2_cache_entry_size / xloop_file_fmt_qcow_l2_entry_size(qcow_data);
+	qcow_data->l2_slice_size = div_u64(l2_cache_entry_size,
+		xloop_file_fmt_qcow_l2_entry_size(qcow_data));
 
 	qcow_data->l2_table_cache = xloop_file_fmt_qcow_cache_create(xlo_fmt,
 		l2_cache_size, l2_cache_entry_size);

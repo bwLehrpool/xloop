@@ -21,6 +21,7 @@
 #include <linux/limits.h>
 #include <linux/fs.h>
 #include <linux/vmalloc.h>
+#include <linux/math64.h>
 
 #include "xloop_file_fmt_qcow_main.h"
 #include "xloop_file_fmt_qcow_cache.h"
@@ -35,8 +36,14 @@ static inline int __xloop_file_fmt_qcow_cache_get_table_idx(
 	struct xloop_file_fmt_qcow_cache *c, void *table)
 {
 	ptrdiff_t table_offset = (u8 *) table - (u8 *) c->table_array;
-	int idx = table_offset / c->table_size;
-	ASSERT(idx >= 0 && idx < c->size && table_offset % c->table_size == 0);
+	int idx = div_s64(table_offset, c->table_size);
+
+#ifdef ASSERT
+	s32 rem_table_offset_mod_table_size;
+	div_s64_rem(table_offset, c->table_size, &rem_table_offset_mod_table_size);
+	ASSERT(idx >= 0 && idx < c->size && rem_table_offset_mod_table_size == 0);
+#endif
+
 	return idx;
 }
 
@@ -127,6 +134,7 @@ static int __xloop_file_fmt_qcow_cache_do_get(struct xloop_file_fmt *xlo_fmt,
 	u64 min_lru_counter = U64_MAX;
 	int min_lru_index = -1;
 	u64 read_offset;
+	u64 offset_div_table_size;
 	size_t len;
 
 	ASSERT(offset != 0);
@@ -139,7 +147,9 @@ static int __xloop_file_fmt_qcow_cache_do_get(struct xloop_file_fmt *xlo_fmt,
 	}
 
 	/* Check if the table is already cached */
-	i = lookup_index = (offset / c->table_size * 4) % c->size;
+	offset_div_table_size = div_u64(offset, c->table_size) * 4;
+	div_u64_rem(offset_div_table_size, c->size, &lookup_index);
+	i = lookup_index;
 	do {
 		const struct xloop_file_fmt_qcow_cache_table *t =
 			&c->entries[i];
