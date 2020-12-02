@@ -1,10 +1,9 @@
 /*
- * Security checks of environment
- * Added from shadow-utils package
- * by Arkadiusz Miśkiewicz <misiek@pld.ORG.PL>
+ * environ[] array cleanup code and getenv() wrappers
  *
+ * No copyright is claimed.  This code is in the public domain; do with
+ * it what you wish.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -57,7 +56,7 @@ struct ul_env_list {
 };
 
 /*
- * Saves @name env.varable to @ls, returns pointer to the new head of the list.
+ * Saves @name env.variable to @ls, returns pointer to the new head of the list.
  */
 static struct ul_env_list *env_list_add(struct ul_env_list *ls0, const char *str)
 {

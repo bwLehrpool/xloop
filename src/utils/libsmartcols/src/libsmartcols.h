@@ -18,6 +18,15 @@ extern "C" {
 #include <stdio.h>
 #include <sys/types.h>
 
+#include <xloop/version.h>
+
+/**
+ * LIBSMARTCOLS_VERSION:
+ *
+ * Library version string
+ */
+#define LIBSMARTCOLS_VERSION   XLOOP_VERSION
+
 /**
  * libscols_iter:
  *

@@ -5,6 +5,7 @@ project(xloop-utils-lib
         LANGUAGES C)
 
 add_library(libcommon STATIC ${CMAKE_CURRENT_SOURCE_DIR}/blkdev.c
+                             ${CMAKE_CURRENT_SOURCE_DIR}/buffer.c
                              ${CMAKE_CURRENT_SOURCE_DIR}/canonicalize.c
                              ${CMAKE_CURRENT_SOURCE_DIR}/caputils.c
                              ${CMAKE_CURRENT_SOURCE_DIR}/color-names.c
@@ -18,6 +19,7 @@ add_library(libcommon STATIC ${CMAKE_CURRENT_SOURCE_DIR}/blkdev.c
                              ${CMAKE_CURRENT_SOURCE_DIR}/fileutils.c
                              ${CMAKE_CURRENT_SOURCE_DIR}/idcache.c
                              ${CMAKE_CURRENT_SOURCE_DIR}/ismounted.c
+                             ${CMAKE_CURRENT_SOURCE_DIR}/jsonwrt.c
                              ${CMAKE_CURRENT_SOURCE_DIR}/langinfo.c
                              ${CMAKE_CURRENT_SOURCE_DIR}/linux_version.c
                              ${CMAKE_CURRENT_SOURCE_DIR}/loopdev.c

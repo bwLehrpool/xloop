@@ -8,7 +8,6 @@ add_library(libsmartcols STATIC ${CMAKE_CURRENT_SOURCE_DIR}/src/buffer.c
                                 ${CMAKE_CURRENT_SOURCE_DIR}/src/calculate.c
                                 ${CMAKE_CURRENT_SOURCE_DIR}/src/cell.c
                                 ${CMAKE_CURRENT_SOURCE_DIR}/src/column.c
-                                ${CMAKE_CURRENT_SOURCE_DIR}/src/fput.c
                                 ${CMAKE_CURRENT_SOURCE_DIR}/src/grouping.c
                                 ${CMAKE_CURRENT_SOURCE_DIR}/src/init.c
                                 ${CMAKE_CURRENT_SOURCE_DIR}/src/iter.c

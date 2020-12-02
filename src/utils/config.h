@@ -288,6 +288,9 @@
 /* Define to 1 if you have the <linux/fd.h> header file. */
 #define HAVE_LINUX_FD_H 1
 
+/* Define to 1 if you have the <linux/fiemap.h> header file. */
+#define HAVE_LINUX_FIEMAP_H 1
+
 /* Define to 1 if you have the <linux/fs.h> header file. */
 /* #undef HAVE_LINUX_FS_H */
 
@@ -450,6 +453,9 @@
 /* Define to 1 if you have the <security/pam_misc.h> header file. */
 #define HAVE_SECURITY_PAM_MISC_H 1
 
+/* Define to 1 if you have the `sendfile' function. */
+#define HAVE_SENDFILE 1
+
 /* Define to 1 if you have the `setitimer' function. */
 /* #undef HAVE_SETITIMER */
 
@@ -575,6 +581,9 @@
 
 /* Define to 1 if you have the <sys/resource.h> header file. */
 #define HAVE_SYS_RESOURCE_H 1
+
+/* Define to 1 if you have the <sys/sendfile.h> header file. */
+#define HAVE_SYS_SENDFILE_H 1
 
 /* Define to 1 if you have the <sys/signalfd.h> header file. */
 #define HAVE_SYS_SIGNALFD_H 1

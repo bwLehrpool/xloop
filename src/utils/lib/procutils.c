@@ -1,17 +1,11 @@
 /*
  * Copyright (C) 2011 Davidlohr Bueso <dave@gnu.org>
+ * Copyright (C) 2011-2020 Karel Zak <kzak@redhat.com>
  *
  * procutils.c: General purpose procfs parsing utilities
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Library Public License as published by
- * the Free Software Foundation; either version 2, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Library Public License for more details.
+ * No copyright is claimed.  This code is in the public domain; do with
+ * it what you wish.
  */
 
 #include <stdio.h>
@@ -19,11 +13,13 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <sys/vfs.h>
 #include <sys/types.h>
 #include <dirent.h>
 #include <ctype.h>
 
 #include "procutils.h"
+#include "statfs_magic.h"
 #include "fileutils.h"
 #include "all-io.h"
 #include "c.h"
@@ -241,6 +237,27 @@ int proc_next_pid(struct proc_processes *ps, pid_t *pid)
 	return 0;
 }
 
+/* checks if fd is file in a procfs;
+ * returns 1 if true, 0 if false or couldn't determine */
+int proc_is_procfs(int fd)
+{
+	struct statfs st;
+	int ret;
+
+	do {
+		errno = 0;
+		ret = fstatfs(fd, &st);
+
+		if (ret < 0) {
+			if (errno != EINTR && errno != EAGAIN)
+				return 0;
+			xusleep(250000);
+		}
+	} while (ret != 0);
+
+	return st.f_type == STATFS_PROC_MAGIC;
+}
+
 #ifdef TEST_PROGRAM_PROCUTILS
 
 static int test_tasks(int argc, char *argv[])
@@ -289,10 +306,28 @@ static int test_processes(int argc, char *argv[])
 	return EXIT_SUCCESS;
 }
 
+static int test_isprocfs(int argc, char *argv[])
+{
+	const char *name = argc > 1 ? argv[1] : "/proc";
+	int fd = open(name, O_RDONLY);
+	int is = 0;
+
+	if (fd >= 0) {
+		is = proc_is_procfs(fd);
+		close(fd);
+	} else
+		err(EXIT_FAILURE, "cannot open %s", name);
+
+	printf("%s: %s procfs\n", name, is ? "is" : "is NOT");
+	return is ? EXIT_SUCCESS : EXIT_FAILURE;
+}
+
+
 int main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		fprintf(stderr, "usage: %1$s --tasks <pid>\n"
+				"       %1$s --is-procfs [<dir>]\n"
 				"       %1$s --processes [---name <name>] [--uid <uid>]\n",
 				program_invocation_short_name);
 		return EXIT_FAILURE;
@@ -302,6 +337,8 @@ int main(int argc, char *argv[])
 		return test_tasks(argc - 1, argv + 1);
 	if (strcmp(argv[1], "--processes") == 0)
 		return test_processes(argc - 1, argv + 1);
+	if (strcmp(argv[1], "--is-procfs") == 0)
+		return test_isprocfs(argc - 1, argv + 1);
 
 	return EXIT_FAILURE;
 }
