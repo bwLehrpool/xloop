@@ -877,11 +877,6 @@ static int xloop_configure(struct xloop_device *xlo, fmode_t mode,
 	if (error)
 		goto out_unlock;
 
-	error = xloop_file_fmt_init(xlo->xlo_fmt,
-				config->info.xlo_file_fmt_type);
-	if (error)
-		goto out_unlock;
-
 	set_device_ro(bdev, (xlo->xlo_flags & XLO_FLAGS_READ_ONLY) != 0);
 
 	xlo->use_dio = xlo->xlo_flags & XLO_FLAGS_DIRECT_IO;
@@ -889,6 +884,11 @@ static int xloop_configure(struct xloop_device *xlo, fmode_t mode,
 	xlo->xlo_backing_file = file;
 	xlo->old_gfp_mask = mapping_gfp_mask(mapping);
 	mapping_set_gfp_mask(mapping, xlo->old_gfp_mask & ~(__GFP_IO|__GFP_FS));
+
+	error = xloop_file_fmt_init(xlo->xlo_fmt,
+				config->info.xlo_file_fmt_type);
+	if (error)
+		goto out_unlock;
 
 	if (!(xlo->xlo_flags & XLO_FLAGS_READ_ONLY) && file->f_op->fsync)
 		blk_queue_write_cache(xlo->xlo_queue, true, false);

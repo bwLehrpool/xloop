@@ -75,6 +75,19 @@ struct loop_info64 {
 	uint32_t	lo_file_fmt_type;
 };
 
+#ifndef LOOP_CONFIGURE
+/*
+ * Since Linux v5.8-rc1 (commit 3448914e8cc550ba792d4ccc74471d1ca4293aae)
+ */
+# define LOOP_CONFIGURE		0x4C0A
+struct loop_config {
+  uint32_t fd;
+  uint32_t block_size;
+  struct loop_info64 info;
+  uint64_t __reserved[8];
+};
+#endif
+
 #define LOOPDEV_MAJOR	XLOOP_MAJOR	/* loop major number */
 #define LOOPDEV_DEFAULT_NNODES	CONFIG_BLK_DEV_XLOOP_MIN_COUNT	/* default number of loop devices */
 
@@ -114,7 +127,7 @@ struct loopdev_cxt {
 	unsigned int    control_ok:1;	/* /dev/loop-control success */
 
 	struct path_cxt		*sysfs; /* pointer to /sys/dev/block/<maj:min>/ */
-	struct loop_info64	info;	/* for GET/SET ioctl */
+	struct loop_config 	config;	/* for GET/SET ioctl */
 	struct loopdev_iter	iter;	/* scans /sys or /dev for used/free devices */
 };
 
