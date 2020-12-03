@@ -31,8 +31,6 @@ include(Build)
 
 # search for required packages
 find_package(Git REQUIRED)
-find_package(Libcap REQUIRED)
-find_package(Libncurses REQUIRED)
 find_package(KernelHeaders REQUIRED)
 
 # set linux kernel modules specific default settings

@@ -29,8 +29,7 @@ pacman -S git \
           cmake \
           gcc \
           linux-headers \  # or linux-lts-headers
-          libcap \
-          ncurses \
+          libcap \  # required only in Debug build configuration
           dpkg \
           rpm-tools
 ```
@@ -42,8 +41,7 @@ apt-get install git \
                 cmake \
                 gcc \
                 raspberrypi-kernel-headers \
-                libcap-dev \
-                libncurses-dev \
+                libcap-dev \  # required only in Debug build configuration
                 rpm
 ```
 
@@ -54,8 +52,7 @@ apt-get install git \
                 cmake \
                 gcc \
                 linux-headers-generic \
-                libcap-dev \
-                libncurses-dev \
+                libcap-dev \  # required only in Debug build configuration
                 rpm
 ```
 
@@ -66,8 +63,7 @@ apt-get install git \
                 cmake \
                 gcc \
                 linux-headers-generic \
-                libcap-dev \
-                libncurses-dev \
+                libcap-dev \  # required only in Debug build configuration
                 rpm
 ```
 
@@ -79,8 +75,7 @@ yum install git \
             gcc \
             kernel-devel \
             elfutils-libelf-devel \
-            libcap-devel \
-            ncurses-devel \
+            libcap-devel \  # required only in Debug build configuration
             rpm-build
 ```
 

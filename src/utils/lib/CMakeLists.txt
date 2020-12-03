@@ -9,7 +9,6 @@ add_library(libcommon STATIC ${CMAKE_CURRENT_SOURCE_DIR}/blkdev.c
                              ${CMAKE_CURRENT_SOURCE_DIR}/canonicalize.c
                              ${CMAKE_CURRENT_SOURCE_DIR}/caputils.c
                              ${CMAKE_CURRENT_SOURCE_DIR}/color-names.c
-                             ${CMAKE_CURRENT_SOURCE_DIR}/colors.c
                              ${CMAKE_CURRENT_SOURCE_DIR}/cpuset.c
                              ${CMAKE_CURRENT_SOURCE_DIR}/crc32.c
                              ${CMAKE_CURRENT_SOURCE_DIR}/crc32c.c
