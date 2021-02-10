@@ -15,6 +15,7 @@ and the user space utility **xlosetup** to configure xloop devices. The xloop Li
   - Ubuntu 20.04 with **Linux kernel 5.4.x**
   - Ubuntu 18.04 with **Linux kernel 4.19.x**
   - CentOS 8 with **Linux kernel 4.18.x**
+  - AlmaLinux 8 with **Linux kernel 4.18.x**
 
 
 ## Build
@@ -68,6 +69,18 @@ apt-get install git \
 ```
 
 #### CentOS 8 with Linux kernel 4.18.x
+```shell
+yum install git \
+            make \
+            cmake \
+            gcc \
+            kernel-devel \
+            elfutils-libelf-devel \
+            libcap-devel \  # required only in Debug build configuration
+            rpm-build
+```
+
+#### AlmaLinux 8 with Linux kernel 4.18.x
 ```shell
 yum install git \
             make \

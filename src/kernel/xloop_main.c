@@ -95,6 +95,13 @@
 
 #include <linux/uaccess.h>
 
+/* define RHEL_CHECK_VERSION macro to check CentOS version */
+#if defined(RHEL_RELEASE_CODE) && defined(RHEL_RELEASE_VERSION)
+	#define RHEL_CHECK_VERSION(CONDITION) (CONDITION)
+#else
+	#define RHEL_CHECK_VERSION(CONDITION) (0)
+#endif
+
 static DEFINE_IDR(xloop_index_idr);
 static DEFINE_MUTEX(xloop_ctl_mutex);
 
@@ -358,7 +365,8 @@ static void xloop_reread_partitions(struct xloop_device *xlo,
 {
 	int rc;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0)) || \
+		RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(8, 3))
 	mutex_lock(&bdev->bd_mutex);
 	rc = bdev_disk_changed(bdev, false);
 	mutex_unlock(&bdev->bd_mutex);
@@ -1035,7 +1043,8 @@ out_unlock:
 		 * must be at least one and it can only become zero when the
 		 * current holder is released.
 		 */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0) || \
+		RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(8, 3))
 		if (!release)
 			mutex_lock(&bdev->bd_mutex);
 		err = bdev_disk_changed(bdev, false);
