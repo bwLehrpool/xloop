@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0 */
+// SPDX-License-Identifier: GPL-2.0
 /*
  * xloop_file_fmt_qcow_cluster.c
  *
@@ -34,19 +34,17 @@
  * the cache is used; otherwise the L2 slice is loaded from the image
  * file.
  */
-static int __xloop_file_fmt_qcow_cluster_l2_load(struct xloop_file_fmt *xlo_fmt,
-	u64 offset, u64 l2_offset, u64 **l2_slice)
+static int __xloop_file_fmt_qcow_cluster_l2_load(struct xloop_file_fmt *xlo_fmt, u64 offset, u64 l2_offset,
+						 u64 **l2_slice)
 {
 	struct xloop_file_fmt_qcow_data *qcow_data = xlo_fmt->private_data;
 
-	int start_of_slice = xloop_file_fmt_qcow_l2_entry_size(qcow_data) * (
-		xloop_file_fmt_qcow_offset_to_l2_index(qcow_data, offset) -
-		xloop_file_fmt_qcow_offset_to_l2_slice_index(qcow_data, offset)
-	);
+	int start_of_slice = xloop_file_fmt_qcow_l2_entry_size(qcow_data) *
+			     (xloop_file_fmt_qcow_offset_to_l2_index(qcow_data, offset) -
+			      xloop_file_fmt_qcow_offset_to_l2_slice_index(qcow_data, offset));
 
 	ASSERT(qcow_data->l2_table_cache != NULL);
-	return xloop_file_fmt_qcow_cache_get(xlo_fmt, l2_offset + start_of_slice,
-		(void **) l2_slice);
+	return xloop_file_fmt_qcow_cache_get(xlo_fmt, l2_offset + start_of_slice, (void **)l2_slice);
 }
 
 /*
@@ -61,45 +59,41 @@ static int __xloop_file_fmt_qcow_cluster_l2_load(struct xloop_file_fmt *xlo_fmt,
  * If the L2 entry is invalid return -errno and set @type to
  * QCOW_SUBCLUSTER_INVALID.
  */
-static int __xloop_file_fmt_qcow_get_subcluster_range_type(
-	struct xloop_file_fmt *xlo_fmt, u64 l2_entry, u64 l2_bitmap,
-	unsigned int sc_from, enum xloop_file_fmt_qcow_subcluster_type *type)
+static int __xloop_file_fmt_qcow_get_subcluster_range_type(struct xloop_file_fmt *xlo_fmt, u64 l2_entry, u64 l2_bitmap,
+							   unsigned int sc_from,
+							   enum xloop_file_fmt_qcow_subcluster_type *type)
 {
-    struct xloop_file_fmt_qcow_data *qcow_data = xlo_fmt->private_data;
-    u32 val;
+	struct xloop_file_fmt_qcow_data *qcow_data = xlo_fmt->private_data;
+	u32 val;
 
-    *type = xloop_file_fmt_qcow_get_subcluster_type(xlo_fmt, l2_entry,
-		l2_bitmap, sc_from);
+	*type = xloop_file_fmt_qcow_get_subcluster_type(xlo_fmt, l2_entry, l2_bitmap, sc_from);
 
-    if (*type == QCOW_SUBCLUSTER_INVALID) {
-        return -EINVAL;
-    } else if (!xloop_file_fmt_qcow_has_subclusters(qcow_data) || 
-		*type == QCOW_SUBCLUSTER_COMPRESSED) {
-        return qcow_data->subclusters_per_cluster - sc_from;
-    }
+	if (*type == QCOW_SUBCLUSTER_INVALID)
+		return -EINVAL;
+	else if (!xloop_file_fmt_qcow_has_subclusters(qcow_data) || *type == QCOW_SUBCLUSTER_COMPRESSED)
+		return qcow_data->subclusters_per_cluster - sc_from;
 
-    switch (*type) {
-    case QCOW_SUBCLUSTER_NORMAL:
-        val = l2_bitmap | QCOW_OFLAG_SUB_ALLOC_RANGE(0, sc_from);
-        return __builtin_ctz(~val) - sc_from;
+	switch (*type) {
+	case QCOW_SUBCLUSTER_NORMAL:
+		val = l2_bitmap | QCOW_OFLAG_SUB_ALLOC_RANGE(0, sc_from);
+		return __builtin_ctz(~val) - sc_from;
 
-    case QCOW_SUBCLUSTER_ZERO_PLAIN:
-    case QCOW_SUBCLUSTER_ZERO_ALLOC:
-        val = (l2_bitmap | QCOW_OFLAG_SUB_ZERO_RANGE(0, sc_from)) >> 32;
-        return __builtin_ctz(~val) - sc_from;
+	case QCOW_SUBCLUSTER_ZERO_PLAIN:
+	case QCOW_SUBCLUSTER_ZERO_ALLOC:
+		val = (l2_bitmap | QCOW_OFLAG_SUB_ZERO_RANGE(0, sc_from)) >> 32;
+		return __builtin_ctz(~val) - sc_from;
 
-    case QCOW_SUBCLUSTER_UNALLOCATED_PLAIN:
-    case QCOW_SUBCLUSTER_UNALLOCATED_ALLOC:
-        val = ((l2_bitmap >> 32) | l2_bitmap)
-            & ~QCOW_OFLAG_SUB_ALLOC_RANGE(0, sc_from);
-        return __builtin_ctz(val) - sc_from;
+	case QCOW_SUBCLUSTER_UNALLOCATED_PLAIN:
+	case QCOW_SUBCLUSTER_UNALLOCATED_ALLOC:
+		val = ((l2_bitmap >> 32) | l2_bitmap) & ~QCOW_OFLAG_SUB_ALLOC_RANGE(0, sc_from);
+		return __builtin_ctz(val) - sc_from;
 
-    default:
-        /* not reachable */
-        ASSERT(false);
+	default:
+		/* not reachable */
+		ASSERT(false);
 		*type = QCOW_SUBCLUSTER_INVALID;
 		return 0;
-    }
+	}
 }
 
 /*
@@ -115,58 +109,52 @@ static int __xloop_file_fmt_qcow_get_subcluster_range_type(
  * On failure return -errno and update @l2_index to point to the
  * invalid entry.
  */
-static int __xloop_file_fmt_qcow_count_contiguous_subclusters(
-	struct xloop_file_fmt *xlo_fmt, int nb_clusters, unsigned int sc_index,
-	u64 *l2_slice, unsigned int *l2_index)
+static int __xloop_file_fmt_qcow_count_contiguous_subclusters(struct xloop_file_fmt *xlo_fmt, int nb_clusters,
+							      unsigned int sc_index, u64 *l2_slice,
+							      unsigned int *l2_index)
 {
-    struct xloop_file_fmt_qcow_data *qcow_data = xlo_fmt->private_data;
-    int i, count = 0;
-    bool check_offset = false;
-    u64 expected_offset = 0;
-    enum xloop_file_fmt_qcow_subcluster_type expected_type = 
-		QCOW_SUBCLUSTER_NORMAL;
+	struct xloop_file_fmt_qcow_data *qcow_data = xlo_fmt->private_data;
+	int i, count = 0;
+	bool check_offset = false;
+	u64 expected_offset = 0;
+	enum xloop_file_fmt_qcow_subcluster_type expected_type = QCOW_SUBCLUSTER_NORMAL;
 	enum xloop_file_fmt_qcow_subcluster_type type;
 
-    ASSERT(*l2_index + nb_clusters <= qcow_data->l2_slice_size);
+	ASSERT(*l2_index + nb_clusters <= qcow_data->l2_slice_size);
 
-    for (i = 0; i < nb_clusters; i++) {
-        unsigned int first_sc = (i == 0) ? sc_index : 0;
-        u64 l2_entry = xloop_file_fmt_qcow_get_l2_entry(qcow_data, l2_slice,
-			*l2_index + i);
-        u64 l2_bitmap = xloop_file_fmt_qcow_get_l2_bitmap(qcow_data, l2_slice,
-			*l2_index + i);
-        int ret = __xloop_file_fmt_qcow_get_subcluster_range_type(xlo_fmt,
-			l2_entry, l2_bitmap, first_sc, &type);
-        if (ret < 0) {
-            *l2_index += i; /* Point to the invalid entry */
-            return -EIO;
-        }
-        if (i == 0) {
-            if (type == QCOW_SUBCLUSTER_COMPRESSED) {
-                /* Compressed clusters are always processed one by one */
-                return ret;
-            }
-            expected_type = type;
-            expected_offset = l2_entry & QCOW_L2E_OFFSET_MASK;
-            check_offset = (type == QCOW_SUBCLUSTER_NORMAL ||
-                            type == QCOW_SUBCLUSTER_ZERO_ALLOC ||
-                            type == QCOW_SUBCLUSTER_UNALLOCATED_ALLOC);
-        } else if (type != expected_type) {
-            break;
-        } else if (check_offset) {
-            expected_offset += qcow_data->cluster_size;
-            if (expected_offset != (l2_entry & QCOW_L2E_OFFSET_MASK)) {
-                break;
-            }
-        }
-        count += ret;
-        /* Stop if there are type changes before the end of the cluster */
-        if (first_sc + ret < qcow_data->subclusters_per_cluster) {
-            break;
-        }
-    }
+	for (i = 0; i < nb_clusters; i++) {
+		unsigned int first_sc = (i == 0) ? sc_index : 0;
+		u64 l2_entry = xloop_file_fmt_qcow_get_l2_entry(qcow_data, l2_slice, *l2_index + i);
+		u64 l2_bitmap = xloop_file_fmt_qcow_get_l2_bitmap(qcow_data, l2_slice, *l2_index + i);
+		int ret =
+			__xloop_file_fmt_qcow_get_subcluster_range_type(xlo_fmt, l2_entry, l2_bitmap, first_sc, &type);
+		if (ret < 0) {
+			*l2_index += i; /* Point to the invalid entry */
+			return -EIO;
+		}
+		if (i == 0) {
+			if (type == QCOW_SUBCLUSTER_COMPRESSED) {
+				/* Compressed clusters are always processed one by one */
+				return ret;
+			}
+			expected_type = type;
+			expected_offset = l2_entry & QCOW_L2E_OFFSET_MASK;
+			check_offset = (type == QCOW_SUBCLUSTER_NORMAL || type == QCOW_SUBCLUSTER_ZERO_ALLOC ||
+					type == QCOW_SUBCLUSTER_UNALLOCATED_ALLOC);
+		} else if (type != expected_type) {
+			break;
+		} else if (check_offset) {
+			expected_offset += qcow_data->cluster_size;
+			if (expected_offset != (l2_entry & QCOW_L2E_OFFSET_MASK))
+				break;
+		}
+		count += ret;
+		/* Stop if there are type changes before the end of the cluster */
+		if (first_sc + ret < qcow_data->subclusters_per_cluster)
+			break;
+	}
 
-    return count;
+	return count;
 }
 
 /*
@@ -190,9 +178,8 @@ static int __xloop_file_fmt_qcow_count_contiguous_subclusters(
  *
  * Returns 0 on success, -errno in error cases.
  */
-int xloop_file_fmt_qcow_get_host_offset(struct xloop_file_fmt *xlo_fmt,
-	u64 offset, unsigned int *bytes, u64 *host_offset,
-	enum xloop_file_fmt_qcow_subcluster_type *subcluster_type)
+int xloop_file_fmt_qcow_get_host_offset(struct xloop_file_fmt *xlo_fmt, u64 offset, unsigned int *bytes,
+					u64 *host_offset, enum xloop_file_fmt_qcow_subcluster_type *subcluster_type)
 {
 	struct xloop_file_fmt_qcow_data *qcow_data = xlo_fmt->private_data;
 	unsigned int l2_index, sc_index;
@@ -204,21 +191,20 @@ int xloop_file_fmt_qcow_get_host_offset(struct xloop_file_fmt *xlo_fmt,
 	int ret;
 	u64 host_cluster_offset;
 
-	offset_in_cluster = xloop_file_fmt_qcow_offset_into_cluster(qcow_data,
-		offset);
-	bytes_needed = (u64) *bytes + offset_in_cluster;
+	offset_in_cluster = xloop_file_fmt_qcow_offset_into_cluster(qcow_data, offset);
+	bytes_needed = (u64)*bytes + offset_in_cluster;
 
-	/* compute how many bytes there are between the start of the cluster
+	/*
+	 * compute how many bytes there are between the start of the cluster
 	 * containing offset and the end of the l2 slice that contains
-	 * the entry pointing to it */
-	bytes_available = ((u64)(
-		qcow_data->l2_slice_size -
-		xloop_file_fmt_qcow_offset_to_l2_slice_index(qcow_data, offset))
-	) << qcow_data->cluster_bits;
+	 * the entry pointing to it
+	 */
+	bytes_available =
+		((u64)(qcow_data->l2_slice_size - xloop_file_fmt_qcow_offset_to_l2_slice_index(qcow_data, offset)))
+		<< qcow_data->cluster_bits;
 
-	if (bytes_needed > bytes_available) {
+	if (bytes_needed > bytes_available)
 		bytes_needed = bytes_available;
-	}
 
 	*host_offset = 0;
 
@@ -236,52 +222,45 @@ int xloop_file_fmt_qcow_get_host_offset(struct xloop_file_fmt *xlo_fmt,
 	}
 
 	if (xloop_file_fmt_qcow_offset_into_cluster(qcow_data, l2_offset)) {
-		dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "L2 table offset "
-			"%llx unaligned (L1 index: %llx)", l2_offset, l1_index);
+		dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "L2 table offset %llx unaligned (L1 index: %llx)",
+				    l2_offset, l1_index);
 		return -EIO;
 	}
 
 	/* load the l2 slice in memory */
-	ret = __xloop_file_fmt_qcow_cluster_l2_load(xlo_fmt, offset, l2_offset,
-		&l2_slice);
-	if (ret < 0) {
+	ret = __xloop_file_fmt_qcow_cluster_l2_load(xlo_fmt, offset, l2_offset, &l2_slice);
+	if (ret < 0)
 		return ret;
-	}
 
 	/* find the cluster offset for the given disk offset */
-	l2_index = xloop_file_fmt_qcow_offset_to_l2_slice_index(qcow_data,
-		offset);
+	l2_index = xloop_file_fmt_qcow_offset_to_l2_slice_index(qcow_data, offset);
 	sc_index = xloop_file_fmt_qcow_offset_to_sc_index(qcow_data, offset);
-    l2_entry = xloop_file_fmt_qcow_get_l2_entry(qcow_data, l2_slice,
-		l2_index);
-    l2_bitmap = xloop_file_fmt_qcow_get_l2_bitmap(qcow_data, l2_slice, 
-		l2_index);
+	l2_entry = xloop_file_fmt_qcow_get_l2_entry(qcow_data, l2_slice, l2_index);
+	l2_bitmap = xloop_file_fmt_qcow_get_l2_bitmap(qcow_data, l2_slice, l2_index);
 
-	nb_clusters = xloop_file_fmt_qcow_size_to_clusters(qcow_data,
-		bytes_needed);
-	/* bytes_needed <= *bytes + offset_in_cluster, both of which are
+	nb_clusters = xloop_file_fmt_qcow_size_to_clusters(qcow_data, bytes_needed);
+	/*
+	 * bytes_needed <= *bytes + offset_in_cluster, both of which are
 	 * unsigned integers; the minimum cluster size is 512, so this
-	 * assertion is always true */
+	 * assertion is always true
+	 */
 	ASSERT(nb_clusters <= INT_MAX);
 
-	type = xloop_file_fmt_qcow_get_subcluster_type(xlo_fmt, l2_entry,
-		l2_bitmap, sc_index);
-	if (qcow_data->qcow_version < 3 && (
-			type == QCOW_SUBCLUSTER_ZERO_PLAIN ||
-			type == QCOW_SUBCLUSTER_ZERO_ALLOC)) {
-		dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "zero cluster "
-			"entry found in pre-v3 image (L2 offset: %llx, L2 index: %x)\n",
-			l2_offset, l2_index);
+	type = xloop_file_fmt_qcow_get_subcluster_type(xlo_fmt, l2_entry, l2_bitmap, sc_index);
+	if (qcow_data->qcow_version < 3 && (type == QCOW_SUBCLUSTER_ZERO_PLAIN || type == QCOW_SUBCLUSTER_ZERO_ALLOC)) {
+		dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt),
+				    "zero cluster entry found in pre-v3 image (L2 offset: %llx, L2 index: %x)\n",
+				    l2_offset, l2_index);
 		ret = -EIO;
 		goto fail;
 	}
 	switch (type) {
-    case QCOW_SUBCLUSTER_INVALID:
-        break; /* This is handled by count_contiguous_subclusters() below */
+	case QCOW_SUBCLUSTER_INVALID:
+		break; /* This is handled by count_contiguous_subclusters() below */
 	case QCOW_SUBCLUSTER_COMPRESSED:
 		if (xloop_file_fmt_qcow_has_data_file(qcow_data)) {
-			dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "compressed "
-				"cluster entry found in image with external data file "
+			dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt),
+				"compressed cluster entry found in image with external data file "
 				"(L2 offset: %llx, L2 index: %x)\n", l2_offset, l2_index);
 			ret = -EIO;
 			goto fail;
@@ -296,20 +275,17 @@ int xloop_file_fmt_qcow_get_host_offset(struct xloop_file_fmt *xlo_fmt,
 	case QCOW_SUBCLUSTER_UNALLOCATED_ALLOC:
 		host_cluster_offset = l2_entry & QCOW_L2E_OFFSET_MASK;
 		*host_offset = host_cluster_offset + offset_in_cluster;
-		if (xloop_file_fmt_qcow_offset_into_cluster(qcow_data,
-			host_cluster_offset)) {
-			dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "cluster "
-				"allocation offset %llx unaligned (L2 offset: %llx, "
-				"L2 index: %x)\n", host_cluster_offset, l2_offset, l2_index);
+		if (xloop_file_fmt_qcow_offset_into_cluster(qcow_data, host_cluster_offset)) {
+			dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt),
+				"cluster allocation offset %llx unaligned (L2 offset: %llx, L2 index: %x)\n",
+				host_cluster_offset, l2_offset, l2_index);
 			ret = -EIO;
 			goto fail;
 		}
-		if (xloop_file_fmt_qcow_has_data_file(qcow_data) &&
-			*host_offset != offset) {
-			dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "external "
-				"data file host cluster offset %llx  does not match guest "
-				"cluster offset: %llx, L2 index: %x)\n", host_cluster_offset,
-				offset - offset_in_cluster, l2_index);
+		if (xloop_file_fmt_qcow_has_data_file(qcow_data) && *host_offset != offset) {
+			dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt),
+				"external data file host cluster offset %llx does not match guest cluster offset: "
+				"%llx, L2 index: %x)\n", host_cluster_offset, offset - offset_in_cluster, l2_index);
 			ret = -EIO;
 			goto fail;
 		}
@@ -318,28 +294,28 @@ int xloop_file_fmt_qcow_get_host_offset(struct xloop_file_fmt *xlo_fmt,
 		BUG();
 	}
 
-	sc = __xloop_file_fmt_qcow_count_contiguous_subclusters(xlo_fmt,
-		nb_clusters, sc_index, l2_slice, &l2_index);
+	sc = __xloop_file_fmt_qcow_count_contiguous_subclusters(xlo_fmt, nb_clusters, sc_index, l2_slice, &l2_index);
 
 	if (sc < 0) {
-        dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt), "invalid cluster "
-			"entry found (L2 offset: %#llx, L2 index: %#x)", l2_offset,
-			l2_index);
-        ret = -EIO;
-        goto fail;
-    }
-	xloop_file_fmt_qcow_cache_put(xlo_fmt, (void **) &l2_slice);
+		dev_err_ratelimited(xloop_file_fmt_to_dev(xlo_fmt),
+				    "invalid cluster entry found (L2 offset: %#llx, L2 index: %#x)", l2_offset,
+				    l2_index);
+		ret = -EIO;
+		goto fail;
+	}
+	xloop_file_fmt_qcow_cache_put(xlo_fmt, (void **)&l2_slice);
 
-	bytes_available = ((s64) sc + sc_index) << qcow_data->subcluster_bits;
+	bytes_available = ((s64)sc + sc_index) << qcow_data->subcluster_bits;
 
 out:
-	if (bytes_available > bytes_needed) {
+	if (bytes_available > bytes_needed)
 		bytes_available = bytes_needed;
-	}
 
-	/* bytes_available <= bytes_needed <= *bytes + offset_in_cluster;
+	/*
+	 * bytes_available <= bytes_needed <= *bytes + offset_in_cluster;
 	 * subtracting offset_in_cluster will therefore definitely yield
-	 * something not exceeding UINT_MAX */
+	 * something not exceeding UINT_MAX
+	 */
 	ASSERT(bytes_available - offset_in_cluster <= UINT_MAX);
 	*bytes = bytes_available - offset_in_cluster;
 
@@ -348,6 +324,6 @@ out:
 	return 0;
 
 fail:
-	xloop_file_fmt_qcow_cache_put(xlo_fmt, (void **) &l2_slice);
+	xloop_file_fmt_qcow_cache_put(xlo_fmt, (void **)&l2_slice);
 	return ret;
 }

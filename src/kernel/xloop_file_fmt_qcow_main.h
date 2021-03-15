@@ -30,16 +30,17 @@
 #include "xloop_file_fmt.h"
 
 #ifdef CONFIG_DEBUG_DRIVER
-#define ASSERT(x)  							\
-do {									\
-	if (!(x)) {							\
-		printk(KERN_EMERG "assertion failed %s: %d: %s\n",	\
-		       __FILE__, __LINE__, #x);				\
-		BUG();							\
-	}								\
-} while (0)
+#define ASSERT(x)                                                                                                      \
+	do {                                                                                                           \
+		if (!(x)) {                                                                                            \
+			printk(KERN_EMERG "assertion failed %s: %d: %s\n", __FILE__, __LINE__, #x);                    \
+			BUG();                                                                                         \
+		}                                                                                                      \
+	} while (0)
 #else
-#define ASSERT(x) do { } while (0)
+#define ASSERT(x)                                                                                                      \
+	do {                                                                                                           \
+	} while (0)
 #endif
 
 #define KiB (1024)
@@ -48,28 +49,36 @@ do {									\
 #define QCOW_MAGIC (('Q' << 24) | ('F' << 16) | ('I' << 8) | 0xfb)
 
 #define QCOW_CRYPT_NONE 0
-#define QCOW_CRYPT_AES  1
+#define QCOW_CRYPT_AES 1
 #define QCOW_CRYPT_LUKS 2
 
 #define QCOW_MAX_CRYPT_CLUSTERS 32
 #define QCOW_MAX_SNAPSHOTS 65536
 
-/* Field widths in QCOW mean normal cluster offsets cannot reach
+/*
+ * Field widths in QCOW mean normal cluster offsets cannot reach
  * 64PB; depending on cluster size, compressed clusters can have a
  * smaller limit (64PB for up to 16k clusters, then ramps down to
- * 512TB for 2M clusters).  */
+ * 512TB for 2M clusters).
+ */
 #define QCOW_MAX_CLUSTER_OFFSET ((1ULL << 56) - 1)
 
-/* 8 MB refcount table is enough for 2 PB images at 64k cluster size
- * (128 GB for 512 byte clusters, 2 EB for 2 MB clusters) */
+/*
+ * 8 MB refcount table is enough for 2 PB images at 64k cluster size
+ * (128 GB for 512 byte clusters, 2 EB for 2 MB clusters)
+ */
 #define QCOW_MAX_REFTABLE_SIZE (8 * MiB)
 
-/* 32 MB L1 table is enough for 2 PB images at 64k cluster size
- * (128 GB for 512 byte clusters, 2 EB for 2 MB clusters) */
+/*
+ * 32 MB L1 table is enough for 2 PB images at 64k cluster size
+ * (128 GB for 512 byte clusters, 2 EB for 2 MB clusters)
+ */
 #define QCOW_MAX_L1_SIZE (32 * MiB)
 
-/* Allow for an average of 1k per snapshot table entry, should be plenty of
- * space for snapshot names and IDs */
+/*
+ * Allow for an average of 1k per snapshot table entry, should be plenty of
+ * space for snapshot names and IDs
+ */
 #define QCOW_MAX_SNAPSHOTS_SIZE (1024 * QCOW_MAX_SNAPSHOTS)
 
 /* Bitmap header extension constraints */
@@ -77,7 +86,7 @@ do {									\
 #define QCOW_MAX_BITMAP_DIRECTORY_SIZE (1024 * QCOW_MAX_BITMAPS)
 
 /* indicate that the refcount of the referenced cluster is exactly one. */
-#define QCOW_OFLAG_COPIED     (1ULL << 63)
+#define QCOW_OFLAG_COPIED (1ULL << 63)
 /* indicate that the cluster is compressed (they never have the copied flag) */
 #define QCOW_OFLAG_COMPRESSED (1ULL << 62)
 /* The cluster reads as all zeros */
@@ -86,22 +95,20 @@ do {									\
 #define QCOW_EXTL2_SUBCLUSTERS_PER_CLUSTER 32
 
 /* The subcluster X [0..31] is allocated */
-#define QCOW_OFLAG_SUB_ALLOC(X)   (1ULL << (X))
+#define QCOW_OFLAG_SUB_ALLOC(X) (1ULL << (X))
 /* The subcluster X [0..31] reads as zeroes */
-#define QCOW_OFLAG_SUB_ZERO(X)    (QCOW_OFLAG_SUB_ALLOC(X) << 32)
+#define QCOW_OFLAG_SUB_ZERO(X) (QCOW_OFLAG_SUB_ALLOC(X) << 32)
 /* Subclusters [X, Y) (0 <= X <= Y <= 32) are allocated */
-#define QCOW_OFLAG_SUB_ALLOC_RANGE(X, Y) \
-    (QCOW_OFLAG_SUB_ALLOC(Y) - QCOW_OFLAG_SUB_ALLOC(X))
+#define QCOW_OFLAG_SUB_ALLOC_RANGE(X, Y) (QCOW_OFLAG_SUB_ALLOC(Y) - QCOW_OFLAG_SUB_ALLOC(X))
 /* Subclusters [X, Y) (0 <= X <= Y <= 32) read as zeroes */
-#define QCOW_OFLAG_SUB_ZERO_RANGE(X, Y) \
-    (QCOW_OFLAG_SUB_ALLOC_RANGE(X, Y) << 32)
+#define QCOW_OFLAG_SUB_ZERO_RANGE(X, Y) (QCOW_OFLAG_SUB_ALLOC_RANGE(X, Y) << 32)
 /* L2 entry bitmap with all allocation bits set */
-#define QCOW_L2_BITMAP_ALL_ALLOC  (QCOW_OFLAG_SUB_ALLOC_RANGE(0, 32))
+#define QCOW_L2_BITMAP_ALL_ALLOC (QCOW_OFLAG_SUB_ALLOC_RANGE(0, 32))
 /* L2 entry bitmap with all "read as zeroes" bits set */
 #define QCOW_L2_BITMAP_ALL_ZEROES (QCOW_OFLAG_SUB_ZERO_RANGE(0, 32))
 
 /* Size of normal and extended L2 entries */
-#define QCOW_L2E_SIZE_NORMAL   (sizeof(u64))
+#define QCOW_L2E_SIZE_NORMAL (sizeof(u64))
 #define QCOW_L2E_SIZE_EXTENDED (sizeof(u64) * 2)
 
 /* Size of L1 table entries */
@@ -124,15 +131,17 @@ do {									\
 #define QCOW_MIN_REFCOUNT_CACHE_SIZE 4 /* clusters */
 
 #define QCOW_DEFAULT_L2_CACHE_MAX_SIZE (32 * MiB)
-#define QCOW_DEFAULT_CACHE_CLEAN_INTERVAL 600  /* seconds */
+#define QCOW_DEFAULT_CACHE_CLEAN_INTERVAL 600 /* seconds */
 
 #define QCOW_DEFAULT_CLUSTER_SIZE 65536
 
 /* Buffer size for debugfs file buffer to display QCOW header information */
 #define QCOW_HEADER_BUF_LEN 1024
 
-/* Buffer size for debugfs file buffer to receive and display offset and
- * cluster offset information */
+/*
+ * Buffer size for debugfs file buffer to receive and display offset and
+ * cluster offset information
+ */
 #define QCOW_OFFSET_BUF_LEN 32
 #define QCOW_CLUSTER_BUF_LEN 256
 
@@ -160,57 +169,54 @@ struct xloop_file_fmt_qcow_header {
 	u32 header_length;
 
 	/* Additional fields */
-    u8 compression_type;
+	u8 compression_type;
 
-    /* header must be a multiple of 8 */
-    u8 padding[7];
-} __attribute__((packed));
+	/* header must be a multiple of 8 */
+	u8 padding[7];
+} __packed;
 
 struct xloop_file_fmt_qcow_snapshot_header {
 	/* header is 8 byte aligned */
-	u64 l1_table_offset;
+	u64  l1_table_offset;
 
-	u32 l1_size;
-	u16 id_str_size;
-	u16 name_size;
+	u32  l1_size;
+	u16  id_str_size;
+	u16  name_size;
 
-	u32 date_sec;
-	u32 date_nsec;
+	u32  date_sec;
+	u32  date_nsec;
 
-	u64 vm_clock_nsec;
+	u64  vm_clock_nsec;
 
-	u32 vm_state_size;
+	u32  vm_state_size;
 
-    /* Size of all extra data, including QCowSnapshotExtraData if available */
-    u32 extra_data_size;
-    /* Data beyond QCowSnapshotExtraData, if any */
-    void *unknown_extra_data;
-} __attribute__((packed));
+	/* Size of all extra data, including QCowSnapshotExtraData if available */
+	u32  extra_data_size;
+	/* Data beyond QCowSnapshotExtraData, if any */
+	void *unknown_extra_data;
+} __packed;
 
 enum {
-	QCOW_FEAT_TYPE_INCOMPATIBLE    = 0,
-	QCOW_FEAT_TYPE_COMPATIBLE      = 1,
-	QCOW_FEAT_TYPE_AUTOCLEAR       = 2,
+	QCOW_FEAT_TYPE_INCOMPATIBLE = 0,
+	QCOW_FEAT_TYPE_COMPATIBLE   = 1,
+	QCOW_FEAT_TYPE_AUTOCLEAR    = 2,
 };
 
 /* incompatible feature bits */
 enum {
-	QCOW_INCOMPAT_DIRTY_BITNR      = 0,
-	QCOW_INCOMPAT_CORRUPT_BITNR    = 1,
-	QCOW_INCOMPAT_DATA_FILE_BITNR  = 2,
+	QCOW_INCOMPAT_DIRTY_BITNR       = 0,
+	QCOW_INCOMPAT_CORRUPT_BITNR     = 1,
+	QCOW_INCOMPAT_DATA_FILE_BITNR   = 2,
 	QCOW_INCOMPAT_COMPRESSION_BITNR = 3,
-    QCOW_INCOMPAT_EXTL2_BITNR      = 4,
-	QCOW_INCOMPAT_DIRTY            = 1 << QCOW_INCOMPAT_DIRTY_BITNR,
-	QCOW_INCOMPAT_CORRUPT          = 1 << QCOW_INCOMPAT_CORRUPT_BITNR,
-	QCOW_INCOMPAT_DATA_FILE        = 1 << QCOW_INCOMPAT_DATA_FILE_BITNR,
-    QCOW_INCOMPAT_COMPRESSION      = 1 << QCOW_INCOMPAT_COMPRESSION_BITNR,
-    QCOW_INCOMPAT_EXTL2            = 1 << QCOW_INCOMPAT_EXTL2_BITNR,
+	QCOW_INCOMPAT_EXTL2_BITNR       = 4,
+	QCOW_INCOMPAT_DIRTY             = 1 << QCOW_INCOMPAT_DIRTY_BITNR,
+	QCOW_INCOMPAT_CORRUPT           = 1 << QCOW_INCOMPAT_CORRUPT_BITNR,
+	QCOW_INCOMPAT_DATA_FILE         = 1 << QCOW_INCOMPAT_DATA_FILE_BITNR,
+	QCOW_INCOMPAT_COMPRESSION       = 1 << QCOW_INCOMPAT_COMPRESSION_BITNR,
+	QCOW_INCOMPAT_EXTL2             = 1 << QCOW_INCOMPAT_EXTL2_BITNR,
 
-	QCOW_INCOMPAT_MASK             = QCOW_INCOMPAT_DIRTY
-					| QCOW_INCOMPAT_CORRUPT
-					| QCOW_INCOMPAT_DATA_FILE
-					| QCOW_INCOMPAT_COMPRESSION
-					| QCOW_INCOMPAT_EXTL2,
+	QCOW_INCOMPAT_MASK              = QCOW_INCOMPAT_DIRTY | QCOW_INCOMPAT_CORRUPT | QCOW_INCOMPAT_DATA_FILE |
+						QCOW_INCOMPAT_COMPRESSION | QCOW_INCOMPAT_EXTL2,
 };
 
 /* compatible feature bits */
@@ -228,8 +234,7 @@ enum {
 	QCOW_AUTOCLEAR_BITMAPS             = 1 << QCOW_AUTOCLEAR_BITMAPS_BITNR,
 	QCOW_AUTOCLEAR_DATA_FILE_RAW       = 1 << QCOW_AUTOCLEAR_DATA_FILE_RAW_BITNR,
 
-	QCOW_AUTOCLEAR_MASK                = QCOW_AUTOCLEAR_BITMAPS |
-						QCOW_AUTOCLEAR_DATA_FILE_RAW,
+	QCOW_AUTOCLEAR_MASK                = QCOW_AUTOCLEAR_BITMAPS | QCOW_AUTOCLEAR_DATA_FILE_RAW,
 };
 
 enum xloop_file_fmt_qcow_compression_type {
@@ -238,85 +243,85 @@ enum xloop_file_fmt_qcow_compression_type {
 };
 
 struct xloop_file_fmt_qcow_data {
-	u64 size;
-	int cluster_bits;
-	int cluster_size;
-	int l2_slice_size;
-	int subcluster_bits;
-    int subcluster_size;
-    int subclusters_per_cluster;
-	int l2_bits;
-	int l2_size;
-	int l1_size;
-	int l1_vm_state_index;
-	int refcount_block_bits;
-	int refcount_block_size;
-	int csize_shift;
-	int csize_mask;
-	u64 cluster_offset_mask;
-	u64 l1_table_offset;
-	u64 *l1_table;
+	u64           size;
+	int           cluster_bits;
+	int           cluster_size;
+	int           l2_slice_size;
+	int           subcluster_bits;
+	int           subcluster_size;
+	int           subclusters_per_cluster;
+	int           l2_bits;
+	int           l2_size;
+	int           l1_size;
+	int           l1_vm_state_index;
+	int           refcount_block_bits;
+	int           refcount_block_size;
+	int           csize_shift;
+	int           csize_mask;
+	u64           cluster_offset_mask;
+	u64           l1_table_offset;
+	u64           *l1_table;
 
 	struct xloop_file_fmt_qcow_cache *l2_table_cache;
 	struct xloop_file_fmt_qcow_cache *refcount_block_cache;
 
-	u64 *refcount_table;
-	u64 refcount_table_offset;
-	u32 refcount_table_size;
-	u32 max_refcount_table_index; /* Last used entry in refcount_table */
-	u64 free_cluster_index;
-	u64 free_byte_offset;
+	u64           *refcount_table;
+	u64           refcount_table_offset;
+	u32           refcount_table_size;
+	u32           max_refcount_table_index; /* Last used entry in refcount_table */
+	u64           free_cluster_index;
+	u64           free_byte_offset;
 
-	u32 crypt_method_header;
-	u64 snapshots_offset;
-	int snapshots_size;
-	unsigned int nb_snapshots;
+	u32           crypt_method_header;
+	u64           snapshots_offset;
+	int           snapshots_size;
+	unsigned int  nb_snapshots;
 
-	u32 nb_bitmaps;
-	u64 bitmap_directory_size;
-	u64 bitmap_directory_offset;
+	u32           nb_bitmaps;
+	u64           bitmap_directory_size;
+	u64           bitmap_directory_offset;
 
-	int qcow_version;
-	bool use_lazy_refcounts;
-	int refcount_order;
-	int refcount_bits;
-	u64 refcount_max;
+	int           qcow_version;
+	bool          use_lazy_refcounts;
+	int           refcount_order;
+	int           refcount_bits;
+	u64           refcount_max;
 
-	u64 incompatible_features;
-	u64 compatible_features;
-	u64 autoclear_features;
+	u64           incompatible_features;
+	u64           compatible_features;
+	u64           autoclear_features;
 
 	/* ZLIB specific data */
-	z_streamp zlib_dstrm;
+	z_streamp     zlib_dstrm;
 
 	/* ZSTD specific data */
 #ifdef CONFIG_ZSTD_DECOMPRESS
-	void *zstd_dworkspace;
-	ZSTD_DStream *zstd_dstrm;
+	void          *zstd_dworkspace;
+	ZSTD_DStream  *zstd_dstrm;
 #endif
 
 	/* used to cache last compressed QCOW cluster */
-	u8 *cmp_out_buf;
-	u64 cmp_last_coffset;
+	u8            *cmp_out_buf;
+	u64           cmp_last_coffset;
 
-    /*
-     * Compression type used for the image. Default: 0 - ZLIB
-     * The image compression type is set on image creation.
-     * For now, the only way to change the compression type
-     * is to convert the image with the desired compression type set.
-     */
-    enum xloop_file_fmt_qcow_compression_type compression_type;
+	/*
+	 * Compression type used for the image. Default: 0 - ZLIB
+	 * The image compression type is set on image creation.
+	 * For now, the only way to change the compression type
+	 * is to convert the image with the desired compression type set.
+	 */
+	enum xloop_file_fmt_qcow_compression_type compression_type;
 
 	/* debugfs entries */
 #ifdef CONFIG_DEBUG_FS
 	struct dentry *dbgfs_dir;
 	struct dentry *dbgfs_file_qcow_header;
-	char dbgfs_file_qcow_header_buf[QCOW_HEADER_BUF_LEN];
+	char          dbgfs_file_qcow_header_buf[QCOW_HEADER_BUF_LEN];
 	struct dentry *dbgfs_file_qcow_offset;
-	char dbgfs_file_qcow_offset_buf[QCOW_OFFSET_BUF_LEN];
-	char dbgfs_file_qcow_cluster_buf[QCOW_CLUSTER_BUF_LEN];
-	u64 dbgfs_qcow_offset;
-	struct mutex dbgfs_qcow_offset_mutex;
+	char          dbgfs_file_qcow_offset_buf[QCOW_OFFSET_BUF_LEN];
+	char          dbgfs_file_qcow_cluster_buf[QCOW_CLUSTER_BUF_LEN];
+	u64           dbgfs_qcow_offset;
+	struct mutex  dbgfs_qcow_offset_mutex;
 #endif
 };
 
@@ -325,10 +330,10 @@ struct xloop_file_fmt_qcow_cow_region {
 	 * Offset of the COW region in bytes from the start of the first
 	 * cluster touched by the request.
 	 */
-	unsigned offset;
+	unsigned int offset;
 
 	/** Number of bytes to copy */
-	unsigned nb_bytes;
+	unsigned int nb_bytes;
 };
 
 /*
@@ -368,13 +373,13 @@ enum xloop_file_fmt_qcow_cluster_type {
 };
 
 enum xloop_file_fmt_qcow_subcluster_type {
-    QCOW_SUBCLUSTER_UNALLOCATED_PLAIN,
-    QCOW_SUBCLUSTER_UNALLOCATED_ALLOC,
-    QCOW_SUBCLUSTER_ZERO_PLAIN,
-    QCOW_SUBCLUSTER_ZERO_ALLOC,
-    QCOW_SUBCLUSTER_NORMAL,
-    QCOW_SUBCLUSTER_COMPRESSED,
-    QCOW_SUBCLUSTER_INVALID,
+	QCOW_SUBCLUSTER_UNALLOCATED_PLAIN,
+	QCOW_SUBCLUSTER_UNALLOCATED_ALLOC,
+	QCOW_SUBCLUSTER_ZERO_PLAIN,
+	QCOW_SUBCLUSTER_ZERO_ALLOC,
+	QCOW_SUBCLUSTER_NORMAL,
+	QCOW_SUBCLUSTER_COMPRESSED,
+	QCOW_SUBCLUSTER_INVALID,
 };
 
 enum xloop_file_fmt_qcow_metadata_overlap {
@@ -390,173 +395,146 @@ enum xloop_file_fmt_qcow_metadata_overlap {
 
 	QCOW_OL_MAX_BITNR              = 9,
 
-	QCOW_OL_NONE             = 0,
-	QCOW_OL_MAIN_HEADER      = (1 << QCOW_OL_MAIN_HEADER_BITNR),
-	QCOW_OL_ACTIVE_L1        = (1 << QCOW_OL_ACTIVE_L1_BITNR),
-	QCOW_OL_ACTIVE_L2        = (1 << QCOW_OL_ACTIVE_L2_BITNR),
-	QCOW_OL_REFCOUNT_TABLE   = (1 << QCOW_OL_REFCOUNT_TABLE_BITNR),
-	QCOW_OL_REFCOUNT_BLOCK   = (1 << QCOW_OL_REFCOUNT_BLOCK_BITNR),
-	QCOW_OL_SNAPSHOT_TABLE   = (1 << QCOW_OL_SNAPSHOT_TABLE_BITNR),
-	QCOW_OL_INACTIVE_L1      = (1 << QCOW_OL_INACTIVE_L1_BITNR),
-	/* NOTE: Checking overlaps with inactive L2 tables will result in bdrv
-	 * reads. */
-	QCOW_OL_INACTIVE_L2      = (1 << QCOW_OL_INACTIVE_L2_BITNR),
-	QCOW_OL_BITMAP_DIRECTORY = (1 << QCOW_OL_BITMAP_DIRECTORY_BITNR),
+	QCOW_OL_NONE                   = 0,
+	QCOW_OL_MAIN_HEADER            = (1 << QCOW_OL_MAIN_HEADER_BITNR),
+	QCOW_OL_ACTIVE_L1              = (1 << QCOW_OL_ACTIVE_L1_BITNR),
+	QCOW_OL_ACTIVE_L2              = (1 << QCOW_OL_ACTIVE_L2_BITNR),
+	QCOW_OL_REFCOUNT_TABLE         = (1 << QCOW_OL_REFCOUNT_TABLE_BITNR),
+	QCOW_OL_REFCOUNT_BLOCK         = (1 << QCOW_OL_REFCOUNT_BLOCK_BITNR),
+	QCOW_OL_SNAPSHOT_TABLE         = (1 << QCOW_OL_SNAPSHOT_TABLE_BITNR),
+	QCOW_OL_INACTIVE_L1            = (1 << QCOW_OL_INACTIVE_L1_BITNR),
+	/* NOTE: Checking overlaps with inactive L2 tables will result in bdrv reads. */
+	QCOW_OL_INACTIVE_L2            = (1 << QCOW_OL_INACTIVE_L2_BITNR),
+	QCOW_OL_BITMAP_DIRECTORY       = (1 << QCOW_OL_BITMAP_DIRECTORY_BITNR),
 };
 
 /* Perform all overlap checks which can be done in constant time */
-#define QCOW_OL_CONSTANT \
-	(QCOW_OL_MAIN_HEADER | QCOW_OL_ACTIVE_L1 | QCOW_OL_REFCOUNT_TABLE | \
-		QCOW_OL_SNAPSHOT_TABLE | QCOW_OL_BITMAP_DIRECTORY)
+#define QCOW_OL_CONSTANT                                                                                               \
+	(QCOW_OL_MAIN_HEADER | QCOW_OL_ACTIVE_L1 | QCOW_OL_REFCOUNT_TABLE | QCOW_OL_SNAPSHOT_TABLE |                   \
+	 QCOW_OL_BITMAP_DIRECTORY)
 
 /* Perform all overlap checks which don't require disk access */
-#define QCOW_OL_CACHED \
-	(QCOW_OL_CONSTANT | QCOW_OL_ACTIVE_L2 | QCOW_OL_REFCOUNT_BLOCK | \
-		QCOW_OL_INACTIVE_L1)
+#define QCOW_OL_CACHED (QCOW_OL_CONSTANT | QCOW_OL_ACTIVE_L2 | QCOW_OL_REFCOUNT_BLOCK | QCOW_OL_INACTIVE_L1)
 
 /* Perform all overlap checks */
-#define QCOW_OL_ALL \
-	(QCOW_OL_CACHED | QCOW_OL_INACTIVE_L2)
+#define QCOW_OL_ALL (QCOW_OL_CACHED | QCOW_OL_INACTIVE_L2)
 
 #define QCOW_L1E_OFFSET_MASK 0x00fffffffffffe00ULL
 #define QCOW_L2E_OFFSET_MASK 0x00fffffffffffe00ULL
 #define QCOW_L2E_COMPRESSED_OFFSET_SIZE_MASK 0x3fffffffffffffffULL
 
-static inline bool xloop_file_fmt_qcow_has_subclusters(
-	struct xloop_file_fmt_qcow_data *qcow_data)
+static inline bool xloop_file_fmt_qcow_has_subclusters(struct xloop_file_fmt_qcow_data *qcow_data)
 {
-    return qcow_data->incompatible_features & QCOW_INCOMPAT_EXTL2;
+	return qcow_data->incompatible_features & QCOW_INCOMPAT_EXTL2;
 }
 
-static inline size_t xloop_file_fmt_qcow_l2_entry_size(
-	struct xloop_file_fmt_qcow_data *qcow_data)
+static inline size_t xloop_file_fmt_qcow_l2_entry_size(struct xloop_file_fmt_qcow_data *qcow_data)
 {
-    return xloop_file_fmt_qcow_has_subclusters(qcow_data) ? 
-		QCOW_L2E_SIZE_EXTENDED : QCOW_L2E_SIZE_NORMAL;
+	return xloop_file_fmt_qcow_has_subclusters(qcow_data) ? QCOW_L2E_SIZE_EXTENDED : QCOW_L2E_SIZE_NORMAL;
 }
 
-static inline u64 xloop_file_fmt_qcow_get_l2_entry(
-	struct xloop_file_fmt_qcow_data *qcow_data, u64 *l2_slice, int idx)
+static inline u64 xloop_file_fmt_qcow_get_l2_entry(struct xloop_file_fmt_qcow_data *qcow_data, u64 *l2_slice, int idx)
 {
-    idx *= xloop_file_fmt_qcow_l2_entry_size(qcow_data) / sizeof(u64);
-    return be64_to_cpu(l2_slice[idx]);
+	idx *= xloop_file_fmt_qcow_l2_entry_size(qcow_data) / sizeof(u64);
+	return be64_to_cpu(l2_slice[idx]);
 }
 
-static inline u64 xloop_file_fmt_qcow_get_l2_bitmap(
-	struct xloop_file_fmt_qcow_data *qcow_data, u64 *l2_slice, int idx)
+static inline u64 xloop_file_fmt_qcow_get_l2_bitmap(struct xloop_file_fmt_qcow_data *qcow_data, u64 *l2_slice, int idx)
 {
-    if (xloop_file_fmt_qcow_has_subclusters(qcow_data)) {
-        idx *= xloop_file_fmt_qcow_l2_entry_size(qcow_data) / sizeof(u64);
-        return be64_to_cpu(l2_slice[idx + 1]);
-    } else {
-        return 0; /* For convenience only; this value has no meaning. */
-    }
+	if (xloop_file_fmt_qcow_has_subclusters(qcow_data)) {
+		idx *= xloop_file_fmt_qcow_l2_entry_size(qcow_data) / sizeof(u64);
+		return be64_to_cpu(l2_slice[idx + 1]);
+	} else {
+		return 0; /* For convenience only; this value has no meaning. */
+	}
 }
 
-static inline bool xloop_file_fmt_qcow_has_data_file(
-	struct xloop_file_fmt_qcow_data *qcow_data)
+static inline bool xloop_file_fmt_qcow_has_data_file(struct xloop_file_fmt_qcow_data *qcow_data)
 {
 	/* At the moment, there is no support for copy on write! */
 	return false;
 }
 
-static inline bool xloop_file_fmt_qcow_data_file_is_raw(
-	struct xloop_file_fmt_qcow_data *qcow_data)
+static inline bool xloop_file_fmt_qcow_data_file_is_raw(struct xloop_file_fmt_qcow_data *qcow_data)
 {
-	return !!(qcow_data->autoclear_features &
-		QCOW_AUTOCLEAR_DATA_FILE_RAW);
+	return !!(qcow_data->autoclear_features & QCOW_AUTOCLEAR_DATA_FILE_RAW);
 }
 
-static inline s64 xloop_file_fmt_qcow_start_of_cluster(
-	struct xloop_file_fmt_qcow_data *qcow_data, s64 offset)
+static inline s64 xloop_file_fmt_qcow_start_of_cluster(struct xloop_file_fmt_qcow_data *qcow_data, s64 offset)
 {
 	return offset & ~(qcow_data->cluster_size - 1);
 }
 
-static inline s64 xloop_file_fmt_qcow_offset_into_cluster(
-	struct xloop_file_fmt_qcow_data *qcow_data, s64 offset)
+static inline s64 xloop_file_fmt_qcow_offset_into_cluster(struct xloop_file_fmt_qcow_data *qcow_data, s64 offset)
 {
 	return offset & (qcow_data->cluster_size - 1);
 }
 
-static inline s64 xloop_file_fmt_qcow_offset_into_subcluster(
-	struct xloop_file_fmt_qcow_data *qcow_data, s64 offset)
+static inline s64 xloop_file_fmt_qcow_offset_into_subcluster(struct xloop_file_fmt_qcow_data *qcow_data, s64 offset)
 {
 	return offset & (qcow_data->subcluster_size - 1);
 }
 
-static inline s64 xloop_file_fmt_qcow_size_to_clusters(
-	struct xloop_file_fmt_qcow_data *qcow_data, u64 size)
+static inline s64 xloop_file_fmt_qcow_size_to_clusters(struct xloop_file_fmt_qcow_data *qcow_data, u64 size)
 {
-	return (size + (qcow_data->cluster_size - 1)) >>
-		qcow_data->cluster_bits;
+	return (size + (qcow_data->cluster_size - 1)) >> qcow_data->cluster_bits;
 }
 
-static inline s64 xloop_file_fmt_qcow_size_to_l1(
-	struct xloop_file_fmt_qcow_data *qcow_data, s64 size)
+static inline s64 xloop_file_fmt_qcow_size_to_l1(struct xloop_file_fmt_qcow_data *qcow_data, s64 size)
 {
 	int shift = qcow_data->cluster_bits + qcow_data->l2_bits;
+
 	return (size + (1ULL << shift) - 1) >> shift;
 }
 
-static inline int xloop_file_fmt_qcow_offset_to_l1_index(
-	struct xloop_file_fmt_qcow_data *qcow_data, u64 offset)
+static inline int xloop_file_fmt_qcow_offset_to_l1_index(struct xloop_file_fmt_qcow_data *qcow_data, u64 offset)
 {
 	return offset >> (qcow_data->l2_bits + qcow_data->cluster_bits);
 }
 
-static inline int xloop_file_fmt_qcow_offset_to_l2_index(
-	struct xloop_file_fmt_qcow_data *qcow_data, s64 offset)
+static inline int xloop_file_fmt_qcow_offset_to_l2_index(struct xloop_file_fmt_qcow_data *qcow_data, s64 offset)
 {
 	return (offset >> qcow_data->cluster_bits) & (qcow_data->l2_size - 1);
 }
 
-static inline int xloop_file_fmt_qcow_offset_to_l2_slice_index(
-	struct xloop_file_fmt_qcow_data *qcow_data, s64 offset)
+static inline int xloop_file_fmt_qcow_offset_to_l2_slice_index(struct xloop_file_fmt_qcow_data *qcow_data, s64 offset)
 {
-	return (offset >> qcow_data->cluster_bits) &
-		(qcow_data->l2_slice_size - 1);
+	return (offset >> qcow_data->cluster_bits) & (qcow_data->l2_slice_size - 1);
 }
 
-static inline int xloop_file_fmt_qcow_offset_to_sc_index(
-	struct xloop_file_fmt_qcow_data *qcow_data, s64 offset)
+static inline int xloop_file_fmt_qcow_offset_to_sc_index(struct xloop_file_fmt_qcow_data *qcow_data, s64 offset)
 {
-    return (offset >> qcow_data->subcluster_bits) & 
-		(qcow_data->subclusters_per_cluster - 1);
+	return (offset >> qcow_data->subcluster_bits) & (qcow_data->subclusters_per_cluster - 1);
 }
 
-static inline s64 xloop_file_fmt_qcow_vm_state_offset(
-	struct xloop_file_fmt_qcow_data *qcow_data)
+static inline s64 xloop_file_fmt_qcow_vm_state_offset(struct xloop_file_fmt_qcow_data *qcow_data)
 {
-	return (s64)qcow_data->l1_vm_state_index <<
-		(qcow_data->cluster_bits + qcow_data->l2_bits);
+	return (s64)qcow_data->l1_vm_state_index << (qcow_data->cluster_bits + qcow_data->l2_bits);
 }
 
-static inline enum xloop_file_fmt_qcow_cluster_type
-xloop_file_fmt_qcow_get_cluster_type(struct xloop_file_fmt *xlo_fmt,
-	u64 l2_entry)
+static inline enum xloop_file_fmt_qcow_cluster_type xloop_file_fmt_qcow_get_cluster_type(struct xloop_file_fmt *xlo_fmt,
+											 u64 l2_entry)
 {
 	struct xloop_file_fmt_qcow_data *qcow_data = xlo_fmt->private_data;
 
 	if (l2_entry & QCOW_OFLAG_COMPRESSED) {
 		return QCOW_CLUSTER_COMPRESSED;
 	} else if (l2_entry & QCOW_OFLAG_ZERO) {
-		if (l2_entry & QCOW_L2E_OFFSET_MASK) {
+		if (l2_entry & QCOW_L2E_OFFSET_MASK)
 			return QCOW_CLUSTER_ZERO_ALLOC;
-		}
 		return QCOW_CLUSTER_ZERO_PLAIN;
 	} else if (!(l2_entry & QCOW_L2E_OFFSET_MASK)) {
-		/* Offset 0 generally means unallocated, but it is ambiguous
+		/*
+		 * Offset 0 generally means unallocated, but it is ambiguous
 		 * with external data files because 0 is a valid offset there.
 		 * However, all clusters in external data files always have
 		 * refcount 1, so we can rely on QCOW_OFLAG_COPIED to
-		 * disambiguate. */
-		if (xloop_file_fmt_qcow_has_data_file(qcow_data) &&
-			(l2_entry & QCOW_OFLAG_COPIED)) {
+		 * disambiguate.
+		 */
+		if (xloop_file_fmt_qcow_has_data_file(qcow_data) && (l2_entry & QCOW_OFLAG_COPIED))
 			return QCOW_CLUSTER_NORMAL;
-		} else {
+		else
 			return QCOW_CLUSTER_UNALLOCATED;
-		}
 	} else {
 		return QCOW_CLUSTER_NORMAL;
 	}
@@ -570,76 +548,71 @@ xloop_file_fmt_qcow_get_cluster_type(struct xloop_file_fmt *xlo_fmt,
  * to subcluster @sc_index).
  */
 static inline enum xloop_file_fmt_qcow_subcluster_type
-xloop_file_fmt_qcow_get_subcluster_type(struct xloop_file_fmt *xlo_fmt,
-    u64 l2_entry, u64 l2_bitmap, unsigned int sc_index)
+xloop_file_fmt_qcow_get_subcluster_type(struct xloop_file_fmt *xlo_fmt, u64 l2_entry, u64 l2_bitmap,
+					unsigned int sc_index)
 {
 	struct xloop_file_fmt_qcow_data *qcow_data = xlo_fmt->private_data;
-    enum xloop_file_fmt_qcow_cluster_type type = 
-		xloop_file_fmt_qcow_get_cluster_type(xlo_fmt, l2_entry);
-    ASSERT(sc_index < qcow_data->subclusters_per_cluster);
+	enum xloop_file_fmt_qcow_cluster_type type = xloop_file_fmt_qcow_get_cluster_type(xlo_fmt, l2_entry);
 
-    if (xloop_file_fmt_qcow_has_subclusters(qcow_data)) {
-        switch (type) {
-        case QCOW_CLUSTER_COMPRESSED:
-            return QCOW_SUBCLUSTER_COMPRESSED;
-        case QCOW_CLUSTER_NORMAL:
-            if ((l2_bitmap >> 32) & l2_bitmap) {
-                return QCOW_SUBCLUSTER_INVALID;
-            } else if (l2_bitmap & QCOW_OFLAG_SUB_ZERO(sc_index)) {
-                return QCOW_SUBCLUSTER_ZERO_ALLOC;
-            } else if (l2_bitmap & QCOW_OFLAG_SUB_ALLOC(sc_index)) {
-                return QCOW_SUBCLUSTER_NORMAL;
-            } else {
-                return QCOW_SUBCLUSTER_UNALLOCATED_ALLOC;
-            }
-        case QCOW_CLUSTER_UNALLOCATED:
-            if (l2_bitmap & QCOW_L2_BITMAP_ALL_ALLOC) {
-                return QCOW_SUBCLUSTER_INVALID;
-            } else if (l2_bitmap & QCOW_OFLAG_SUB_ZERO(sc_index)) {
-                return QCOW_SUBCLUSTER_ZERO_PLAIN;
-            } else {
-                return QCOW_SUBCLUSTER_UNALLOCATED_PLAIN;
-            }
-        default:
+	ASSERT(sc_index < qcow_data->subclusters_per_cluster);
+
+	if (xloop_file_fmt_qcow_has_subclusters(qcow_data)) {
+		switch (type) {
+		case QCOW_CLUSTER_COMPRESSED:
+			return QCOW_SUBCLUSTER_COMPRESSED;
+		case QCOW_CLUSTER_NORMAL:
+			if ((l2_bitmap >> 32) & l2_bitmap)
+				return QCOW_SUBCLUSTER_INVALID;
+			else if (l2_bitmap & QCOW_OFLAG_SUB_ZERO(sc_index))
+				return QCOW_SUBCLUSTER_ZERO_ALLOC;
+			else if (l2_bitmap & QCOW_OFLAG_SUB_ALLOC(sc_index))
+				return QCOW_SUBCLUSTER_NORMAL;
+			else
+				return QCOW_SUBCLUSTER_UNALLOCATED_ALLOC;
+		case QCOW_CLUSTER_UNALLOCATED:
+			if (l2_bitmap & QCOW_L2_BITMAP_ALL_ALLOC)
+				return QCOW_SUBCLUSTER_INVALID;
+			else if (l2_bitmap & QCOW_OFLAG_SUB_ZERO(sc_index))
+				return QCOW_SUBCLUSTER_ZERO_PLAIN;
+			else
+				return QCOW_SUBCLUSTER_UNALLOCATED_PLAIN;
+		default:
 			/* not reachable */
-            ASSERT(false);
+			ASSERT(false);
 			return QCOW_SUBCLUSTER_INVALID;
-        }
-    } else {
-        switch (type) {
-        case QCOW_CLUSTER_COMPRESSED:
-            return QCOW_SUBCLUSTER_COMPRESSED;
-        case QCOW_CLUSTER_ZERO_PLAIN:
-            return QCOW_SUBCLUSTER_ZERO_PLAIN;
-        case QCOW_CLUSTER_ZERO_ALLOC:
-            return QCOW_SUBCLUSTER_ZERO_ALLOC;
-        case QCOW_CLUSTER_NORMAL:
-            return QCOW_SUBCLUSTER_NORMAL;
-        case QCOW_CLUSTER_UNALLOCATED:
-            return QCOW_SUBCLUSTER_UNALLOCATED_PLAIN;
-        default:
-            /* not reachable */
-            ASSERT(false);
+		}
+	} else {
+		switch (type) {
+		case QCOW_CLUSTER_COMPRESSED:
+			return QCOW_SUBCLUSTER_COMPRESSED;
+		case QCOW_CLUSTER_ZERO_PLAIN:
+			return QCOW_SUBCLUSTER_ZERO_PLAIN;
+		case QCOW_CLUSTER_ZERO_ALLOC:
+			return QCOW_SUBCLUSTER_ZERO_ALLOC;
+		case QCOW_CLUSTER_NORMAL:
+			return QCOW_SUBCLUSTER_NORMAL;
+		case QCOW_CLUSTER_UNALLOCATED:
+			return QCOW_SUBCLUSTER_UNALLOCATED_PLAIN;
+		default:
+			/* not reachable */
+			ASSERT(false);
 			return QCOW_SUBCLUSTER_INVALID;
-        }
-    }
+		}
+	}
 }
 
 #ifdef CONFIG_DEBUG_FS
-static inline const char *xloop_file_fmt_qcow_get_subcluster_name(
-    const enum xloop_file_fmt_qcow_subcluster_type type)
+static inline const char *xloop_file_fmt_qcow_get_subcluster_name(const enum xloop_file_fmt_qcow_subcluster_type type)
 {
-    static const char *subcluster_names[] = {
-        "QCOW2_SUBCLUSTER_UNALLOCATED_PLAIN",
-        "QCOW2_SUBCLUSTER_UNALLOCATED_ALLOC",
-        "QCOW2_SUBCLUSTER_ZERO_PLAIN",
-        "QCOW2_SUBCLUSTER_ZERO_ALLOC",
-        "QCOW2_SUBCLUSTER_NORMAL",
-        "QCOW2_SUBCLUSTER_COMPRESSED",
-        "QCOW2_SUBCLUSTER_INVALID"
-    };
+	static const char * const subcluster_names[] = { "QCOW2_SUBCLUSTER_UNALLOCATED_PLAIN",
+							 "QCOW2_SUBCLUSTER_UNALLOCATED_ALLOC",
+							 "QCOW2_SUBCLUSTER_ZERO_PLAIN",
+							 "QCOW2_SUBCLUSTER_ZERO_ALLOC",
+							 "QCOW2_SUBCLUSTER_NORMAL",
+							 "QCOW2_SUBCLUSTER_COMPRESSED",
+							 "QCOW2_SUBCLUSTER_INVALID" };
 
-    return subcluster_names[type];
+	return subcluster_names[type];
 }
 #endif
 

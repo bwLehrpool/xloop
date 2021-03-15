@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
  * xloop_main.c
  *
@@ -97,9 +98,9 @@
 
 /* define RHEL_CHECK_VERSION macro to check CentOS version */
 #if defined(RHEL_RELEASE_CODE) && defined(RHEL_RELEASE_VERSION)
-	#define RHEL_CHECK_VERSION(CONDITION) (CONDITION)
+#define RHEL_CHECK_VERSION(CONDITION) (CONDITION)
 #else
-	#define RHEL_CHECK_VERSION(CONDITION) (0)
+#define RHEL_CHECK_VERSION(CONDITION) (0)
 #endif
 
 static DEFINE_IDR(xloop_index_idr);
@@ -114,10 +115,8 @@ struct device *xloop_device_to_dev(struct xloop_device *xlo)
 }
 EXPORT_SYMBOL(xloop_device_to_dev);
 
-static int transfer_xor(struct xloop_device *xlo, int cmd,
-			struct page *raw_page, unsigned raw_off,
-			struct page *xloop_page, unsigned xloop_off,
-			int size, sector_t real_block)
+static int transfer_xor(struct xloop_device *xlo, int cmd, struct page *raw_page, unsigned int raw_off,
+			struct page *xloop_page, unsigned int xloop_off, int size, sector_t real_block)
 {
 	char *raw_buf = kmap_atomic(raw_page) + raw_off;
 	char *xloop_buf = kmap_atomic(xloop_page) + xloop_off;
@@ -152,24 +151,16 @@ static int xor_init(struct xloop_device *xlo, const struct xloop_info64 *info)
 
 static struct xloop_func_table none_funcs = {
 	.number = XLO_CRYPT_NONE,
-}; 
+};
 
-static struct xloop_func_table xor_funcs = {
-	.number = XLO_CRYPT_XOR,
-	.transfer = transfer_xor,
-	.init = xor_init
-}; 
+static struct xloop_func_table xor_funcs = { .number = XLO_CRYPT_XOR, .transfer = transfer_xor, .init = xor_init };
 
 /* xfer_funcs[0] is special - its release function is never called */
-static struct xloop_func_table *xfer_funcs[MAX_XLO_CRYPT] = {
-	&none_funcs,
-	&xor_funcs
-};
+static struct xloop_func_table *xfer_funcs[MAX_XLO_CRYPT] = { &none_funcs, &xor_funcs };
 
 static loff_t get_xloop_size(struct xloop_device *xlo, struct file *file)
 {
-	return xloop_file_fmt_sector_size(xlo->xlo_fmt, file, xlo->xlo_offset,
-				xlo->xlo_sizelimit);
+	return xloop_file_fmt_sector_size(xlo->xlo_fmt, file, xlo->xlo_offset, xlo->xlo_sizelimit);
 }
 
 static void __xloop_update_dio(struct xloop_device *xlo, bool dio)
@@ -178,7 +169,7 @@ static void __xloop_update_dio(struct xloop_device *xlo, bool dio)
 	struct address_space *mapping = file->f_mapping;
 	struct inode *inode = mapping->host;
 	unsigned short sb_bsize = 0;
-	unsigned dio_align = 0;
+	unsigned int dio_align = 0;
 	bool use_dio;
 
 	if (inode->i_sb->s_bdev) {
@@ -197,10 +188,8 @@ static void __xloop_update_dio(struct xloop_device *xlo, bool dio)
 	 * of requests in sane applications should be PAGE_SIZE aligned
 	 */
 	if (dio) {
-		if (queue_logical_block_size(xlo->xlo_queue) >= sb_bsize &&
-				!(xlo->xlo_offset & dio_align) &&
-				mapping->a_ops->direct_IO &&
-				!xlo->transfer)
+		if (queue_logical_block_size(xlo->xlo_queue) >= sb_bsize && !(xlo->xlo_offset & dio_align) &&
+		    mapping->a_ops->direct_IO && !xlo->transfer)
 			use_dio = true;
 		else
 			use_dio = false;
@@ -237,8 +226,7 @@ static void __xloop_update_dio(struct xloop_device *xlo, bool dio)
  * xloop_validate_block_size() - validates the passed in block size
  * @bsize: size to validate
  */
-static int
-xloop_validate_block_size(unsigned short bsize)
+static int xloop_validate_block_size(unsigned short bsize)
 {
 	if (bsize < 512 || bsize > PAGE_SIZE || !is_power_of_2(bsize))
 		return -EINVAL;
@@ -274,12 +262,12 @@ static void xloop_set_size(struct xloop_device *xlo, loff_t size)
 	set_capacity_revalidate_and_notify(xlo->xlo_disk, size, false);
 #else
 	capacity = get_capacity(xlo->xlo_disk);
-    set_capacity(xlo->xlo_disk, size);
-    if (capacity != size && capacity != 0 && size != 0) {
-        char *envp[] = { "RESIZE=1", NULL };
-        kobject_uevent_env(&disk_to_dev(xlo->xlo_disk)->kobj, KOBJ_CHANGE, 
-			envp);
-    }
+	set_capacity(xlo->xlo_disk, size);
+	if (capacity != size && capacity != 0 && size != 0) {
+		char *envp[] = { "RESIZE=1", NULL };
+
+		kobject_uevent_env(&disk_to_dev(xlo->xlo_disk)->kobj, KOBJ_CHANGE, envp);
+	}
 #endif
 }
 
@@ -288,8 +276,7 @@ static void xlo_complete_rq(struct request *rq)
 	struct xloop_cmd *cmd = blk_mq_rq_to_pdu(rq);
 	blk_status_t ret = BLK_STS_OK;
 
-	if (!cmd->use_aio || cmd->ret < 0 || cmd->ret == blk_rq_bytes(rq) ||
-	    req_op(rq) != REQ_OP_READ) {
+	if (!cmd->use_aio || cmd->ret < 0 || cmd->ret == blk_rq_bytes(rq) || req_op(rq) != REQ_OP_READ) {
 		if (cmd->ret < 0)
 			ret = errno_to_blk_status(cmd->ret);
 		goto end_io;
@@ -356,17 +343,15 @@ static int do_req_filebacked(struct xloop_device *xlo, struct request *rq)
 
 static inline void xloop_update_dio(struct xloop_device *xlo)
 {
-	__xloop_update_dio(xlo, (xlo->xlo_backing_file->f_flags & O_DIRECT) |
-				xlo->use_dio);
+	__xloop_update_dio(xlo, (xlo->xlo_backing_file->f_flags & O_DIRECT) | xlo->use_dio);
 }
 
-static void xloop_reread_partitions(struct xloop_device *xlo,
-				   struct block_device *bdev)
+static void xloop_reread_partitions(struct xloop_device *xlo, struct block_device *bdev)
 {
 	int rc;
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0)) || \
-		RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(8, 3))
+#if (KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE) ||                                                                 \
+	RHEL_CHECK_VERSION(RHEL_RELEASE_VERSION(8, 3) <= RHEL_RELEASE_CODE)
 	mutex_lock(&bdev->bd_mutex);
 	rc = bdev_disk_changed(bdev, false);
 	mutex_unlock(&bdev->bd_mutex);
@@ -374,8 +359,7 @@ static void xloop_reread_partitions(struct xloop_device *xlo,
 	rc = blkdev_reread_part(bdev);
 #endif
 	if (rc)
-		dev_warn(xloop_device_to_dev(xlo), "partition scan failed (rc=%d)\n",
-			rc);
+		dev_warn(xloop_device_to_dev(xlo), "partition scan failed (rc=%d)\n", rc);
 }
 
 static inline int is_xloop_device(struct file *file)
@@ -387,8 +371,8 @@ static inline int is_xloop_device(struct file *file)
 
 static int xloop_validate_file(struct file *file, struct block_device *bdev)
 {
-	struct inode	*inode = file->f_mapping->host;
-	struct file	*f = file;
+	struct inode *inode = file->f_mapping->host;
+	struct file *f = file;
 
 	/* Avoid recursion */
 	while (is_xloop_device(f)) {
@@ -398,9 +382,9 @@ static int xloop_validate_file(struct file *file, struct block_device *bdev)
 			return -EBADF;
 
 		l = f->f_mapping->host->i_bdev->bd_disk->private_data;
-		if (l->xlo_state != Xlo_bound) {
+		if (l->xlo_state != Xlo_bound)
 			return -EINVAL;
-		}
+
 		f = l->xlo_backing_file;
 	}
 	if (!S_ISREG(inode->i_mode) && !S_ISBLK(inode->i_mode))
@@ -416,12 +400,11 @@ static int xloop_validate_file(struct file *file, struct block_device *bdev)
  * This can only work if the xloop device is used read-only, and if the
  * new backing store is the same size and type as the old backing store.
  */
-static int xloop_change_fd(struct xloop_device *xlo, struct block_device *bdev,
-			  unsigned int arg)
+static int xloop_change_fd(struct xloop_device *xlo, struct block_device *bdev, unsigned int arg)
 {
-	struct file	*file = NULL, *old_file;
-	int		error;
-	bool		partscan;
+	struct file *file = NULL, *old_file;
+	int error;
+	bool partscan;
 
 	error = mutex_lock_killable(&xloop_ctl_mutex);
 	if (error)
@@ -457,8 +440,7 @@ static int xloop_change_fd(struct xloop_device *xlo, struct block_device *bdev,
 	mapping_set_gfp_mask(old_file->f_mapping, xlo->old_gfp_mask);
 	xlo->xlo_backing_file = file;
 	xlo->old_gfp_mask = mapping_gfp_mask(file->f_mapping);
-	mapping_set_gfp_mask(file->f_mapping,
-			     xlo->old_gfp_mask & ~(__GFP_IO|__GFP_FS));
+	mapping_set_gfp_mask(file->f_mapping, xlo->old_gfp_mask & ~(__GFP_IO | __GFP_FS));
 	xloop_update_dio(xlo);
 	blk_mq_unfreeze_queue(xlo->xlo_queue);
 	partscan = xlo->xlo_flags & XLO_FLAGS_PARTSCAN;
@@ -482,8 +464,7 @@ out_err:
 
 /* xloop sysfs attributes */
 
-static ssize_t xloop_attr_show(struct device *dev, char *page,
-			      ssize_t (*callback)(struct xloop_device *, char *))
+static ssize_t xloop_attr_show(struct device *dev, char *page, ssize_t (*callback)(struct xloop_device *, char *))
 {
 	struct gendisk *disk = dev_to_disk(dev);
 	struct xloop_device *xlo = disk->private_data;
@@ -491,15 +472,13 @@ static ssize_t xloop_attr_show(struct device *dev, char *page,
 	return callback(xlo, page);
 }
 
-#define XLOOP_ATTR_RO(_name)						\
-static ssize_t xloop_attr_##_name##_show(struct xloop_device *, char *);	\
-static ssize_t xloop_attr_do_show_##_name(struct device *d,		\
-				struct device_attribute *attr, char *b)	\
-{									\
-	return xloop_attr_show(d, b, xloop_attr_##_name##_show);		\
-}									\
-static struct device_attribute xloop_attr_##_name =			\
-	__ATTR(_name, 0444, xloop_attr_do_show_##_name, NULL);
+#define XLOOP_ATTR_RO(_name)                                                                                           \
+	static ssize_t xloop_attr_##_name##_show(struct xloop_device *, char *);                                       \
+	static ssize_t xloop_attr_do_show_##_name(struct device *d, struct device_attribute *attr, char *b)            \
+	{                                                                                                              \
+		return xloop_attr_show(d, b, xloop_attr_##_name##_show);                                               \
+	}                                                                                                              \
+	static struct device_attribute xloop_attr_##_name = __ATTR(_name, 0444, xloop_attr_do_show_##_name, NULL);
 
 static ssize_t xloop_attr_backing_file_show(struct xloop_device *xlo, char *buf)
 {
@@ -523,8 +502,7 @@ static ssize_t xloop_attr_backing_file_show(struct xloop_device *xlo, char *buf)
 	return ret;
 }
 
-static ssize_t xloop_attr_file_fmt_type_show(struct xloop_device *xlo,
-				char *buf)
+static ssize_t xloop_attr_file_fmt_type_show(struct xloop_device *xlo, char *buf)
 {
 	ssize_t len = 0;
 
@@ -574,32 +552,26 @@ XLOOP_ATTR_RO(partscan);
 XLOOP_ATTR_RO(dio);
 
 static struct attribute *xloop_attrs[] = {
-	&xloop_attr_backing_file.attr,
-	&xloop_attr_file_fmt_type.attr,
-	&xloop_attr_offset.attr,
-	&xloop_attr_sizelimit.attr,
-	&xloop_attr_autoclear.attr,
-	&xloop_attr_partscan.attr,
-	&xloop_attr_dio.attr,
-	NULL,
+	&xloop_attr_backing_file.attr, &xloop_attr_file_fmt_type.attr,
+	&xloop_attr_offset.attr,       &xloop_attr_sizelimit.attr,
+	&xloop_attr_autoclear.attr,    &xloop_attr_partscan.attr,
+	&xloop_attr_dio.attr,	       NULL,
 };
 
 static struct attribute_group xloop_attribute_group = {
-	.name = "xloop",
-	.attrs= xloop_attrs,
+	.name  = "xloop",
+	.attrs = xloop_attrs,
 };
 
 static void xloop_sysfs_init(struct xloop_device *xlo)
 {
-	xlo->sysfs_inited = !sysfs_create_group(&disk_to_dev(xlo->xlo_disk)->kobj,
-						&xloop_attribute_group);
+	xlo->sysfs_inited = !sysfs_create_group(&disk_to_dev(xlo->xlo_disk)->kobj, &xloop_attribute_group);
 }
 
 static void xloop_sysfs_exit(struct xloop_device *xlo)
 {
 	if (xlo->sysfs_inited)
-		sysfs_remove_group(&disk_to_dev(xlo->xlo_disk)->kobj,
-				   &xloop_attribute_group);
+		sysfs_remove_group(&disk_to_dev(xlo->xlo_disk)->kobj, &xloop_attribute_group);
 }
 
 static void xloop_config_discard(struct xloop_device *xlo)
@@ -622,8 +594,7 @@ static void xloop_config_discard(struct xloop_device *xlo)
 		backingq = bdev_get_queue(inode->i_bdev);
 
 		max_discard_sectors = backingq->limits.max_write_zeroes_sectors;
-		granularity = backingq->limits.discard_granularity ?:
-			queue_physical_block_size(backingq);
+		granularity = backingq->limits.discard_granularity ?: queue_physical_block_size(backingq);
 
 	/*
 	 * We use punch hole to reclaim the free space used by the
@@ -673,8 +644,7 @@ static int xloop_kthread_worker_fn(void *worker_ptr)
 static int xloop_prepare_queue(struct xloop_device *xlo)
 {
 	kthread_init_worker(&xlo->worker);
-	xlo->worker_task = kthread_run(xloop_kthread_worker_fn,
-			&xlo->worker, "xloop%d", xlo->xlo_number);
+	xlo->worker_task = kthread_run(xloop_kthread_worker_fn, &xlo->worker, "xloop%d", xlo->xlo_number);
 	if (IS_ERR(xlo->worker_task))
 		return -ENOMEM;
 	set_user_nice(xlo->worker_task, MIN_NICE);
@@ -699,8 +669,7 @@ static void xloop_update_rotational(struct xloop_device *xlo)
 		blk_queue_flag_clear(QUEUE_FLAG_NONROT, q);
 }
 
-static int
-xloop_release_xfer(struct xloop_device *xlo)
+static int xloop_release_xfer(struct xloop_device *xlo)
 {
 	int err = 0;
 	struct xloop_func_table *xfer = xlo->xlo_encryption;
@@ -715,9 +684,7 @@ xloop_release_xfer(struct xloop_device *xlo)
 	return err;
 }
 
-static int
-xloop_init_xfer(struct xloop_device *xlo, struct xloop_func_table *xfer,
-	       const struct xloop_info64 *i)
+static int xloop_init_xfer(struct xloop_device *xlo, struct xloop_func_table *xfer, const struct xloop_info64 *i)
 {
 	int err = 0;
 
@@ -744,15 +711,13 @@ xloop_init_xfer(struct xloop_device *xlo, struct xloop_func_table *xfer,
  * Configures the xloop device parameters according to the passed
  * in xloop_info64 configuration.
  */
-static int
-xloop_set_status_from_info(struct xloop_device *xlo,
-			  const struct xloop_info64 *info)
+static int xloop_set_status_from_info(struct xloop_device *xlo, const struct xloop_info64 *info)
 {
 	int err;
 	struct xloop_func_table *xfer;
 	kuid_t uid = current_uid();
 
-	if ((unsigned int) info->xlo_encrypt_key_size > XLO_KEY_SIZE)
+	if ((unsigned int)info->xlo_encrypt_key_size > XLO_KEY_SIZE)
 		return -EINVAL;
 
 	err = xloop_release_xfer(xlo);
@@ -778,8 +743,8 @@ xloop_set_status_from_info(struct xloop_device *xlo,
 	xlo->xlo_sizelimit = info->xlo_sizelimit;
 	memcpy(xlo->xlo_file_name, info->xlo_file_name, XLO_NAME_SIZE);
 	memcpy(xlo->xlo_crypt_name, info->xlo_crypt_name, XLO_NAME_SIZE);
-	xlo->xlo_file_name[XLO_NAME_SIZE-1] = 0;
-	xlo->xlo_crypt_name[XLO_NAME_SIZE-1] = 0;
+	xlo->xlo_file_name[XLO_NAME_SIZE - 1] = 0;
+	xlo->xlo_crypt_name[XLO_NAME_SIZE - 1] = 0;
 
 	if (!xfer)
 		xfer = &none_funcs;
@@ -792,28 +757,26 @@ xloop_set_status_from_info(struct xloop_device *xlo,
 	xlo->xlo_init[0] = info->xlo_init[0];
 	xlo->xlo_init[1] = info->xlo_init[1];
 	if (info->xlo_encrypt_key_size) {
-		memcpy(xlo->xlo_encrypt_key, info->xlo_encrypt_key,
-		       info->xlo_encrypt_key_size);
+		memcpy(xlo->xlo_encrypt_key, info->xlo_encrypt_key, info->xlo_encrypt_key_size);
 		xlo->xlo_key_owner = uid;
 	}
 
 	return 0;
 }
 
-static int xloop_configure(struct xloop_device *xlo, fmode_t mode,
-			  struct block_device *bdev,
-			  const struct xloop_config *config)
+static int xloop_configure(struct xloop_device *xlo, fmode_t mode, struct block_device *bdev,
+			   const struct xloop_config *config)
 {
-	struct file	*file;
-	struct inode	*inode;
+	struct file *file;
+	struct inode *inode;
 	struct address_space *mapping;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0)
 	struct block_device *claimed_bdev = NULL;
 #endif
-	int		error;
-	loff_t		size;
-	bool		partscan;
-	unsigned short  bsize;
+	int error;
+	loff_t size;
+	bool partscan;
+	unsigned short bsize;
 
 	/* This is safe, since we have a reference from open(). */
 	__module_get(THIS_MODULE);
@@ -877,8 +840,7 @@ static int xloop_configure(struct xloop_device *xlo, fmode_t mode,
 	if (error)
 		goto out_unlock;
 
-	if (!(file->f_mode & FMODE_WRITE) || !(mode & FMODE_WRITE) ||
-	    !file->f_op->write_iter)
+	if (!(file->f_mode & FMODE_WRITE) || !(mode & FMODE_WRITE) || !file->f_op->write_iter)
 		xlo->xlo_flags |= XLO_FLAGS_READ_ONLY;
 
 	error = xloop_prepare_queue(xlo);
@@ -891,10 +853,9 @@ static int xloop_configure(struct xloop_device *xlo, fmode_t mode,
 	xlo->xlo_device = bdev;
 	xlo->xlo_backing_file = file;
 	xlo->old_gfp_mask = mapping_gfp_mask(mapping);
-	mapping_set_gfp_mask(mapping, xlo->old_gfp_mask & ~(__GFP_IO|__GFP_FS));
+	mapping_set_gfp_mask(mapping, xlo->old_gfp_mask & ~(__GFP_IO | __GFP_FS));
 
-	error = xloop_file_fmt_init(xlo->xlo_fmt,
-				config->info.xlo_file_fmt_type);
+	error = xloop_file_fmt_init(xlo->xlo_fmt, config->info.xlo_file_fmt_type);
 	if (error)
 		goto out_unlock;
 
@@ -920,8 +881,7 @@ static int xloop_configure(struct xloop_device *xlo, fmode_t mode,
 	size = get_xloop_size(xlo, file);
 	xloop_set_size(xlo, size);
 
-	set_blocksize(bdev, S_ISBLK(inode->i_mode) ?
-		      block_size(inode->i_bdev) : PAGE_SIZE);
+	set_blocksize(bdev, S_ISBLK(inode->i_mode) ? block_size(inode->i_bdev) : PAGE_SIZE);
 
 	xlo->xlo_state = Xlo_bound;
 	if (part_shift)
@@ -1043,8 +1003,7 @@ out_unlock:
 		 * must be at least one and it can only become zero when the
 		 * current holder is released.
 		 */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0) || \
-		RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(8, 3))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0) || RHEL_CHECK_VERSION(RHEL_RELEASE_VERSION(8, 3) <= RHEL_RELEASE_CODE)
 		if (!release)
 			mutex_lock(&bdev->bd_mutex);
 		err = bdev_disk_changed(bdev, false);
@@ -1056,8 +1015,8 @@ out_unlock:
 			mutex_unlock(&bdev->bd_mutex);
 #endif
 		if (err)
-			dev_warn(xloop_device_to_dev(xlo), "partition scan failed "
-				"(rc=%d)\n", err);
+			dev_warn(xloop_device_to_dev(xlo), "partition scan failed (rc=%d)\n", err);
+
 		/* Device is gone, no point in returning error */
 		err = 0;
 	}
@@ -1121,8 +1080,7 @@ static int xloop_clr_fd(struct xloop_device *xlo)
 	return __xloop_clr_fd(xlo, false);
 }
 
-static int
-xloop_set_status(struct xloop_device *xlo, const struct xloop_info64 *info)
+static int xloop_set_status(struct xloop_device *xlo, const struct xloop_info64 *info)
 {
 	int err;
 	struct block_device *bdev;
@@ -1134,9 +1092,7 @@ xloop_set_status(struct xloop_device *xlo, const struct xloop_info64 *info)
 	err = mutex_lock_killable(&xloop_ctl_mutex);
 	if (err)
 		return err;
-	if (xlo->xlo_encrypt_key_size &&
-	    !uid_eq(xlo->xlo_key_owner, uid) &&
-	    !capable(CAP_SYS_ADMIN)) {
+	if (xlo->xlo_encrypt_key_size && !uid_eq(xlo->xlo_key_owner, uid) && !capable(CAP_SYS_ADMIN)) {
 		err = -EPERM;
 		goto out_unlock;
 	}
@@ -1145,8 +1101,7 @@ xloop_set_status(struct xloop_device *xlo, const struct xloop_info64 *info)
 		goto out_unlock;
 	}
 
-	if (xlo->xlo_offset != info->xlo_offset ||
-	    xlo->xlo_sizelimit != info->xlo_sizelimit) {
+	if (xlo->xlo_offset != info->xlo_offset || xlo->xlo_sizelimit != info->xlo_sizelimit) {
 		size_changed = true;
 		sync_blockdev(xlo->xlo_device);
 		invalidate_bdev(xlo->xlo_device);
@@ -1158,9 +1113,9 @@ xloop_set_status(struct xloop_device *xlo, const struct xloop_info64 *info)
 	if (size_changed && xlo->xlo_device->bd_inode->i_mapping->nrpages) {
 		/* If any pages were dirtied after invalidate_bdev(), try again */
 		err = -EAGAIN;
-		dev_warn(xloop_device_to_dev(xlo), "xloop device has still dirty "
-			"pages (nrpages=%lu)\n",
-			xlo->xlo_device->bd_inode->i_mapping->nrpages);
+		dev_warn(xloop_device_to_dev(xlo),
+			 "xloop device has still dirty pages (nrpages=%lu)\n",
+			 xlo->xlo_device->bd_inode->i_mapping->nrpages);
 		goto out_unfreeze;
 	}
 
@@ -1183,13 +1138,13 @@ xloop_set_status(struct xloop_device *xlo, const struct xloop_info64 *info)
 		if (err)
 			goto out_unfreeze;
 
-		/* After change of the file format, recalculate the capacity of
-		 * the loop device. */
+		/* After change of the file format, recalculate the capacity of the xloop device. */
 		size_changed = true;
 	}
 
 	if (size_changed) {
 		loff_t new_size = get_xloop_size(xlo, xlo->xlo_backing_file);
+
 		xloop_set_size(xlo, new_size);
 	}
 
@@ -1201,8 +1156,7 @@ xloop_set_status(struct xloop_device *xlo, const struct xloop_info64 *info)
 out_unfreeze:
 	blk_mq_unfreeze_queue(xlo->xlo_queue);
 
-	if (!err && (xlo->xlo_flags & XLO_FLAGS_PARTSCAN) &&
-	     !(prev_xlo_flags & XLO_FLAGS_PARTSCAN)) {
+	if (!err && (xlo->xlo_flags & XLO_FLAGS_PARTSCAN) && !(prev_xlo_flags & XLO_FLAGS_PARTSCAN)) {
 		xlo->xlo_disk->flags &= ~GENHD_FL_NO_PART_SCAN;
 		bdev = xlo->xlo_device;
 		partscan = true;
@@ -1215,8 +1169,7 @@ out_unlock:
 	return err;
 }
 
-static int
-xloop_get_status(struct xloop_device *xlo, struct xloop_info64 *info)
+static int xloop_get_status(struct xloop_device *xlo, struct xloop_info64 *info)
 {
 	struct path path;
 	struct kstat stat;
@@ -1237,12 +1190,10 @@ xloop_get_status(struct xloop_device *xlo, struct xloop_info64 *info)
 	info->xlo_flags = xlo->xlo_flags;
 	memcpy(info->xlo_file_name, xlo->xlo_file_name, XLO_NAME_SIZE);
 	memcpy(info->xlo_crypt_name, xlo->xlo_crypt_name, XLO_NAME_SIZE);
-	info->xlo_encrypt_type =
-		xlo->xlo_encryption ? xlo->xlo_encryption->number : 0;
+	info->xlo_encrypt_type = xlo->xlo_encryption ? xlo->xlo_encryption->number : 0;
 	if (xlo->xlo_encrypt_key_size && capable(CAP_SYS_ADMIN)) {
 		info->xlo_encrypt_key_size = xlo->xlo_encrypt_key_size;
-		memcpy(info->xlo_encrypt_key, xlo->xlo_encrypt_key,
-		       xlo->xlo_encrypt_key_size);
+		memcpy(info->xlo_encrypt_key, xlo->xlo_encrypt_key, xlo->xlo_encrypt_key_size);
 	}
 
 	/* Drop xloop_ctl_mutex while we call into the filesystem. */
@@ -1259,8 +1210,7 @@ xloop_get_status(struct xloop_device *xlo, struct xloop_info64 *info)
 	return ret;
 }
 
-static void
-xloop_info64_from_old(const struct xloop_info *info, struct xloop_info64 *info64)
+static void xloop_info64_from_old(const struct xloop_info *info, struct xloop_info64 *info64)
 {
 	memset(info64, 0, sizeof(*info64));
 	info64->xlo_number = info->xlo_number;
@@ -1282,8 +1232,7 @@ xloop_info64_from_old(const struct xloop_info *info, struct xloop_info64 *info64
 	memcpy(info64->xlo_encrypt_key, info->xlo_encrypt_key, XLO_KEY_SIZE);
 }
 
-static int
-xloop_info64_to_old(const struct xloop_info64 *info64, struct xloop_info *info)
+static int xloop_info64_to_old(const struct xloop_info64 *info64, struct xloop_info *info)
 {
 	memset(info, 0, sizeof(*info));
 	info->xlo_number = info64->xlo_number;
@@ -1304,39 +1253,35 @@ xloop_info64_to_old(const struct xloop_info64 *info64, struct xloop_info *info)
 	memcpy(info->xlo_encrypt_key, info64->xlo_encrypt_key, XLO_KEY_SIZE);
 
 	/* error in case values were truncated */
-	if (info->xlo_device != info64->xlo_device ||
-	    info->xlo_rdevice != info64->xlo_rdevice ||
-	    info->xlo_inode != info64->xlo_inode ||
-	    info->xlo_offset != info64->xlo_offset)
+	if (info->xlo_device != info64->xlo_device || info->xlo_rdevice != info64->xlo_rdevice ||
+	    info->xlo_inode != info64->xlo_inode || info->xlo_offset != info64->xlo_offset)
 		return -EOVERFLOW;
 
 	return 0;
 }
 
-static int
-xloop_set_status_old(struct xloop_device *xlo, const struct xloop_info __user *arg)
+static int xloop_set_status_old(struct xloop_device *xlo, const struct xloop_info __user *arg)
 {
 	struct xloop_info info;
 	struct xloop_info64 info64;
 
-	if (copy_from_user(&info, arg, sizeof (struct xloop_info)))
+	if (copy_from_user(&info, arg, sizeof(struct xloop_info)))
 		return -EFAULT;
 	xloop_info64_from_old(&info, &info64);
 	return xloop_set_status(xlo, &info64);
 }
 
-static int
-xloop_set_status64(struct xloop_device *xlo, const struct xloop_info64 __user *arg)
+static int xloop_set_status64(struct xloop_device *xlo, const struct xloop_info64 __user *arg)
 {
 	struct xloop_info64 info64;
 
-	if (copy_from_user(&info64, arg, sizeof (struct xloop_info64)))
+	if (copy_from_user(&info64, arg, sizeof(struct xloop_info64)))
 		return -EFAULT;
 	return xloop_set_status(xlo, &info64);
 }
 
-static int
-xloop_get_status_old(struct xloop_device *xlo, struct xloop_info __user *arg) {
+static int xloop_get_status_old(struct xloop_device *xlo, struct xloop_info __user *arg)
+{
 	struct xloop_info info;
 	struct xloop_info64 info64;
 	int err;
@@ -1352,8 +1297,8 @@ xloop_get_status_old(struct xloop_device *xlo, struct xloop_info __user *arg) {
 	return err;
 }
 
-static int
-xloop_get_status64(struct xloop_device *xlo, struct xloop_info64 __user *arg) {
+static int xloop_get_status64(struct xloop_device *xlo, struct xloop_info64 __user *arg)
+{
 	struct xloop_info64 info64;
 	int err;
 
@@ -1382,6 +1327,7 @@ static int xloop_set_capacity(struct xloop_device *xlo)
 static int xloop_set_dio(struct xloop_device *xlo, unsigned long arg)
 {
 	int error = -ENXIO;
+
 	if (xlo->xlo_state != Xlo_bound)
 		goto out;
 
@@ -1389,7 +1335,7 @@ static int xloop_set_dio(struct xloop_device *xlo, unsigned long arg)
 	if (xlo->use_dio == !!arg)
 		return 0;
 	error = -EINVAL;
- out:
+out:
 	return error;
 }
 
@@ -1415,9 +1361,9 @@ static int xloop_set_block_size(struct xloop_device *xlo, unsigned long arg)
 	/* invalidate_bdev should have truncated all the pages */
 	if (xlo->xlo_device->bd_inode->i_mapping->nrpages) {
 		err = -EAGAIN;
-		dev_warn(xloop_device_to_dev(xlo), "xloop device has still dirty "
-			"pages (nrpages=%lu)\n",
-			xlo->xlo_device->bd_inode->i_mapping->nrpages);
+		dev_warn(xloop_device_to_dev(xlo),
+			 "xloop device has still dirty pages (nrpages=%lu)\n",
+			 xlo->xlo_device->bd_inode->i_mapping->nrpages);
 		goto out_unfreeze;
 	}
 
@@ -1431,8 +1377,7 @@ out_unfreeze:
 	return err;
 }
 
-static int xlo_simple_ioctl(struct xloop_device *xlo, unsigned int cmd,
-			   unsigned long arg)
+static int xlo_simple_ioctl(struct xloop_device *xlo, unsigned int cmd, unsigned long arg)
 {
 	int err;
 
@@ -1456,11 +1401,10 @@ static int xlo_simple_ioctl(struct xloop_device *xlo, unsigned int cmd,
 	return err;
 }
 
-static int xlo_ioctl(struct block_device *bdev, fmode_t mode,
-	unsigned int cmd, unsigned long arg)
+static int xlo_ioctl(struct block_device *bdev, fmode_t mode, unsigned int cmd, unsigned long arg)
 {
 	struct xloop_device *xlo = bdev->bd_disk->private_data;
-	void __user *argp = (void __user *) arg;
+	void __user *argp = (void __user *)arg;
 	int err;
 
 	switch (cmd) {
@@ -1491,17 +1435,15 @@ static int xlo_ioctl(struct block_device *bdev, fmode_t mode,
 		return xloop_clr_fd(xlo);
 	case XLOOP_SET_STATUS:
 		err = -EPERM;
-		if ((mode & FMODE_WRITE) || capable(CAP_SYS_ADMIN)) {
+		if ((mode & FMODE_WRITE) || capable(CAP_SYS_ADMIN))
 			err = xloop_set_status_old(xlo, argp);
-		}
 		break;
 	case XLOOP_GET_STATUS:
 		return xloop_get_status_old(xlo, argp);
 	case XLOOP_SET_STATUS64:
 		err = -EPERM;
-		if ((mode & FMODE_WRITE) || capable(CAP_SYS_ADMIN)) {
+		if ((mode & FMODE_WRITE) || capable(CAP_SYS_ADMIN))
 			err = xloop_set_status64(xlo, argp);
-		}
 		break;
 	case XLOOP_GET_STATUS64:
 		return xloop_get_status64(xlo, argp);
@@ -1513,7 +1455,7 @@ static int xlo_ioctl(struct block_device *bdev, fmode_t mode,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
 		fallthrough;
 #else
-		/* fall through */
+			/* fall through */
 #endif
 	default:
 		err = xlo_simple_ioctl(xlo, cmd, arg);
@@ -1525,28 +1467,26 @@ static int xlo_ioctl(struct block_device *bdev, fmode_t mode,
 
 #ifdef CONFIG_COMPAT
 struct compat_xloop_info {
-	compat_int_t	xlo_number;      /* ioctl r/o */
-	compat_dev_t	xlo_device;      /* ioctl r/o */
-	compat_ulong_t	xlo_inode;       /* ioctl r/o */
-	compat_dev_t	xlo_rdevice;     /* ioctl r/o */
-	compat_int_t	xlo_offset;
-	compat_int_t	xlo_encrypt_type;
-	compat_int_t	xlo_encrypt_key_size;    /* ioctl w/o */
-	compat_int_t	xlo_flags;       /* ioctl r/o */
-	char		xlo_name[XLO_NAME_SIZE];
-	unsigned char	xlo_encrypt_key[XLO_KEY_SIZE]; /* ioctl w/o */
-	compat_ulong_t	xlo_init[2];
-	char		reserved[4];
-	compat_int_t	xlo_file_fmt_type;
+	compat_int_t   xlo_number;                    /* ioctl r/o */
+	compat_dev_t   xlo_device;                    /* ioctl r/o */
+	compat_ulong_t xlo_inode;                     /* ioctl r/o */
+	compat_dev_t   xlo_rdevice;                   /* ioctl r/o */
+	compat_int_t   xlo_offset;
+	compat_int_t   xlo_encrypt_type;
+	compat_int_t   xlo_encrypt_key_size;          /* ioctl w/o */
+	compat_int_t   xlo_flags;                     /* ioctl r/o */
+	char           xlo_name[XLO_NAME_SIZE];
+	unsigned char  xlo_encrypt_key[XLO_KEY_SIZE]; /* ioctl w/o */
+	compat_ulong_t xlo_init[2];
+	char           reserved[4];
+	compat_int_t   xlo_file_fmt_type;
 };
 
 /*
  * Transfer 32-bit compatibility structure in userspace to 64-bit xloop info
  * - noinlined to reduce stack space usage in main part of driver
  */
-static noinline int
-xloop_info64_from_compat(const struct compat_xloop_info __user *arg,
-			struct xloop_info64 *info64)
+static noinline int xloop_info64_from_compat(const struct compat_xloop_info __user *arg, struct xloop_info64 *info64)
 {
 	struct compat_xloop_info info;
 
@@ -1578,9 +1518,7 @@ xloop_info64_from_compat(const struct compat_xloop_info __user *arg,
  * Transfer 64-bit xloop info to 32-bit compatibility structure in userspace
  * - noinlined to reduce stack space usage in main part of driver
  */
-static noinline int
-xloop_info64_to_compat(const struct xloop_info64 *info64,
-		      struct compat_xloop_info __user *arg)
+static noinline int xloop_info64_to_compat(const struct xloop_info64 *info64, struct compat_xloop_info __user *arg)
 {
 	struct compat_xloop_info info;
 
@@ -1603,13 +1541,10 @@ xloop_info64_to_compat(const struct xloop_info64 *info64,
 	memcpy(info.xlo_encrypt_key, info64->xlo_encrypt_key, XLO_KEY_SIZE);
 
 	/* error in case values were truncated */
-	if (info.xlo_device != info64->xlo_device ||
-	    info.xlo_rdevice != info64->xlo_rdevice ||
-	    info.xlo_inode != info64->xlo_inode ||
-	    info.xlo_offset != info64->xlo_offset ||
-	    info.xlo_init[0] != info64->xlo_init[0] ||
-	    info.xlo_init[1] != info64->xlo_init[1] ||
-		info.xlo_file_fmt_type != info64->xlo_file_fmt_type)
+	if (info.xlo_device != info64->xlo_device || info.xlo_rdevice != info64->xlo_rdevice ||
+	    info.xlo_inode != info64->xlo_inode || info.xlo_offset != info64->xlo_offset ||
+	    info.xlo_init[0] != info64->xlo_init[0] || info.xlo_init[1] != info64->xlo_init[1] ||
+	    info.xlo_file_fmt_type != info64->xlo_file_fmt_type)
 		return -EOVERFLOW;
 
 	if (copy_to_user(arg, &info, sizeof(info)))
@@ -1617,9 +1552,7 @@ xloop_info64_to_compat(const struct xloop_info64 *info64,
 	return 0;
 }
 
-static int
-xloop_set_status_compat(struct xloop_device *xlo,
-		       const struct compat_xloop_info __user *arg)
+static int xloop_set_status_compat(struct xloop_device *xlo, const struct compat_xloop_info __user *arg)
 {
 	struct xloop_info64 info64;
 	int ret;
@@ -1630,9 +1563,7 @@ xloop_set_status_compat(struct xloop_device *xlo,
 	return xloop_set_status(xlo, &info64);
 }
 
-static int
-xloop_get_status_compat(struct xloop_device *xlo,
-		       struct compat_xloop_info __user *arg)
+static int xloop_get_status_compat(struct xloop_device *xlo, struct compat_xloop_info __user *arg)
 {
 	struct xloop_info64 info64;
 	int err;
@@ -1645,27 +1576,24 @@ xloop_get_status_compat(struct xloop_device *xlo,
 	return err;
 }
 
-static int xlo_compat_ioctl(struct block_device *bdev, fmode_t mode,
-			   unsigned int cmd, unsigned long arg)
+static int xlo_compat_ioctl(struct block_device *bdev, fmode_t mode, unsigned int cmd, unsigned long arg)
 {
 	struct xloop_device *xlo = bdev->bd_disk->private_data;
 	int err;
 
-	switch(cmd) {
+	switch (cmd) {
 	case XLOOP_SET_STATUS:
-		err = xloop_set_status_compat(xlo,
-			     (const struct compat_xloop_info __user *)arg);
+		err = xloop_set_status_compat(xlo, (const struct compat_xloop_info __user *)arg);
 		break;
 	case XLOOP_GET_STATUS:
-		err = xloop_get_status_compat(xlo,
-				     (struct compat_xloop_info __user *)arg);
+		err = xloop_get_status_compat(xlo, (struct compat_xloop_info __user *)arg);
 		break;
 	case XLOOP_SET_CAPACITY:
 	case XLOOP_CLR_FD:
 	case XLOOP_GET_STATUS64:
 	case XLOOP_SET_STATUS64:
 	case XLOOP_CONFIGURE:
-		arg = (unsigned long) compat_ptr(arg);
+		arg = (unsigned long)compat_ptr(arg);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
 		fallthrough;
 #else
@@ -1739,12 +1667,12 @@ out_unlock:
 }
 
 static const struct block_device_operations xlo_fops = {
-	.owner =	THIS_MODULE,
-	.open =		xlo_open,
-	.release =	xlo_release,
-	.ioctl =	xlo_ioctl,
+	.owner        = THIS_MODULE,
+	.open         = xlo_open,
+	.release      = xlo_release,
+	.ioctl        = xlo_ioctl,
 #ifdef CONFIG_COMPAT
-	.compat_ioctl =	xlo_compat_ioctl,
+	.compat_ioctl = xlo_compat_ioctl,
 #endif
 };
 
@@ -1770,6 +1698,7 @@ int xloop_register_transfer(struct xloop_func_table *funcs)
 	xfer_funcs[n] = funcs;
 	return 0;
 }
+EXPORT_SYMBOL(xloop_register_transfer);
 
 static int unregister_transfer_cb(int id, void *ptr, void *data)
 {
@@ -1788,19 +1717,18 @@ int xloop_unregister_transfer(int number)
 	unsigned int n = number;
 	struct xloop_func_table *xfer;
 
-	if (n == 0 || n >= MAX_XLO_CRYPT || (xfer = xfer_funcs[n]) == NULL)
+	xfer = xfer_funcs[n];
+
+	if (n == 0 || n >= MAX_XLO_CRYPT || xfer == NULL)
 		return -EINVAL;
 
 	xfer_funcs[n] = NULL;
 	idr_for_each(&xloop_index_idr, &unregister_transfer_cb, xfer);
 	return 0;
 }
-
-EXPORT_SYMBOL(xloop_register_transfer);
 EXPORT_SYMBOL(xloop_unregister_transfer);
 
-static blk_status_t xloop_queue_rq(struct blk_mq_hw_ctx *hctx,
-		const struct blk_mq_queue_data *bd)
+static blk_status_t xloop_queue_rq(struct blk_mq_hw_ctx *hctx, const struct blk_mq_queue_data *bd)
 {
 	struct request *rq = bd->rq;
 	struct xloop_cmd *cmd = blk_mq_rq_to_pdu(rq);
@@ -1848,7 +1776,7 @@ static void xloop_handle_cmd(struct xloop_cmd *cmd)
 	}
 
 	ret = do_req_filebacked(xlo, rq);
- failed:
+failed:
 	/* complete non-aio request */
 	if (!cmd->use_aio || ret) {
 		if (ret == -EOPNOTSUPP)
@@ -1866,14 +1794,13 @@ static void xloop_handle_cmd(struct xloop_cmd *cmd)
 
 static void xloop_queue_work(struct kthread_work *work)
 {
-	struct xloop_cmd *cmd =
-		container_of(work, struct xloop_cmd, work);
+	struct xloop_cmd *cmd = container_of(work, struct xloop_cmd, work);
 
 	xloop_handle_cmd(cmd);
 }
 
-static int xloop_init_request(struct blk_mq_tag_set *set, struct request *rq,
-		unsigned int hctx_idx, unsigned int numa_node)
+static int xloop_init_request(struct blk_mq_tag_set *set, struct request *rq, unsigned int hctx_idx,
+			      unsigned int numa_node)
 {
 	struct xloop_cmd *cmd = blk_mq_rq_to_pdu(rq);
 
@@ -1882,9 +1809,9 @@ static int xloop_init_request(struct blk_mq_tag_set *set, struct request *rq,
 }
 
 static const struct blk_mq_ops xloop_mq_ops = {
-	.queue_rq     = xloop_queue_rq,
+	.queue_rq = xloop_queue_rq,
 	.init_request = xloop_init_request,
-	.complete     = xlo_complete_rq,
+	.complete = xlo_complete_rq,
 };
 
 static struct dentry *xloop_dbgfs_dir;
@@ -1982,21 +1909,24 @@ static int xloop_add(struct xloop_device **l, int i)
 		disk->flags |= GENHD_FL_NO_PART_SCAN;
 	disk->flags |= GENHD_FL_EXT_DEVT;
 	atomic_set(&xlo->xlo_refcnt, 0);
-	xlo->xlo_number		= i;
+	xlo->xlo_number = i;
 	spin_lock_init(&xlo->xlo_lock);
-	disk->major		= XLOOP_MAJOR;
-	disk->first_minor	= i << part_shift;
-	disk->fops		= &xlo_fops;
-	disk->private_data	= xlo;
-	disk->queue		= xlo->xlo_queue;
+	disk->major = XLOOP_MAJOR;
+	disk->first_minor = i << part_shift;
+	disk->fops = &xlo_fops;
+	disk->private_data = xlo;
+	disk->queue = xlo->xlo_queue;
 	sprintf(disk->disk_name, "xloop%d", i);
 	add_disk(disk);
 	*l = xlo;
 
-	/* initialize debugfs entries */
-	/* create for each loop device a debugfs directory under 'loop' if
+	/*
+	 * initialize debugfs entries
+	 *
+	 * create for each loop device a debugfs directory under 'loop' if
 	 * the 'block' directory exists, otherwise create the loop directory in
-	 * the root directory */
+	 * the root directory
+	 */
 #ifdef CONFIG_DEBUG_FS
 	xlo->xlo_dbgfs_dir = debugfs_create_dir(disk->disk_name, xloop_dbgfs_dir);
 
@@ -2092,8 +2022,7 @@ static struct kobject *xloop_probe(dev_t dev, int *part, void *data)
 	return kobj;
 }
 
-static long xloop_control_ioctl(struct file *file, unsigned int cmd,
-			       unsigned long parm)
+static long xloop_control_ioctl(struct file *file, unsigned int cmd, unsigned long parm)
 {
 	struct xloop_device *xlo;
 	int ret;
@@ -2102,7 +2031,7 @@ static long xloop_control_ioctl(struct file *file, unsigned int cmd,
 	if (ret)
 		return ret;
 
-	ret = -ENOSYS;
+	ret = -EINVAL;
 	switch (cmd) {
 	case XLOOP_CTL_ADD:
 		ret = xloop_lookup(&xlo, parm);
@@ -2140,17 +2069,17 @@ static long xloop_control_ioctl(struct file *file, unsigned int cmd,
 }
 
 static const struct file_operations xloop_ctl_fops = {
-	.open		= nonseekable_open,
-	.unlocked_ioctl	= xloop_control_ioctl,
-	.compat_ioctl	= xloop_control_ioctl,
-	.owner		= THIS_MODULE,
-	.llseek		= noop_llseek,
+	.open           = nonseekable_open,
+	.unlocked_ioctl = xloop_control_ioctl,
+	.compat_ioctl   = xloop_control_ioctl,
+	.owner          = THIS_MODULE,
+	.llseek         = noop_llseek,
 };
 
 static struct miscdevice xloop_misc = {
-	.minor		= XLOOP_CTRL_MINOR,
-	.name		= "xloop-control",
-	.fops		= &xloop_ctl_fops,
+	.minor = XLOOP_CTRL_MINOR,
+	.name  = "xloop-control",
+	.fops  = &xloop_ctl_fops,
 };
 
 MODULE_ALIAS_MISCDEV(XLOOP_CTRL_MINOR);
@@ -2205,7 +2134,6 @@ static int __init xloop_init(void)
 	if (err < 0)
 		goto err_out;
 
-
 	if (register_blkdev(XLOOP_MAJOR, "xloop")) {
 		err = -EIO;
 		goto misc_out;
@@ -2219,8 +2147,7 @@ static int __init xloop_init(void)
 	}
 #endif
 
-	blk_register_region(MKDEV(XLOOP_MAJOR, 0), range,
-				  THIS_MODULE, xloop_probe, NULL, NULL);
+	blk_register_region(MKDEV(XLOOP_MAJOR, 0), range, THIS_MODULE, xloop_probe, NULL, NULL);
 
 	/* pre-create number of devices given by config or max_xloop */
 	mutex_lock(&xloop_ctl_mutex);

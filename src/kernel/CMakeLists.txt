@@ -26,7 +26,14 @@ if(CMAKE_BUILD_TYPE MATCHES "Debug")
 endif(CMAKE_BUILD_TYPE MATCHES "Debug")
 
 # define list of options to ignore with the checkpatch.pl linter
-set(CHECKPATCH_IGNORE_WARNINGS "LINUX_VERSION_CODE")
+set(CHECKPATCH_IGNORE_WARNINGS "LINUX_VERSION_CODE"
+                               "CONSTANT_COMPARISON"
+                               "PREFER_PR_LEVEL"
+                               "TRAILING_SEMICOLON"
+                               "CONSIDER_KSTRTO"
+                               "UNNECESSARY_ELSE"
+                               "SPLIT_STRING"
+                               "STATIC_CONST_CHAR_ARRAY")
 
 # xloop main Linux kernel module
 set(KERNEL_MODULE_XLOOP_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt.c

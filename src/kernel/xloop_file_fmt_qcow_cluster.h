@@ -15,8 +15,8 @@
 
 #include "xloop_file_fmt.h"
 
-extern int xloop_file_fmt_qcow_get_host_offset(struct xloop_file_fmt *xlo_fmt,
-	u64 offset, unsigned int *bytes, u64 *host_offset,
-	enum xloop_file_fmt_qcow_subcluster_type *subcluster_type);
+extern int xloop_file_fmt_qcow_get_host_offset(struct xloop_file_fmt *xlo_fmt, u64 offset, unsigned int *bytes,
+					       u64 *host_offset,
+					       enum xloop_file_fmt_qcow_subcluster_type *subcluster_type);
 
 #endif

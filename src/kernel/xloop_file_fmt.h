@@ -14,11 +14,11 @@
 
 struct xloop_file_fmt;
 
-#define XLO_FILE_FMT_RAW         0
-#define XLO_FILE_FMT_QCOW        1
-#define XLO_FILE_FMT_VDI         2
-#define XLO_FILE_FMT_VMDK        3
-#define MAX_XLO_FILE_FMT         (XLO_FILE_FMT_VMDK + 1)
+#define XLO_FILE_FMT_RAW 0
+#define XLO_FILE_FMT_QCOW 1
+#define XLO_FILE_FMT_VDI 2
+#define XLO_FILE_FMT_VMDK 3
+#define MAX_XLO_FILE_FMT (XLO_FILE_FMT_VMDK + 1)
 
 /**
  * struct xloop_file_fmt_ops - File format subsystem operations
@@ -29,59 +29,52 @@ struct xloop_file_fmt_ops {
 	/**
 	 * @init: Initialization callback function
 	 */
-	int (*init) (struct xloop_file_fmt *xlo_fmt);
+	int (*init)(struct xloop_file_fmt *xlo_fmt);
 
 	/**
 	 * @exit: Release callback function
 	 */
-	void (*exit) (struct xloop_file_fmt *xlo_fmt);
+	void (*exit)(struct xloop_file_fmt *xlo_fmt);
 
 	/**
 	 * @read: Read IO callback function
 	 */
-	int (*read) (struct xloop_file_fmt *xlo_fmt,
-			struct request *rq);
+	int (*read)(struct xloop_file_fmt *xlo_fmt, struct request *rq);
 
 	/**
 	 * @write: Write IO callback function
 	 */
-	int (*write) (struct xloop_file_fmt *xlo_fmt,
-			struct request *rq);
+	int (*write)(struct xloop_file_fmt *xlo_fmt, struct request *rq);
 
 	/**
 	 * @read_aio: Asynchronous read IO callback function
 	 */
-	int (*read_aio) (struct xloop_file_fmt *xlo_fmt,
-			struct request *rq);
+	int (*read_aio)(struct xloop_file_fmt *xlo_fmt, struct request *rq);
 
 	/**
 	 * @write_aio: Asynchronous write IO callback function
 	 */
-	int (*write_aio) (struct xloop_file_fmt *xlo_fmt,
-			struct request *rq);
+	int (*write_aio)(struct xloop_file_fmt *xlo_fmt, struct request *rq);
 
 	/**
 	 * @zero: Zero (discard) IO callback function
 	 */
-	int (*write_zeros) (struct xloop_file_fmt *xlo_fmt,
-			struct request *rq);
+	int (*write_zeros)(struct xloop_file_fmt *xlo_fmt, struct request *rq);
 
 	/**
 	 * @discard: Discard IO callback function
 	 */
-	int (*discard) (struct xloop_file_fmt *xlo_fmt,
-			struct request *rq);
+	int (*discard)(struct xloop_file_fmt *xlo_fmt, struct request *rq);
 
 	/**
 	 * @flush: Flush callback function
 	 */
-	int (*flush) (struct xloop_file_fmt *xlo_fmt);
+	int (*flush)(struct xloop_file_fmt *xlo_fmt);
 
 	/**
 	 * @sector_size: Get sector size callback function
 	 */
-	loff_t (*sector_size) (struct xloop_file_fmt *xlo_fmt,
-				struct file *file, loff_t offset, loff_t sizelimit);
+	loff_t (*sector_size)(struct xloop_file_fmt *xlo_fmt, struct file *file, loff_t offset, loff_t sizelimit);
 };
 
 /**
@@ -141,10 +134,7 @@ struct xloop_file_fmt_driver {
  *    | initialized   -------> uninitialized -------> initialized |
  *    +-----------------------------------------------------------+
  */
-enum {
-	file_fmt_uninitialized = 0,
-	file_fmt_initialized
-};
+enum { file_fmt_uninitialized = 0, file_fmt_initialized };
 
 /**
  * struct xloop_file_fmt - xloop file format
@@ -173,7 +163,6 @@ struct xloop_file_fmt {
 	void *private_data;
 };
 
-
 /* subsystem functions for the driver implementation */
 
 /**
@@ -193,7 +182,6 @@ extern int xloop_file_fmt_register_driver(struct xloop_file_fmt_driver *drv);
  * format subsystem.
  */
 extern void xloop_file_fmt_unregister_driver(struct xloop_file_fmt_driver *drv);
-
 
 /* subsystem functions for subsystem usage */
 
@@ -220,8 +208,7 @@ extern void xloop_file_fmt_free(struct xloop_file_fmt *xlo_fmt);
  *
  * The link to the xloop device @xlo is set in the xloop file format @xlo_fmt.
  */
-extern int xloop_file_fmt_set_xlo(struct xloop_file_fmt *xlo_fmt,
-				struct xloop_device *xlo);
+extern int xloop_file_fmt_set_xlo(struct xloop_file_fmt *xlo_fmt, struct xloop_device *xlo);
 
 /**
  * xloop_file_fmt_get_xlo - Get the xloop file format's xloop device
@@ -250,8 +237,7 @@ extern inline struct device *xloop_file_fmt_to_dev(struct xloop_file_fmt *xlo_fm
  * format driver for the specified file format is available an error is
  * returned.
  */
-extern int xloop_file_fmt_init(struct xloop_file_fmt *xlo_fmt,
-			      u32 file_fmt_type);
+extern int xloop_file_fmt_init(struct xloop_file_fmt *xlo_fmt, u32 file_fmt_type);
 
 /**
  * xloop_file_fmt_exit - Release a xloop file format
@@ -270,8 +256,7 @@ extern void xloop_file_fmt_exit(struct xloop_file_fmt *xlo_fmt);
  * @rq to the xloop file format subsystem. The subsystem calls the registered
  * callback function of the suitable xloop file format driver.
  */
-extern int xloop_file_fmt_read(struct xloop_file_fmt *xlo_fmt,
-			      struct request *rq);
+extern int xloop_file_fmt_read(struct xloop_file_fmt *xlo_fmt, struct request *rq);
 
 /**
  * xloop_file_fmt_read_aio - Read IO from a xloop file format asynchronously
@@ -283,8 +268,7 @@ extern int xloop_file_fmt_read(struct xloop_file_fmt *xlo_fmt,
  * calls the registered callback function of the suitable xloop file format
  * driver.
  */
-extern int xloop_file_fmt_read_aio(struct xloop_file_fmt *xlo_fmt,
-				  struct request *rq);
+extern int xloop_file_fmt_read_aio(struct xloop_file_fmt *xlo_fmt, struct request *rq);
 
 /**
  * xloop_file_fmt_write - Write IO to a xloop file format
@@ -295,8 +279,7 @@ extern int xloop_file_fmt_read_aio(struct xloop_file_fmt *xlo_fmt,
  * @rq to the xloop file format subsystem. The subsystem calls the registered
  * callback function of the suitable xloop file format driver.
  */
-extern int xloop_file_fmt_write(struct xloop_file_fmt *xlo_fmt,
-			       struct request *rq);
+extern int xloop_file_fmt_write(struct xloop_file_fmt *xlo_fmt, struct request *rq);
 
 /**
  * xloop_file_fmt_write_aio - Write IO to a xloop file format asynchronously
@@ -308,8 +291,7 @@ extern int xloop_file_fmt_write(struct xloop_file_fmt *xlo_fmt,
  * calls the registered callback function of the suitable xloop file format
  * driver.
  */
-extern int xloop_file_fmt_write_aio(struct xloop_file_fmt *xlo_fmt,
-				   struct request *rq);
+extern int xloop_file_fmt_write_aio(struct xloop_file_fmt *xlo_fmt, struct request *rq);
 
 /**
  * xloop_file_fmt_write_zeros - Zero (discard) IO on a xloop file format
@@ -320,8 +302,7 @@ extern int xloop_file_fmt_write_aio(struct xloop_file_fmt *xlo_fmt,
  * zeros request @rq to the xloop file format subsystem. The subsystem calls the
  * registered callback function of the suitable xloop file format driver.
  */
-extern int xloop_file_fmt_write_zeros(struct xloop_file_fmt *xlo_fmt,
-				 struct request *rq);
+extern int xloop_file_fmt_write_zeros(struct xloop_file_fmt *xlo_fmt, struct request *rq);
 
 /**
  * xloop_file_fmt_discard - Discard IO on a xloop file format
@@ -332,8 +313,7 @@ extern int xloop_file_fmt_write_zeros(struct xloop_file_fmt *xlo_fmt,
  * request @rq to the xloop file format subsystem. The subsystem calls the
  * registered callback function of the suitable xloop file format driver.
  */
-extern int xloop_file_fmt_discard(struct xloop_file_fmt *xlo_fmt,
-				 struct request *rq);
+extern int xloop_file_fmt_discard(struct xloop_file_fmt *xlo_fmt, struct request *rq);
 
 /**
  * xloop_file_fmt_flush - Flush a xloop file format
@@ -355,8 +335,8 @@ extern int xloop_file_fmt_flush(struct xloop_file_fmt *xlo_fmt);
  * If the xloop file format implements a sparse disk image format, then this
  * function returns the virtual sector size.
  */
-extern loff_t xloop_file_fmt_sector_size(struct xloop_file_fmt *xlo_fmt,
-				struct file *file, loff_t offset, loff_t sizelimit);
+extern loff_t xloop_file_fmt_sector_size(struct xloop_file_fmt *xlo_fmt, struct file *file, loff_t offset,
+					 loff_t sizelimit);
 
 /**
  * xloop_file_fmt_change - Change the xloop file format's type
@@ -368,9 +348,7 @@ extern loff_t xloop_file_fmt_sector_size(struct xloop_file_fmt *xlo_fmt,
  * of its resources before the xloop file format @xlo_fmt is initialized and set
  * up with the new file format @file_fmt_type_new.
  */
-extern int xloop_file_fmt_change(struct xloop_file_fmt *xlo_fmt,
-				u32 file_fmt_type_new);
-
+extern int xloop_file_fmt_change(struct xloop_file_fmt *xlo_fmt, u32 file_fmt_type_new);
 
 /* helper functions of the subsystem */
 
@@ -382,7 +360,6 @@ extern int xloop_file_fmt_change(struct xloop_file_fmt *xlo_fmt,
  * Converts the specified numeric @file_fmt_type value into a human readable
  * string stating the file format as string in @file_fmt_name.
  */
-extern ssize_t xloop_file_fmt_print_type(u32 file_fmt_type,
-					char *file_fmt_name);
+extern ssize_t xloop_file_fmt_print_type(u32 file_fmt_type, char *file_fmt_name);
 
 #endif

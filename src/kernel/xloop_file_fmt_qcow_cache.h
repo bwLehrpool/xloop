@@ -34,18 +34,13 @@ struct xloop_file_fmt_qcow_cache {
 	u64 cache_clean_lru_counter;
 };
 
-extern struct xloop_file_fmt_qcow_cache *xloop_file_fmt_qcow_cache_create(
-	struct xloop_file_fmt *xlo_fmt,
-	int num_tables,
-	unsigned table_size);
+extern struct xloop_file_fmt_qcow_cache *xloop_file_fmt_qcow_cache_create(struct xloop_file_fmt *xlo_fmt,
+									  int num_tables, unsigned int table_size);
 
 extern void xloop_file_fmt_qcow_cache_destroy(struct xloop_file_fmt *xlo_fmt);
 
-extern int xloop_file_fmt_qcow_cache_get(struct xloop_file_fmt *xlo_fmt,
-					u64 offset,
-					void **table);
+extern int xloop_file_fmt_qcow_cache_get(struct xloop_file_fmt *xlo_fmt, u64 offset, void **table);
 
-extern void xloop_file_fmt_qcow_cache_put(struct xloop_file_fmt *xlo_fmt,
-					 void **table);
+extern void xloop_file_fmt_qcow_cache_put(struct xloop_file_fmt *xlo_fmt, void **table);
 
 #endif
