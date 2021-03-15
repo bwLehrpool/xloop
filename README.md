@@ -29,6 +29,7 @@ pacman -S git \
           make \
           cmake \
           gcc \
+          clang \
           linux-headers \  # or linux-lts-headers
           libcap \  # required only in Debug build configuration
           dpkg \
@@ -41,6 +42,7 @@ apt-get install git \
                 make \
                 cmake \
                 gcc \
+                clang-format \
                 raspberrypi-kernel-headers \
                 libcap-dev \  # required only in Debug build configuration
                 rpm
@@ -52,6 +54,7 @@ apt-get install git \
                 make \
                 cmake \
                 gcc \
+                clang-format \
                 linux-headers-generic \
                 libcap-dev \  # required only in Debug build configuration
                 rpm
@@ -63,6 +66,7 @@ apt-get install git \
                 make \
                 cmake \
                 gcc \
+                clang-format \
                 linux-headers-generic \
                 libcap-dev \  # required only in Debug build configuration
                 rpm
@@ -74,6 +78,7 @@ yum install git \
             make \
             cmake \
             gcc \
+            clang-tools-extra \
             kernel-devel \
             elfutils-libelf-devel \
             libcap-devel \  # required only in Debug build configuration
@@ -86,6 +91,7 @@ yum install git \
             make \
             cmake \
             gcc \
+            clang-tools-extra \
             kernel-devel \
             elfutils-libelf-devel \
             libcap-devel \  # required only in Debug build configuration
@@ -105,14 +111,15 @@ cd build
 ### Configuration
 A build of the xloop Linux kernel modules and the xlosetup utility can be configured and customized by the following configuration variables (CMake cache entries):
 
-| Variable                  | Type   | Values                                  | Default value                 | Description                                         |
-|:--------------------------|:-------|:----------------------------------------|:------------------------------|-----------------------------------------------------|
-| `CMAKE_BUILD_TYPE`        | STRING | {`Debug`, `Release`}                    | `Debug`                       | Build configuration of the xloop project.           |
-| `KERNEL_BUILD_DIR`        | PATH   | {`a` .. `z`, `A` .. `Z`, `/`, `_`, `-`} | /lib/modules/`uname -r`/build | Path to Linux kernel modules to compile against.    |
-| `KERNEL_INSTALL_DIR`      | PATH   | {`a` .. `z`, `A` .. `Z`, `/`, `_`, `-`} | /lib/modules/`uname -r`/extra | Path to install Linux kernel modules.               |
-| `XLOOP_MAJOR`             | NUMBER | {`0` .. `255`}                          | `120`                         | Major number for xloop devices.                     |
-| `XLOOP_CTRL_MINOR`        | NUMBER | {`0` .. `255`}                          | `15`                          | Minor number for the xloop-control device.          |
-| `BLK_DEV_XLOOP_MIN_COUNT` | NUMBER | {`0` .. `255`}                          | `8`                           | Number of xloop devices to pre-create at init time. |
+| Variable                  | Type   | Values                                  | Default value                         | Description                                         |
+|:--------------------------|:-------|:----------------------------------------|:--------------------------------------|-----------------------------------------------------|
+| `CMAKE_BUILD_TYPE`        | STRING | {`Debug`, `Release`}                    | `Debug`                               | Build configuration of the xloop project.           |
+| `KERNEL_BUILD_DIR`        | PATH   | {`a` .. `z`, `A` .. `Z`, `/`, `_`, `-`} | /lib/modules/`uname -r`/build         | Path to Linux kernel modules to compile against.    |
+| `KERNEL_INSTALL_DIR`      | PATH   | {`a` .. `z`, `A` .. `Z`, `/`, `_`, `-`} | /lib/modules/`uname -r`/extra         | Path to install Linux kernel modules.               |
+| `KERNEL_SCRIPTS_DIR`      | PATH   | {`a` .. `z`, `A` .. `Z`, `/`, `_`, `-`} | /lib/modules/`uname -r`/build/scripts | Path to Linux kernel scripts directory.             |             
+| `XLOOP_MAJOR`             | NUMBER | {`0` .. `255`}                          | `120`                                 | Major number for xloop devices.                     |
+| `XLOOP_CTRL_MINOR`        | NUMBER | {`0` .. `255`}                          | `15`                                  | Minor number for the xloop-control device.          |
+| `BLK_DEV_XLOOP_MIN_COUNT` | NUMBER | {`0` .. `255`}                          | `8`                                   | Number of xloop devices to pre-create at init time. |
 
 A value from the range of appropriate values can be assigend to each configuration variable by executing CMake once with the following command pattern:
 
@@ -189,4 +196,20 @@ Built-in debug messages from the user space utility **xlosetup** can be enabled 
 ```shell
 export XLOOPDEV_DEBUG=all
 export LIBSMARTCOLS_DEBUG=all
+```
+
+
+## Development notes
+
+### Code style of source code files
+The code style of the source code files can be checked by calling the make target `lint`:
+
+```shell
+make lint
+```
+
+If some source code files do not meet the project's code style, they can be fixed automatically by calling the make target `lint-fix`:
+
+```shell
+make lint-fix
 ```

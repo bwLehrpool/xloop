@@ -28,6 +28,7 @@ endif(NOT CMAKE_BUILD_TYPE)
 # include project version and build type related macros
 include(Version)
 include(Build)
+include(Lint)
 
 # search for required packages
 find_package(Git REQUIRED)

@@ -25,6 +25,9 @@ if(CMAKE_BUILD_TYPE MATCHES "Debug")
     set(KERNEL_C_FLAGS "${KERNEL_C_FLAGS} ${KERNEL_C_FLAGS_DEBUG}")
 endif(CMAKE_BUILD_TYPE MATCHES "Debug")
 
+# define list of options to ignore with the checkpatch.pl linter
+set(CHECKPATCH_IGNORE_WARNINGS "LINUX_VERSION_CODE")
+
 # xloop main Linux kernel module
 set(KERNEL_MODULE_XLOOP_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt.c
                                      ${CMAKE_CURRENT_SOURCE_DIR}/xloop_main.c)
@@ -40,6 +43,17 @@ add_kernel_module(xloop "${KERNEL_BUILD_DIR}"
 # add dependency to generate project version header before xloop.ko is built
 add_dependencies(xloop xloop-generate-version)
 
+add_kernel_linter(xloop-lint "${CHECKPATCH_IGNORE_WARNINGS}"
+                             "${KERNEL_MODULE_XLOOP_SOURCE_FILES}"
+                             "${KERNEL_MODULE_XLOOP_HEADER_FILES}")
+
+add_kernel_linter_fix(xloop-lint-fix "${CHECKPATCH_IGNORE_WARNINGS}"
+                                     "${KERNEL_MODULE_XLOOP_SOURCE_FILES}"
+                                     "${KERNEL_MODULE_XLOOP_HEADER_FILES}")
+
+add_linter_fix(xloop-lint-fix-clang "${KERNEL_MODULE_XLOOP_SOURCE_FILES}"
+                                    "${KERNEL_MODULE_XLOOP_HEADER_FILES}")
+
 # xloop_file_fmt_raw Linux kernel module
 set(KERNEL_MODULE_XLOOP_RAW_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt_raw.c)
 set(KERNEL_MODULE_XLOOP_RAW_HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt.h
@@ -54,6 +68,17 @@ add_kernel_module(xloop_file_fmt_raw "${KERNEL_BUILD_DIR}"
                                      xloop)
 # add dependency to generate project version header before xloop_file_fmt_raw.ko is built
 add_dependencies(xloop_file_fmt_raw xloop-generate-version)
+
+add_kernel_linter(xloop_file_fmt_raw-lint "${CHECKPATCH_IGNORE_WARNINGS}"
+                                          "${KERNEL_MODULE_XLOOP_RAW_SOURCE_FILES}"
+                                          "${KERNEL_MODULE_XLOOP_RAW_HEADER_FILES}")
+
+add_kernel_linter_fix(xloop_file_fmt_raw-lint-fix "${CHECKPATCH_IGNORE_WARNINGS}"
+                                                  "${KERNEL_MODULE_XLOOP_RAW_SOURCE_FILES}"
+                                                  "${KERNEL_MODULE_XLOOP_RAW_HEADER_FILES}")
+
+add_linter_fix(xloop_file_fmt_raw-lint-fix-clang "${KERNEL_MODULE_XLOOP_RAW_SOURCE_FILES}"
+                                                 "${KERNEL_MODULE_XLOOP_RAW_HEADER_FILES}")
 
 # xloop_file_fmt_qcow Linux kernel module
 set(KERNEL_MODULE_XLOOP_QCOW_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt_qcow_cache.c
@@ -74,6 +99,17 @@ add_kernel_module(xloop_file_fmt_qcow "${KERNEL_BUILD_DIR}"
                                       xloop)
 # add dependency to generate project version header before xloop_file_fmt_qcow.ko is built
 add_dependencies(xloop_file_fmt_qcow xloop-generate-version)
+
+add_kernel_linter(xloop_file_fmt_qcow-lint "${CHECKPATCH_IGNORE_WARNINGS}"
+                                           "${KERNEL_MODULE_XLOOP_QCOW_SOURCE_FILES}"
+                                           "${KERNEL_MODULE_XLOOP_QCOW_HEADER_FILES}")
+
+add_kernel_linter_fix(xloop_file_fmt_qcow-lint-fix "${CHECKPATCH_IGNORE_WARNINGS}"
+                                                   "${KERNEL_MODULE_XLOOP_QCOW_SOURCE_FILES}"
+                                                   "${KERNEL_MODULE_XLOOP_QCOW_HEADER_FILES}")
+
+add_linter_fix(xloop_file_fmt_qcow-lint-fix-clang "${KERNEL_MODULE_XLOOP_QCOW_SOURCE_FILES}"
+                                                  "${KERNEL_MODULE_XLOOP_QCOW_HEADER_FILES}")
 
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
     add_subdirectory(tests)
