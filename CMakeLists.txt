@@ -144,6 +144,7 @@ if(CMAKE_BUILD_TYPE MATCHES "Release")
                                            "${PROJECT_GEN_DIR}"  "/")
     set(CPACK_SOURCE_IGNORE_FILES "/build/"
                                   "/.git/"
+                                  "/.github/"
                                   ".gitignore"
                                   "version.h.in")
 
