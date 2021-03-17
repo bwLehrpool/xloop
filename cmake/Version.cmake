@@ -39,28 +39,44 @@ macro(get_repository_version REPOSITORY_VERSION VERSION_HEADER_FILE VERSION_BUIL
         string(REGEX MATCH "\"(([0-9]+:)?[0-9][A-Za-z0-9.+~-]*)\"" GIT_VERSION ${GIT_VERSION})
         set(GIT_VERSION "${CMAKE_MATCH_1}")
     else(EXISTS ${VERSION_HEADER_FILE})
+        # set empty Git version information
+        set(GIT_VERSION "")
+
         # get detailed Git version information from Git repository
         execute_process(COMMAND ${GIT_EXECUTABLE} describe HEAD
                         WORKING_DIRECTORY ${REPOSITORY_DIR}
-                        OUTPUT_VARIABLE GIT_VERSION
+                        OUTPUT_VARIABLE GIT_VERSION_VERBOSE
+                        RESULT_VARIABLE GIT_RETURN_CODE
+                        ERROR_QUIET
                         OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-        # remove the first letter of the version to satisfy packaging rules
-        string(REGEX MATCH "([0-9]+:)?[0-9][A-Za-z0-9.+~-]*" GIT_VERSION ${GIT_VERSION})
+        # parse version information from repository if Git command succeeds
+        if(GIT_RETURN_CODE EQUAL 0)
+            # remove the first letter of the version to satisfy packaging rules
+            string(REGEX MATCH "([0-9]+:)?[0-9][A-Za-z0-9.+~-]*" GIT_VERSION ${GIT_VERSION_VERBOSE})
+        endif(GIT_RETURN_CODE EQUAL 0)
 
         # overwrite version from Git if version is unknown
         if(GIT_VERSION STREQUAL "")
-            set(GIT_VERSION "unknown")
+            # overwrite version information with unkown version 'v0.0'
+            set(GIT_VERSION "0.0")
+
+            # print a message in Release build configuration to warn about the unkown version
+            if(${VERSION_BUILD_TYPE} MATCHES "Release")
+                message(WARNING "The version information from Git tags in this xloop Git repository is missing! Please fetch all Git tags of this repository for a ${VERSION_BUILD_TYPE} build!")
+            endif(${VERSION_BUILD_TYPE} MATCHES "Release")
         endif(GIT_VERSION STREQUAL "")
 
         # get status of Git repository
         execute_process(COMMAND ${GIT_EXECUTABLE} status --porcelain
                         WORKING_DIRECTORY ${REPOSITORY_DIR}
                         OUTPUT_VARIABLE GIT_STATUS
+                        RESULT_VARIABLE GIT_RETURN_CODE
+                        ERROR_QUIET
                         OUTPUT_STRIP_TRAILING_WHITESPACE)
 
         # check if Git repository is dirty
-        if(NOT GIT_STATUS STREQUAL "")
+        if(GIT_RETURN_CODE EQUAL 0 AND NOT GIT_STATUS STREQUAL "")
             # the Git repository is dirty, thus extend the version information
             set(GIT_VERSION "${GIT_VERSION}-modified")
 
@@ -68,7 +84,7 @@ macro(get_repository_version REPOSITORY_VERSION VERSION_HEADER_FILE VERSION_BUIL
             if(${VERSION_BUILD_TYPE} MATCHES "Release")
                 message(WARNING "This xloop Git repository is dirty! Please commit or revert all changes for a ${VERSION_BUILD_TYPE} build!")
             endif(${VERSION_BUILD_TYPE} MATCHES "Release")
-        endif(NOT GIT_STATUS STREQUAL "")
+        endif(GIT_RETURN_CODE EQUAL 0 AND NOT GIT_STATUS STREQUAL "")
     endif(EXISTS ${VERSION_HEADER_FILE})
 
     # return version to caller
