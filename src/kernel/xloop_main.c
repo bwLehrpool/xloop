@@ -633,7 +633,8 @@ static void xloop_unprepare_queue(struct xloop_device *xlo)
 
 static int xloop_kthread_worker_fn(void *worker_ptr)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
+#if (KERNEL_VERSION(5, 8, 0) <= LINUX_VERSION_CODE) ||                                                                 \
+	RHEL_CHECK_VERSION(RHEL_RELEASE_VERSION(8, 4) <= RHEL_RELEASE_CODE)
 	current->flags |= PF_LOCAL_THROTTLE | PF_MEMALLOC_NOIO;
 #else
 	current->flags |= PF_LESS_THROTTLE | PF_MEMALLOC_NOIO;
