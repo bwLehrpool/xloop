@@ -43,7 +43,7 @@ macro(get_repository_version REPOSITORY_VERSION VERSION_HEADER_FILE VERSION_BUIL
         set(GIT_VERSION "")
 
         # get detailed Git version information from Git repository
-        execute_process(COMMAND ${GIT_EXECUTABLE} describe HEAD
+        execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags HEAD
                         WORKING_DIRECTORY ${REPOSITORY_DIR}
                         OUTPUT_VARIABLE GIT_VERSION_VERBOSE
                         RESULT_VARIABLE GIT_RETURN_CODE
