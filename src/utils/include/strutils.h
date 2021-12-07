@@ -8,6 +8,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <errno.h>
+#include <time.h>
 
 #include "c.h"
 
@@ -18,25 +19,35 @@ extern int parse_size(const char *str, uintmax_t *res, int *power);
 extern int strtosize(const char *str, uintmax_t *res);
 extern uintmax_t strtosize_or_err(const char *str, const char *errmesg);
 
-extern int16_t strtos16_or_err(const char *str, const char *errmesg);
-extern uint16_t strtou16_or_err(const char *str, const char *errmesg);
-extern uint16_t strtox16_or_err(const char *str, const char *errmesg);
+extern int ul_strtos64(const char *str, int64_t *num, int base);
+extern int ul_strtou64(const char *str, uint64_t *num, int base);
+extern int ul_strtos32(const char *str, int32_t *num, int base);
+extern int ul_strtou32(const char *str, uint32_t *num, int base);
 
-extern int32_t strtos32_or_err(const char *str, const char *errmesg);
-extern uint32_t strtou32_or_err(const char *str, const char *errmesg);
-extern uint32_t strtox32_or_err(const char *str, const char *errmesg);
+extern int64_t str2num_or_err(const char *str, int base, const char *errmesg, int64_t low, int64_t up);
+extern uint64_t str2unum_or_err(const char *str, int base, const char *errmesg, uint64_t up);
 
-extern int64_t strtos64_or_err(const char *str, const char *errmesg);
-extern uint64_t strtou64_or_err(const char *str, const char *errmesg);
-extern uint64_t strtox64_or_err(const char *str, const char *errmesg);
+#define strtos64_or_err(_s, _e)	str2num_or_err(_s, 10, _e, 0, 0)
+#define strtou64_or_err(_s, _e)	str2unum_or_err(_s, 10, _e, 0)
+#define strtox64_or_err(_s, _e)	str2unum_or_err(_s, 16, _e, 0)
+
+#define strtos32_or_err(_s, _e)	(int32_t) str2num_or_err(_s, 10, _e, INT32_MIN, INT32_MAX)
+#define strtou32_or_err(_s, _e)	(uint32_t) str2unum_or_err(_s, 10, _e, UINT32_MAX)
+#define strtox32_or_err(_s, _e)	(uint32_t) str2unum_or_err(_s, 16, _e, UINT32_MAX)
+
+#define strtos16_or_err(_s, _e)	(int16_t) str2num_or_err(_s, 10, _e, INT16_MIN, INT16_MAX)
+#define strtou16_or_err(_s, _e)	(uint16_t) str2unum_or_err(_s, 10, _e, UINT16_MAX)
+#define strtox16_or_err(_s, _e)	(uint16_t) str2unum_or_err(_s, 16, _e, UINT16_MAX)
 
 extern double strtod_or_err(const char *str, const char *errmesg);
+extern long double strtold_or_err(const char *str, const char *errmesg);
 
 extern long strtol_or_err(const char *str, const char *errmesg);
 extern unsigned long strtoul_or_err(const char *str, const char *errmesg);
 
 extern void strtotimeval_or_err(const char *str, struct timeval *tv,
 		const char *errmesg);
+extern time_t strtotime_or_err(const char *str, const char *errmesg);
 
 extern int isdigit_strend(const char *str, const char **end);
 #define isdigit_string(_s)	isdigit_strend(_s, NULL)
@@ -331,7 +342,7 @@ static inline size_t normalize_whitespace(unsigned char *str)
 		else
 			str[x++] = str[i++];
 	}
-	if (nsp)		/* tailing space */
+	if (nsp && x > 0)	/* tailing space */
 		x--;
 	str[x] = '\0';
 	return x;
@@ -359,9 +370,10 @@ static inline void strrem(char *s, int rem)
 extern char *strnappend(const char *s, const char *suffix, size_t b);
 extern char *strappend(const char *s, const char *suffix);
 extern char *strfappend(const char *s, const char *format, ...)
-		 __attribute__ ((__format__ (__printf__, 2, 0)));
+		 __attribute__ ((__format__ (__printf__, 2, 3)));
 extern const char *split(const char **state, size_t *l, const char *separator, int quoted);
 
 extern int skip_fline(FILE *fp);
+extern int ul_stralnumcmp(const char *p1, const char *p2);
 
 #endif

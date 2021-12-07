@@ -463,6 +463,29 @@ static void __attribute__((__noreturn__)) usage(void)
 	exit(EXIT_SUCCESS);
 }
 
+static void warn_size(const char *filename, uint64_t size, uint64_t offset, int flags)
+{
+	struct stat st;
+
+	if (!size) {
+		if (stat(filename, &st) || S_ISBLK(st.st_mode))
+			return;
+		size = st.st_size;
+
+		if (flags & LOOPDEV_FL_OFFSET)
+			size -= offset;
+	}
+
+	if (size < 512)
+		warnx(_("%s: Warning: file is smaller than 512 bytes; the xloop device "
+			"may be useless or invisible for system tools."),
+			filename);
+	else if (size % 512)
+		warnx(_("%s: Warning: file does not fit into a 512-byte sector; "
+		        "the end of the file will be ignored."),
+			filename);
+}
+
 static int create_loop(struct loopdev_cxt *lc,
 		       int nooverlap, int lo_flags, int flags,
 		       const char *file, uint64_t offset, uint64_t sizelimit,
@@ -572,7 +595,7 @@ static int create_loop(struct loopdev_cxt *lc,
 		if (rc == 0)
 			break;			/* success */
 
-		if (errno == EBUSY && !hasdev && ntries < 64) {
+		if ((errno == EBUSY || errno == EAGAIN) && !hasdev && ntries < 64) {
 			xusleep(200000);
 			ntries++;
 			continue;
@@ -857,6 +880,7 @@ int main(int argc, char **argv)
 		if (res == 0) {
 			if (showdev)
 				printf("%s\n", loopcxt_get_device(&lc));
+			warn_size(file, sizelimit, offset, flags);
 			if (set_dio)
 				goto lo_set_dio;
 		}

@@ -41,6 +41,7 @@
 #include "canonicalize.h"
 #include "blkdev.h"
 #include "debug.h"
+#include "fileutils.h"
 
 /*
  * Debug stuff (based on include/debug.h)
@@ -542,7 +543,7 @@ static int loopcxt_next_from_sysfs(struct loopdev_cxt *lc)
 
 		if (strcmp(d->d_name, ".") == 0
 		    || strcmp(d->d_name, "..") == 0
-		    || strncmp(d->d_name, "xloop", 4) != 0)
+		    || strncmp(d->d_name, "xloop", 5) != 0)
 			continue;
 
 		snprintf(name, sizeof(name), "%s/xloop/backing_file", d->d_name);
@@ -634,14 +635,30 @@ done:
 int is_loopdev(const char *device)
 {
 	struct stat st;
+	int rc = 0;
 
-	if (device && stat(device, &st) == 0 &&
-		S_ISBLK(st.st_mode) &&
-		major(st.st_rdev) == LOOPDEV_MAJOR)
-		return 1;
+	if (!device || stat(device, &st) != 0 || !S_ISBLK(st.st_mode))
+		rc = 0;
+	else if (major(st.st_rdev) == LOOPDEV_MAJOR)
+		rc = 1;
+	else if (sysfs_devno_is_wholedisk(st.st_rdev)) {
+		/* It's possible that kernel creates a device with a different
+		 * major number ... check by /sys it's really xloop device.
+		 */
+		char name[PATH_MAX], *cn, *p = NULL;
 
-	errno = ENODEV;
-	return 0;
+		snprintf(name, sizeof(name), _PATH_SYS_DEVBLOCK "/%d:%d",
+				major(st.st_rdev), minor(st.st_rdev));
+		cn = canonicalize_path(name);
+		if (cn)
+			p = stripoff_last_component(cn);
+		rc = p && startswith(p, "xloop");
+		free(cn);
+	}
+
+	if (rc == 0)
+		errno = ENODEV;
+	return rc;
 }
 
 /*
@@ -668,12 +685,12 @@ struct loop_info64 *loopcxt_get_info(struct loopdev_cxt *lc)
 	if (ioctl(fd, LOOP_GET_STATUS64, &lc->config.info) == 0) {
 		lc->has_info = 1;
 		lc->info_failed = 0;
-		DBG(CXT, ul_debugobj(lc, "reading loop_info64 OK"));
+		DBG(CXT, ul_debugobj(lc, "reading xloop_info64 OK"));
 		return &lc->config.info;
 	}
 
 	lc->info_failed = 1;
-	DBG(CXT, ul_debugobj(lc, "reading loop_info64 FAILED"));
+	DBG(CXT, ul_debugobj(lc, "reading xloop_info64 FAILED"));
 
 	return NULL;
 }
@@ -1302,7 +1319,7 @@ static int loopcxt_check_size(struct loopdev_cxt *lc, int file_fd)
 	}
 
 	if (blkdev_get_size(dev_fd, (unsigned long long *) &size)) {
-		DBG(CXT, ul_debugobj(lc, "failed to determine loopdev size"));
+		DBG(CXT, ul_debugobj(lc, "failed to determine xloopdev size"));
 		return -errno;
 	}
 
@@ -1313,7 +1330,7 @@ static int loopcxt_check_size(struct loopdev_cxt *lc, int file_fd)
 	}
 
 	if (expected_size != size) {
-		DBG(CXT, ul_debugobj(lc, "warning: loopdev and expected "
+		DBG(CXT, ul_debugobj(lc, "warning: xloopdev and expected "
 				      "size mismatch (%ju/%ju)",
 				      size, expected_size));
 
@@ -1329,7 +1346,7 @@ static int loopcxt_check_size(struct loopdev_cxt *lc, int file_fd)
 
 		if (expected_size != size) {
 			errno = ERANGE;
-			DBG(CXT, ul_debugobj(lc, "failed to set loopdev size, "
+			DBG(CXT, ul_debugobj(lc, "failed to set xloopdev size, "
 					"size: %ju, expected: %ju",
 					size, expected_size));
 			return -errno;
@@ -1429,8 +1446,8 @@ int loopcxt_setup_device(struct loopdev_cxt *lc)
 	if (ioctl(dev_fd, LOOP_CONFIGURE, &lc->config) < 0) {
 		rc = -errno;
 		errsv = errno;
-		if (errno != EINVAL) {
-			DBG(SETUP, ul_debugobj(lc, "LOOP_CONFIGURE failed: %m"));
+		if (errno != EINVAL && errno != ENOTTY) {
+			DBG(SETUP, ul_debugobj(lc, "XLOOP_CONFIGURE failed: %m"));
 			goto err;
 		}
 		fallback = 1;
@@ -1440,7 +1457,7 @@ int loopcxt_setup_device(struct loopdev_cxt *lc)
 			errsv = -rc;
 			goto err;
 		}
-		DBG(SETUP, ul_debugobj(lc, "LOOP_CONFIGURE: OK"));
+		DBG(SETUP, ul_debugobj(lc, "XLOOP_CONFIGURE: OK"));
 	}
 
 	/*
@@ -1451,11 +1468,11 @@ int loopcxt_setup_device(struct loopdev_cxt *lc)
 		if (ioctl(dev_fd, LOOP_SET_FD, file_fd) < 0) {
 			rc = -errno;
 			errsv = errno;
-			DBG(SETUP, ul_debugobj(lc, "LOOP_SET_FD failed: %m"));
+			DBG(SETUP, ul_debugobj(lc, "XLOOP_SET_FD failed: %m"));
 			goto err;
 		}
 
-		DBG(SETUP, ul_debugobj(lc, "LOOP_SET_FD: OK"));
+		DBG(SETUP, ul_debugobj(lc, "XLOOP_SET_FD: OK"));
 
 		if (lc->blocksize > 0
 			&& (rc = loopcxt_ioctl_blocksize(lc, lc->blocksize)) < 0) {
@@ -1473,11 +1490,11 @@ int loopcxt_setup_device(struct loopdev_cxt *lc)
 		if (err) {
 			rc = -errno;
 			errsv = errno;
-			DBG(SETUP, ul_debugobj(lc, "LOOP_SET_STATUS64 failed: %m"));
+			DBG(SETUP, ul_debugobj(lc, "XLOOP_SET_STATUS64 failed: %m"));
 			goto err;
 		}
 
-		DBG(SETUP, ul_debugobj(lc, "LOOP_SET_STATUS64: OK"));
+		DBG(SETUP, ul_debugobj(lc, "XLOOP_SET_STATUS64: OK"));
 	}
 
 	if ((rc = loopcxt_check_size(lc, file_fd)))
@@ -1535,11 +1552,11 @@ int loopcxt_ioctl_status(struct loopdev_cxt *lc)
 	} while (again);
 	if (err) {
 		rc = -errno;
-		DBG(SETUP, ul_debugobj(lc, "LOOP_SET_STATUS64 failed: %m"));
+		DBG(SETUP, ul_debugobj(lc, "XLOOP_SET_STATUS64 failed: %m"));
 		return rc;
 	}
 
-	DBG(SETUP, ul_debugobj(lc, "LOOP_SET_STATUS64: OK"));
+	DBG(SETUP, ul_debugobj(lc, "XLOOP_SET_STATUS64: OK"));
 	return 0;
 }
 
@@ -1553,7 +1570,7 @@ int loopcxt_ioctl_capacity(struct loopdev_cxt *lc)
 	/* Kernels prior to v2.6.30 don't support this ioctl */
 	if (ioctl(fd, LOOP_SET_CAPACITY, 0) < 0) {
 		int rc = -errno;
-		DBG(CXT, ul_debugobj(lc, "LOOP_SET_CAPACITY failed: %m"));
+		DBG(CXT, ul_debugobj(lc, "XLOOP_SET_CAPACITY failed: %m"));
 		return rc;
 	}
 
@@ -1571,7 +1588,7 @@ int loopcxt_ioctl_dio(struct loopdev_cxt *lc, unsigned long use_dio)
 	/* Kernels prior to v4.4 don't support this ioctl */
 	if (ioctl(fd, LOOP_SET_DIRECT_IO, use_dio) < 0) {
 		int rc = -errno;
-		DBG(CXT, ul_debugobj(lc, "LOOP_SET_DIRECT_IO failed: %m"));
+		DBG(CXT, ul_debugobj(lc, "XLOOP_SET_DIRECT_IO failed: %m"));
 		return rc;
 	}
 
@@ -1593,7 +1610,7 @@ int loopcxt_ioctl_blocksize(struct loopdev_cxt *lc, uint64_t blocksize)
 	/* Kernels prior to v4.14 don't support this ioctl */
 	if (ioctl(fd, LOOP_SET_BLOCK_SIZE, (unsigned long) blocksize) < 0) {
 		int rc = -errno;
-		DBG(CXT, ul_debugobj(lc, "LOOP_SET_BLOCK_SIZE failed: %m"));
+		DBG(CXT, ul_debugobj(lc, "XLOOP_SET_BLOCK_SIZE failed: %m"));
 		return rc;
 	}
 
@@ -1609,7 +1626,7 @@ int loopcxt_delete_device(struct loopdev_cxt *lc)
 		return -EINVAL;
 
 	if (ioctl(fd, LOOP_CLR_FD, 0) < 0) {
-		DBG(CXT, ul_debugobj(lc, "LOOP_CLR_FD failed: %m"));
+		DBG(CXT, ul_debugobj(lc, "XLOOP_CLR_FD failed: %m"));
 		return -errno;
 	}
 
@@ -1862,7 +1879,7 @@ int loopcxt_find_overlap(struct loopdev_cxt *lc, const char *filename,
 
 		/* full match */
 		if (lc_sizelimit == sizelimit && lc_offset == offset) {
-			DBG(CXT, ul_debugobj(lc, "overlapping loop device %s (full match)",
+			DBG(CXT, ul_debugobj(lc, "overlapping xloop device %s (full match)",
 						loopcxt_get_device(lc)));
 			rc = 2;
 			goto found;
@@ -1874,7 +1891,7 @@ int loopcxt_find_overlap(struct loopdev_cxt *lc, const char *filename,
 		if (sizelimit != 0 && offset + sizelimit <= lc_offset)
 			continue;
 
-		DBG(CXT, ul_debugobj(lc, "overlapping loop device %s",
+		DBG(CXT, ul_debugobj(lc, "overlapping xloop device %s",
 			loopcxt_get_device(lc)));
 			rc = 1;
 			goto found;
@@ -1949,3 +1966,23 @@ int loopdev_count_by_backing_file(const char *filename, char **loopdev)
 	}
 	return count;
 }
+
+#ifdef TEST_PROGRAM_LOOPDEV
+int main(int argc, char *argv[])
+{
+	if (argc < 2)
+		goto usage;
+
+	if (strcmp(argv[1], "--is-loopdev") == 0 && argc == 3)
+		printf("%s: %s\n", argv[2], is_loopdev(argv[2]) ? "OK" : "FAIL");
+	else
+		goto usage;
+
+	return EXIT_SUCCESS;
+usage:
+	fprintf(stderr, "usage: %1$s --is-loopdev <dev>\n",
+			program_invocation_short_name);
+	return EXIT_FAILURE;
+}
+#endif
+

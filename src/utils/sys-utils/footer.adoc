@@ -1,0 +1,4 @@
+== AVAILABILITY
+
+// TRANSLATORS: Keep *{command}* untranslated, it will be replaced with the command name.
+The *{command}* command is part of the xloop package which can be downloaded from https://github.com/bwLehrpool/xloop[bwLehrpool].

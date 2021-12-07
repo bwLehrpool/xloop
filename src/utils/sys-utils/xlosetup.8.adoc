@@ -1,0 +1,173 @@
+//po4a: entry man manual
+= xlosetup(8)
+:doctype: manpage
+:man manual: System Administration
+:man source: xloop-util
+:page-layout: base
+:command: xlosetup
+
+== NAME
+
+xlosetup - set up and control xloop devices
+
+== SYNOPSIS
+
+Get info:
+
+*xlosetup* [_xloopdev_]
+
+*xlosetup* *-l* [*-a*]
+
+*xlosetup* *-j* _file_ [*-o* _offset_]
+
+Detach a xloop device:
+
+*xlosetup* *-d* _xloopdev_ ...
+
+Detach all associated xloop devices:
+
+*xlosetup* *-D*
+
+Set up a xloop device:
+
+*xlosetup* [*-o* _offset_] [*--sizelimit* _size_] [*--sector-size* _size_] [*-Pr*] [*--show*] *-f* _xloopdev file_
+
+Resize a xloop device:
+
+*xlosetup* *-c* _xloopdev_
+
+== DESCRIPTION
+
+*xlosetup* is used to associate xloop devices with regular files or block devices, to detach xloop devices, and to query the status of a xloop device. If only the _xloopdev_ argument is given, the status of the corresponding xloop device is shown. If no option is given, all xloop devices are shown.
+
+Note that the old output format (i.e., *xlosetup -a*) with comma-delimited strings is deprecated in favour of the *--list* output format.
+
+It's possible to create more independent xloop devices for the same backing file. *This setup may be dangerous, can cause data loss, corruption and overwrites.* Use *--nooverlap* with *--find* during setup to avoid this problem.
+
+The xloop device setup is not an atomic operation when used with *--find*, and *xlosetup* does not protect this operation by any lock. The number of attempts is internally restricted to a maximum of 16. It is recommended to use for example flock1 to avoid a collision in heavily parallel use cases.
+
+== OPTIONS
+
+The _size_ and _offset_ arguments may be followed by the multiplicative suffixes KiB (=1024), MiB (=1024*1024), and so on for GiB, TiB, PiB, EiB, ZiB and YiB (the "iB" is optional, e.g., "K" has the same meaning as "KiB") or the suffixes KB (=1000), MB (=1000*1000), and so on for GB, TB, PB, EB, ZB and YB.
+
+*-a*, *--all*::
+Show the status of all xloop devices. Note that not all information is accessible for non-root users. See also *--list*. The old output format (as printed without *--list)* is deprecated.
+
+*-d*, *--detach* _xloopdev_...::
+Detach the file or device associated with the specified xloop device(s). Note that since Linux v3.7 kernel uses "lazy device destruction". The detach operation does not return *EBUSY* error anymore if device is actively used by system, but it is marked by autoclear flag and destroyed later.
+
+*-D*, *--detach-all*::
+Detach all associated xloop devices.
+
+*-f*, *--find* [_file_]::
+Find the first unused xloop device. If a _file_ argument is present, use the found device as xloop device. Otherwise, just print its name.
+
+*--show*::
+Display the name of the assigned xloop device if the *-f* option and a _file_ argument are present.
+
+*-L*, *--nooverlap*::
+Check for conflicts between xloop devices to avoid situation when the same backing file is shared between more xloop devices. If the file is already used by another device then re-use the device rather than a new one. The option makes sense only with *--find*.
+
+*-j*, *--associated* _file_ [*-o* _offset_]::
+Show the status of all xloop devices associated with the given _file_.
+
+*-o*, *--offset* _offset_::
+The data start is moved _offset_ bytes into the specified file or device. The _offset_ may be followed by the multiplicative suffixes; see above.
+
+*--sizelimit* _size_::
+The data end is set to no more than _size_ bytes after the data start. The _size_ may be followed by the multiplicative suffixes; see above.
+
+*-b*, *--sector-size* _size_::
+Set the logical sector size of the xloop device in bytes (since Linux 4.14). The option may be used when create a new xloop device as well as stand-alone command to modify sector size of the already existing xloop device.
+
+*-c*, *--set-capacity* _xloopdev_::
+Force the xloop driver to reread the size of the file associated with the specified xloop device.
+
+*-P*, *--partscan*::
+Force the kernel to scan the partition table on a newly created xloop device. Note that the partition table parsing depends on sector sizes. The default is sector size is 512 bytes, otherwise you need to use the option *--sector-size* together with *--partscan*.
+
+*-r*, *--read-only*::
+Set up a read-only xloop device.
+
+*--direct-io*[**=on**|*off*]::
+Enable or disable direct I/O for the backing file. The optional argument can be either *on* or *off*. If the argument is omitted, it defaults to *off*.
+
+*-t*, *--type* _format_::
+Set the file format type of the xloop device. If no file format type is specified, the RAW file format is used by default. Valid file formats are *RAW*, *QCOW*, *VDI*, and *VMDK*.
+
+*-v*, *--verbose*::
+Verbose mode.
+
+*-l*, *--list*::
+If a xloop device or the *-a* option is specified, print the default columns for either the specified xloop device or all xloop devices; the default is to print info about all devices. See also *--output*, *--noheadings*, *--raw*, and *--json*.
+
+*-O*, *--output* _column_[,_column_]...::
+Specify the columns that are to be printed for the *--list* output. Use *--help* to get a list of all supported columns.
+
+*--output-all*::
+Output all available columns.
+
+*-n*, *--noheadings*::
+Don't print headings for *--list* output format.
+
+*--raw*::
+Use the raw *--list* output format.
+
+*-J*, *--json*::
+Use JSON format for *--list* output.
+
+*-V*, *--version*::
+Display version information and exit.
+
+*-h*, *--help*::
+Display help text and exit.
+
+== ENCRYPTION
+
+*Cryptoxloop is no longer supported in favor of dm-crypt.* For more details see *cryptsetup*(8).
+
+== EXIT STATUS
+
+*xlosetup* returns 0 on success, nonzero on failure. When *xlosetup* displays the status of a xloop device, it returns 1 if the device is not configured and 2 if an error occurred which prevented determining the status of the device.
+
+== NOTES
+
+Since version 2.37 *xlosetup* uses *XLOOP_CONFIGURE* ioctl to setup a new xloop device by one ioctl call. The old versions use *XLOOP_SET_FD* and *XLOOP_SET_STATUS64* ioctls to do the same.
+
+== ENVIRONMENT
+
+XLOOPDEV_DEBUG=all::
+enables debug output.
+
+== FILES
+
+_/dev/xloop[0..N]_::
+xloop block devices
+
+_/dev/xloop-control_::
+xloop control device
+
+== EXAMPLE
+
+The following commands can be used as an example of using the xloop device.
+
+ # dd if=/dev/zero of=~/file.img bs=1024k count=10
+ # xlosetup --find --show ~/file.img
+ /dev/xloop0
+ # mkfs -t ext2 /dev/xloop0
+ # mount /dev/xloop0 /mnt
+ ...
+ # umount /dev/xloop0
+ # xlosetup --detach /dev/xloop0
+
+== AUTHORS
+
+mailto:development@manuel-bentele.de[Manuel Bentele], mailto:kzak@redhat.com[Karel Zak], based on the original version from mailto:tytso@athena.mit.edu[Theodore Ts'o].
+
+include::bugreports.adoc[]
+
+include::footer.adoc[]
+
+ifdef::translation[]
+include::translation.adoc[]
+endif::[]

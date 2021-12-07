@@ -124,7 +124,7 @@ struct libscols_column {
 
 
 	struct libscols_cell	header;
-	struct list_head	cl_columns;
+	struct list_head	cl_columns;	/* member of table->tb_columns */
 
 	struct libscols_table	*table;
 
@@ -212,8 +212,8 @@ struct libscols_table {
 	char	*colsep;	/* column separator */
 	char	*linesep;	/* line separator */
 
-	struct list_head	tb_columns;
-	struct list_head	tb_lines;
+	struct list_head	tb_columns;	/* list of columns, items: column->cl_columns */
+	struct list_head	tb_lines;	/* list of lines; items: line->ln_lines  */
 
 	struct list_head	tb_groups;	/* all defined groups */
 	struct libscols_group	**grpset;
@@ -221,6 +221,8 @@ struct libscols_table {
 
 	size_t			ngrpchlds_pending;	/* groups with not yet printed children */
 	struct libscols_line	*walk_last_tree_root;	/* last root, used by scols_walk_() */
+
+	struct libscols_column	*dflt_sort_column;	/* default sort column, set by scols_sort_table() */
 
 	struct libscols_symbols	*symbols;
 	struct libscols_cell	title;		/* optional table title (for humans) */
@@ -231,6 +233,8 @@ struct libscols_table {
 
 	size_t	termlines_used;	/* printed line counter */
 	size_t	header_next;	/* where repeat header */
+
+	const char *cur_color;	/* current active color when printing */
 
 	/* flags */
 	unsigned int	ascii		:1,	/* don't use unicode */
