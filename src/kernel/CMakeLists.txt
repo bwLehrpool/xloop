@@ -33,7 +33,9 @@ set(CHECKPATCH_IGNORE_WARNINGS "LINUX_VERSION_CODE"
                                "CONSIDER_KSTRTO"
                                "UNNECESSARY_ELSE"
                                "SPLIT_STRING"
-                               "STATIC_CONST_CHAR_ARRAY")
+                               "STATIC_CONST_CHAR_ARRAY"
+                               "UNSPECIFIED_INT"
+                               "ENOSYS")
 
 # xloop main Linux kernel module
 set(KERNEL_MODULE_XLOOP_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt.c

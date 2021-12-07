@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * loop_main.h
  *
@@ -45,13 +46,13 @@ struct xloop_device {
 	struct xloop_func_table *xlo_encryption;
 	__u32                   xlo_init[2];
 	kuid_t                  xlo_key_owner;	/* Who set the key */
-	int                     (*ioctl)(struct xloop_device *xlo, int cmd, unsigned long arg); 
+	int                     (*ioctl)(struct xloop_device *xlo, int cmd, unsigned long arg);
 
 	struct xloop_file_fmt   *xlo_fmt;
 
 	struct file             *xlo_backing_file;
 	struct block_device     *xlo_device;
-	void                    *key_data; 
+	void                    *key_data;
 
 	gfp_t                   old_gfp_mask;
 
@@ -91,18 +92,18 @@ struct xloop_cmd {
 
 /* Support for loadable transfer modules */
 struct xloop_func_table {
-	int           number;  /* filter type */ 
+	int           number;  /* filter type */
 	int           (*transfer)(struct xloop_device *xlo, int cmd, struct page *raw_page, unsigned raw_off, struct page *xloop_page, unsigned xloop_off, int size, sector_t real_block);
-	int           (*init)(struct xloop_device *xlo, const struct xloop_info64 *); 
+	int           (*init)(struct xloop_device *xlo, const struct xloop_info64 *info);
 	/* release is called from xloop_unregister_transfer or clr_fd */
-	int           (*release)(struct xloop_device *xlo); 
+	int           (*release)(struct xloop_device *xlo);
 	int           (*ioctl)(struct xloop_device *xlo, int cmd, unsigned long arg);
 	struct module *owner;
-}; 
+};
 
 extern inline struct device *xloop_device_to_dev(struct xloop_device *xlo);
 
 int xloop_register_transfer(struct xloop_func_table *funcs);
-int xloop_unregister_transfer(int number); 
+int xloop_unregister_transfer(int number);
 
 #endif

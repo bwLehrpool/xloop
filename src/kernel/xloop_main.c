@@ -190,13 +190,13 @@ static int xor_init(struct xloop_device *xlo, const struct xloop_info64 *info)
 
 static struct xloop_func_table none_funcs = {
 	.number = XLO_CRYPT_NONE,
-}; 
+};
 
 static struct xloop_func_table xor_funcs = {
 	.number = XLO_CRYPT_XOR,
 	.transfer = transfer_xor,
 	.init = xor_init
-}; 
+};
 
 /* xfer_funcs[0] is special - its release function is never called */
 static struct xloop_func_table *xfer_funcs[MAX_XLO_CRYPT] = {
@@ -341,7 +341,7 @@ static int do_req_filebacked(struct xloop_device *xlo, struct request *rq)
 
 	/*
 	 * xlo_write_simple and xlo_read_simple should have been covered
-	 * by io submit style function like xloop_file_fmt_read_aio(), one 
+	 * by io submit style function like xloop_file_fmt_read_aio(), one
 	 * blocker is that xloop_file_fmt_read() need to call flush_dcache_page
 	 * after the page is written from kernel, and it isn't easy to handle
 	 * this in io submit style function which submits all segments
@@ -609,7 +609,7 @@ static struct attribute *xloop_attrs[] = {
 
 static struct attribute_group xloop_attribute_group = {
 	.name = "xloop",
-	.attrs= xloop_attrs,
+	.attrs = xloop_attrs,
 };
 
 static void xloop_sysfs_init(struct xloop_device *xlo)
@@ -1401,7 +1401,7 @@ xloop_set_status_old(struct xloop_device *xlo, const struct xloop_info __user *a
 	struct xloop_info info;
 	struct xloop_info64 info64;
 
-	if (copy_from_user(&info, arg, sizeof (struct xloop_info)))
+	if (copy_from_user(&info, arg, sizeof(struct xloop_info)))
 		return -EFAULT;
 	xloop_info64_from_old(&info, &info64);
 	return xloop_set_status(xlo, &info64);
@@ -1412,13 +1412,14 @@ xloop_set_status64(struct xloop_device *xlo, const struct xloop_info64 __user *a
 {
 	struct xloop_info64 info64;
 
-	if (copy_from_user(&info64, arg, sizeof (struct xloop_info64)))
+	if (copy_from_user(&info64, arg, sizeof(struct xloop_info64)))
 		return -EFAULT;
 	return xloop_set_status(xlo, &info64);
 }
 
 static int
-xloop_get_status_old(struct xloop_device *xlo, struct xloop_info __user *arg) {
+xloop_get_status_old(struct xloop_device *xlo, struct xloop_info __user *arg)
+{
 	struct xloop_info info;
 	struct xloop_info64 info64;
 	int err;
@@ -1435,7 +1436,8 @@ xloop_get_status_old(struct xloop_device *xlo, struct xloop_info __user *arg) {
 }
 
 static int
-xloop_get_status64(struct xloop_device *xlo, struct xloop_info64 __user *arg) {
+xloop_get_status64(struct xloop_device *xlo, struct xloop_info64 __user *arg)
+{
 	struct xloop_info64 info64;
 	int err;
 
@@ -1464,6 +1466,7 @@ static int xloop_set_capacity(struct xloop_device *xlo)
 static int xloop_set_dio(struct xloop_device *xlo, unsigned long arg)
 {
 	int error = -ENXIO;
+
 	if (xlo->xlo_state != Xlo_bound)
 		goto out;
 
@@ -1574,17 +1577,15 @@ static int xlo_ioctl(struct block_device *bdev, fmode_t mode,
 		return xloop_clr_fd(xlo);
 	case XLOOP_SET_STATUS:
 		err = -EPERM;
-		if ((mode & FMODE_WRITE) || capable(CAP_SYS_ADMIN)) {
+		if ((mode & FMODE_WRITE) || capable(CAP_SYS_ADMIN))
 			err = xloop_set_status_old(xlo, argp);
-		}
 		break;
 	case XLOOP_GET_STATUS:
 		return xloop_get_status_old(xlo, argp);
 	case XLOOP_SET_STATUS64:
 		err = -EPERM;
-		if ((mode & FMODE_WRITE) || capable(CAP_SYS_ADMIN)) {
+		if ((mode & FMODE_WRITE) || capable(CAP_SYS_ADMIN))
 			err = xloop_set_status64(xlo, argp);
-		}
 		break;
 	case XLOOP_GET_STATUS64:
 		return xloop_get_status64(xlo, argp);
@@ -1726,7 +1727,7 @@ static int xlo_compat_ioctl(struct block_device *bdev, fmode_t mode,
 	struct xloop_device *xlo = bdev->bd_disk->private_data;
 	int err;
 
-	switch(cmd) {
+	switch (cmd) {
 	case XLOOP_SET_STATUS:
 		err = xloop_set_status_compat(xlo,
 			     (const struct compat_xloop_info __user *)arg);
@@ -1836,13 +1837,14 @@ int xloop_register_transfer(struct xloop_func_table *funcs)
 	xfer_funcs[n] = funcs;
 	return 0;
 }
+EXPORT_SYMBOL(xloop_register_transfer);
 
 int xloop_unregister_transfer(int number)
 {
 	unsigned int n = number;
-	struct xloop_func_table *xfer;
+	struct xloop_func_table *xfer = xfer_funcs[n];
 
-	if (n == 0 || n >= MAX_XLO_CRYPT || (xfer = xfer_funcs[n]) == NULL)
+	if (n == 0 || n >= MAX_XLO_CRYPT || xfer == NULL)
 		return -EINVAL;
 	/*
 	 * This function is called from only cleanup_cryptoxloop().
@@ -1860,8 +1862,6 @@ int xloop_unregister_transfer(int number)
 	xfer_funcs[n] = NULL;
 	return 0;
 }
-
-EXPORT_SYMBOL(xloop_register_transfer);
 EXPORT_SYMBOL(xloop_unregister_transfer);
 
 static blk_status_t xloop_queue_rq(struct blk_mq_hw_ctx *hctx,
@@ -2204,7 +2204,7 @@ static int xloop_control_remove(int idx)
 		pr_warn("deleting an unspecified xloop device is not supported.\n");
 		return -EINVAL;
 	}
-		
+
 	/* Hide this xloop device for serialization. */
 	ret = mutex_lock_killable(&xloop_ctl_mutex);
 	if (ret)
