@@ -21,6 +21,7 @@
 #include <linux/mutex.h>
 #include <linux/uio.h>
 #include <linux/string.h>
+#include <linux/version.h>
 #include <linux/vmalloc.h>
 #include <linux/zlib.h>
 #ifdef CONFIG_ZSTD_DECOMPRESS
@@ -941,7 +942,9 @@ static int __qcow_file_fmt_read_compressed(struct xloop_file_fmt *xlo_fmt, struc
 	u8 *in_buf = NULL;
 	ssize_t len;
 	void *data;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
 	unsigned long irq_flags;
+#endif
 	int offset_in_cluster = xloop_file_fmt_qcow_offset_into_cluster(qcow_data, offset);
 
 	coffset = file_cluster_offset & qcow_data->cluster_offset_mask;
@@ -971,10 +974,18 @@ static int __qcow_file_fmt_read_compressed(struct xloop_file_fmt *xlo_fmt, struc
 	}
 
 	ASSERT(bytes <= bvec->bv_len);
-	data = bvec_kmap_irq(bvec, &irq_flags) + bytes_done;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+			data = bvec_kmap_local(bvec) + bytes_done;
+#else
+			data = bvec_kmap_irq(bvec, &irq_flags) + bytes_done;
+#endif
 	memcpy(data, qcow_data->cmp_out_buf + offset_in_cluster, bytes);
 	flush_dcache_page(bvec->bv_page);
-	bvec_kunmap_irq(data, &irq_flags);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+			kunmap_local(data);
+#else
+			bvec_kunmap_irq(data, &irq_flags);
+#endif
 
 out_free_in_buf:
 	vfree(in_buf);
@@ -994,7 +1005,9 @@ static int __qcow_file_fmt_read_bvec(struct xloop_file_fmt *xlo_fmt, struct bio_
 	u64 bytes_done = 0;
 	enum xloop_file_fmt_qcow_subcluster_type type;
 	void *data;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
 	unsigned long irq_flags;
+#endif
 	ssize_t len;
 	loff_t pos_read;
 
@@ -1015,10 +1028,18 @@ static int __qcow_file_fmt_read_bvec(struct xloop_file_fmt *xlo_fmt, struct bio_
 		case QCOW_SUBCLUSTER_ZERO_ALLOC:
 		case QCOW_SUBCLUSTER_UNALLOCATED_PLAIN:
 		case QCOW_SUBCLUSTER_UNALLOCATED_ALLOC:
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+			data = bvec_kmap_local(bvec) + bytes_done;
+#else
 			data = bvec_kmap_irq(bvec, &irq_flags) + bytes_done;
+#endif
 			memset(data, 0, cur_bytes);
 			flush_dcache_page(bvec->bv_page);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+			kunmap_local(data);
+#else
 			bvec_kunmap_irq(data, &irq_flags);
+#endif
 			break;
 
 		case QCOW_SUBCLUSTER_COMPRESSED:
@@ -1031,10 +1052,18 @@ static int __qcow_file_fmt_read_bvec(struct xloop_file_fmt *xlo_fmt, struct bio_
 		case QCOW_SUBCLUSTER_NORMAL:
 			pos_read = host_offset;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+			data = bvec_kmap_local(bvec) + bytes_done;
+#else
 			data = bvec_kmap_irq(bvec, &irq_flags) + bytes_done;
+#endif
 			len = kernel_read(xlo->xlo_backing_file, data, cur_bytes, &pos_read);
 			flush_dcache_page(bvec->bv_page);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+			kunmap_local(data);
+#else
 			bvec_kunmap_irq(data, &irq_flags);
+#endif
 
 			if (len < 0)
 				return len;

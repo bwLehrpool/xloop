@@ -3,7 +3,7 @@ name: Build xloop kernel modules
 on:
   push:
     branches:
-      - master
+      - linux-5.15.y
   pull_request:
   release:
 
@@ -13,23 +13,10 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - name: kernel modules [CentOS kernel 4.18.0-x]
-            build-os: ubuntu-20.04
-            kernel-type: centos
-            kernel-version: 4.18.0-305.10.2
-            kernel-source: https://vault.centos.org/8.4.2105/BaseOS/Source/SPackages/kernel-4.18.0-305.10.2.el8_4.src.rpm
-          - name: kernel modules [Linux kernel 4.19.x]
-            build-os: ubuntu-18.04
-            kernel-type: vanilla
-            kernel-version: 4.19.y
-          - name: kernel modules [Linux kernel 5.4.x]
+          - name: kernel modules [Linux kernel 5.15.x]
             build-os: ubuntu-20.04
             kernel-type: vanilla
-            kernel-version: 5.4.y
-          - name: kernel modules [Linux kernel 5.10.x]
-            build-os: ubuntu-20.04
-            kernel-type: vanilla
-            kernel-version: 5.10.y
+            kernel-version: 5.15.y
     name: Build xloop ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.build-os }}
     steps:
