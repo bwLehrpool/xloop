@@ -58,6 +58,11 @@ static int __qcow_file_fmt_header_read(struct xloop_file_fmt *xlo_fmt, struct fi
 		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "could not read QCOW header\n");
 		return len;
 	}
+	if (len != sizeof(*header)) {
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "short read of QCOW header (%d/%d)\n",
+				(int)len, (int)sizeof(*header));
+		return -EIO;
+	}
 
 	header->magic = be32_to_cpu(header->magic);
 	header->version = be32_to_cpu(header->version);
@@ -184,6 +189,7 @@ static int __qcow_file_fmt_compression_init(struct xloop_file_fmt *xlo_fmt)
 
 	/* create cache for last compressed QCOW cluster */
 	qcow_data->cmp_last_coffset = ULLONG_MAX;
+	qcow_data->cmp_last_size = 0;
 	qcow_data->cmp_out_buf = vmalloc(qcow_data->cluster_size);
 	if (!qcow_data->cmp_out_buf) {
 		ret = -ENOMEM;
@@ -297,7 +303,7 @@ static ssize_t __qcow_file_fmt_dbgfs_ofs_read(struct file *file, char __user *bu
 
 	/* calculate and print the cluster offset */
 	ret = xloop_file_fmt_qcow_get_host_offset(xlo_fmt, offset, &cur_bytes, &host_offset, &type);
-	if (ret < 0)
+	if (ret)
 		return -EINVAL;
 
 	offset_in_cluster = xloop_file_fmt_qcow_offset_into_cluster(qcow_data, offset);
@@ -660,16 +666,22 @@ static int qcow_file_fmt_init(struct xloop_file_fmt *xlo_fmt)
 	}
 
 	if (qcow_data->l1_size > 0) {
+		const int read_size = qcow_data->l1_size * QCOW_L1E_SIZE;
 		qcow_data->l1_table = vzalloc(round_up(qcow_data->l1_size * QCOW_L1E_SIZE, 512));
 		if (qcow_data->l1_table == NULL) {
 			ret = -ENOMEM;
 			goto free_qcow_data;
 		}
-		len = kernel_read(xlo->xlo_backing_file, qcow_data->l1_table, qcow_data->l1_size * QCOW_L1E_SIZE,
-				  &qcow_data->l1_table_offset);
+		len = kernel_read(xlo->xlo_backing_file, qcow_data->l1_table, read_size, &qcow_data->l1_table_offset);
 		if (len < 0) {
 			dev_err(xloop_file_fmt_to_dev(xlo_fmt), "could not read L1 table\n");
 			ret = len;
+			goto free_l1_table;
+		}
+		if (len != read_size) {
+			dev_err(xloop_file_fmt_to_dev(xlo_fmt), "short read in L1 table (%d/%d)\n",
+					(int)len, read_size);
+			ret = -EIO;
 			goto free_l1_table;
 		}
 		for (i = 0; i < qcow_data->l1_size; i++)
@@ -773,7 +785,7 @@ static void qcow_file_fmt_exit(struct xloop_file_fmt *xlo_fmt)
  * @dest - destination buffer, @dest_size bytes
  * @src - source buffer, @src_size bytes
  *
- * Returns: 0 on success
+ * Returns: actual decompressed bytes on success
  *          -EIO on fail
  */
 static ssize_t __qcow_file_fmt_zlib_decompress(struct xloop_file_fmt *xlo_fmt, void *dest, size_t dest_size,
@@ -781,10 +793,11 @@ static ssize_t __qcow_file_fmt_zlib_decompress(struct xloop_file_fmt *xlo_fmt, v
 {
 	struct xloop_file_fmt_qcow_data *qcow_data = xlo_fmt->private_data;
 	u8 zerostuff = 0;
-	ssize_t ret = 0;
+	int ret;
 
 	ret = zlib_inflateReset(qcow_data->zlib_dstrm);
 	if (ret != Z_OK) {
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "zlib reset error: %d\n", (int)ret);
 		ret = -EINVAL;
 		goto out;
 	}
@@ -806,9 +819,11 @@ static ssize_t __qcow_file_fmt_zlib_decompress(struct xloop_file_fmt *xlo_fmt, v
 		ret = zlib_inflate(qcow_data->zlib_dstrm, Z_FINISH);
 	}
 	if (ret != Z_STREAM_END) {
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "zlib inflate error: %d\n", (int)ret);
 		ret = -EIO;
 		goto out;
 	}
+	ret = dest_size - qcow_data->zlib_dstrm->avail_out;
 
 out:
 	return ret;
@@ -825,7 +840,7 @@ out:
  * @dest - destination buffer, @dest_size bytes
  * @src - source buffer, @src_size bytes
  *
- * Returns: 0 on success
+ * Returns: actual decompressed bytes on success
  *          -EIO on any error
  */
 static ssize_t __qcow_file_fmt_zstd_decompress(struct xloop_file_fmt *xlo_fmt, void *dest, size_t dest_size,
@@ -842,7 +857,8 @@ static ssize_t __qcow_file_fmt_zstd_decompress(struct xloop_file_fmt *xlo_fmt, v
 	zstd_ret = ZSTD_resetDStream(qcow_data->zstd_dstrm);
 
 	if (ZSTD_isError(zstd_ret)) {
-		ret = -EIO;
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "zstd reset error: %d\n", (int)zstd_ret);
+		ret = -EINVAL;
 		goto out;
 	}
 
@@ -863,10 +879,8 @@ static ssize_t __qcow_file_fmt_zstd_decompress(struct xloop_file_fmt *xlo_fmt, v
 
 		zstd_ret = ZSTD_decompressStream(qcow_data->zstd_dstrm, &output, &input);
 
-		if (ZSTD_isError(zstd_ret)) {
-			ret = -EIO;
+		if (ZSTD_isError(zstd_ret))
 			break;
-		}
 
 	/*
 	 * The ZSTD manual is vague about what to do if it reads
@@ -877,8 +891,9 @@ static ssize_t __qcow_file_fmt_zstd_decompress(struct xloop_file_fmt *xlo_fmt, v
 	 * on each step.
 	 */
 		if (last_in_pos >= input.pos && last_out_pos >= output.pos) {
+			dev_err(xloop_file_fmt_to_dev(xlo_fmt), "zstd not making any progress\n");
 			ret = -EIO;
-			break;
+			goto out;
 		}
 	}
 	/*
@@ -887,11 +902,17 @@ static ssize_t __qcow_file_fmt_zstd_decompress(struct xloop_file_fmt *xlo_fmt, v
 	 * greater then the cluster size, possibly because of its
 	 * damage.
 	 */
-	if (zstd_ret > 0)
+	if (ZSTD_isError(zstd_ret)) {
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "zstd decompress error: %d\n", (int)zstd_ret);
 		ret = -EIO;
+	} if (zstd_ret) {
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "zstd incomplete frame at end of cluster\n");
+		ret = -EIO;
+	} else {
+		ret = output.pos;
+	}
 
 out:
-	ASSERT(ret == 0 || ret == -EIO);
 	return ret;
 }
 #endif
@@ -906,7 +927,7 @@ out:
  * @dest - destination buffer, @dest_size bytes
  * @src - source buffer, @src_size bytes
  *
- * Returns: compressed size on success
+ * Returns: actual decompressed size on success
  *          a negative error code on failure
  */
 static ssize_t __qcow_file_fmt_buffer_decompress(struct xloop_file_fmt *xlo_fmt, void *dest, size_t dest_size,
@@ -932,12 +953,29 @@ static ssize_t __qcow_file_fmt_buffer_decompress(struct xloop_file_fmt *xlo_fmt,
 	return decompress_fn(xlo_fmt, dest, dest_size, src, src_size);
 }
 
+/*
+ * __qcow_file_fmt_read_compressed()
+ *
+ * Decompress @bytes of data starting at virtual @offset
+ * using the compression method defined by the image
+ * compression type and write them to @bvec
+ *
+ * @xlo_fmt - QCOW file format
+ * @bvec - io vector to write uncompressed data to
+ * @file_cluster_offset - offset to compressed cluster in qcow2
+ * @offset - virtual offset, as seen on loop device
+ * @bytes - number of bytes to read
+ * @bytes_done - how many bytes are actually already finished (when called after partial read)
+ *
+ * Returns: actual decompressed size on success
+ *          a negative error code on failure
+ */
 static int __qcow_file_fmt_read_compressed(struct xloop_file_fmt *xlo_fmt, struct bio_vec *bvec,
 					   u64 file_cluster_offset, u64 offset, u64 bytes, u64 bytes_done)
 {
 	struct xloop_file_fmt_qcow_data *qcow_data = xlo_fmt->private_data;
 	struct xloop_device *xlo = xloop_file_fmt_get_xlo(xlo_fmt);
-	int ret = 0, csize, nb_csectors;
+	int ret;
 	u64 coffset;
 	u8 *in_buf = NULL;
 	ssize_t len;
@@ -948,10 +986,12 @@ static int __qcow_file_fmt_read_compressed(struct xloop_file_fmt *xlo_fmt, struc
 	int offset_in_cluster = xloop_file_fmt_qcow_offset_into_cluster(qcow_data, offset);
 
 	coffset = file_cluster_offset & qcow_data->cluster_offset_mask;
-	nb_csectors = ((file_cluster_offset >> qcow_data->csize_shift) & qcow_data->csize_mask) + 1;
-	csize = nb_csectors * QCOW_COMPRESSED_SECTOR_SIZE - (coffset & ~QCOW_COMPRESSED_SECTOR_MASK);
 
 	if (qcow_data->cmp_last_coffset != coffset) {
+		int csize, nb_csectors;
+
+		nb_csectors = ((file_cluster_offset >> qcow_data->csize_shift) & qcow_data->csize_mask) + 1;
+		csize = nb_csectors * QCOW_COMPRESSED_SECTOR_SIZE - (coffset & ~QCOW_COMPRESSED_SECTOR_MASK);
 		in_buf = vmalloc(csize);
 		if (!in_buf) {
 			qcow_data->cmp_last_coffset = ULLONG_MAX;
@@ -961,16 +1001,38 @@ static int __qcow_file_fmt_read_compressed(struct xloop_file_fmt *xlo_fmt, struc
 		len = kernel_read(xlo->xlo_backing_file, in_buf, csize, &coffset);
 		if (len < 0) {
 			qcow_data->cmp_last_coffset = ULLONG_MAX;
+			dev_err(xloop_file_fmt_to_dev(xlo_fmt), "error %d reading compressed cluster at %llu\n",
+					(int)len, coffset);
 			ret = len;
 			goto out_free_in_buf;
 		}
-
-		if (__qcow_file_fmt_buffer_decompress(xlo_fmt, qcow_data->cmp_out_buf, qcow_data->cluster_size, in_buf,
-						      csize) < 0) {
+		if (len != csize) {
 			qcow_data->cmp_last_coffset = ULLONG_MAX;
+			dev_err(xloop_file_fmt_to_dev(xlo_fmt), "short read in compressed cluster at %llu (%d/%d)\n",
+					coffset, (int)len, csize);
 			ret = -EIO;
 			goto out_free_in_buf;
 		}
+
+		ret = __qcow_file_fmt_buffer_decompress(xlo_fmt, qcow_data->cmp_out_buf,
+				qcow_data->cluster_size, in_buf, csize);
+		if (ret <= 0) {
+			qcow_data->cmp_last_coffset = ULLONG_MAX;
+			if (ret == 0) {
+				dev_err(xloop_file_fmt_to_dev(xlo_fmt), "decompressed cluster at %llu is empty\n",
+					coffset);
+				ret = -EIO;
+			}
+			goto out_free_in_buf;
+		}
+		qcow_data->cmp_last_size = ret;
+	}
+
+	if (offset_in_cluster + bytes > qcow_data->cmp_last_size) {
+		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "read %d bytes from compressed cluster of size %d\n",
+			(int)(offset_in_cluster + bytes), qcow_data->cmp_last_size);
+		ret = -EIO;
+		goto out_free_in_buf;
 	}
 
 	ASSERT(bytes <= bvec->bv_len);
@@ -986,6 +1048,7 @@ static int __qcow_file_fmt_read_compressed(struct xloop_file_fmt *xlo_fmt, struc
 #else
 	bvec_kunmap_irq(data, &irq_flags);
 #endif
+	ret = bytes;
 
 out_free_in_buf:
 	vfree(in_buf);
@@ -1011,14 +1074,16 @@ static int __qcow_file_fmt_read_bvec(struct xloop_file_fmt *xlo_fmt, struct bio_
 	ssize_t len;
 	loff_t pos_read;
 
+	/* bvec_kmap expects the passed bvec to only contain a single page */
+	ASSERT(bvec->bv_len <= PAGE_SIZE);
 	bytes = bvec->bv_len;
 
 	while (bytes != 0) {
-		/* prepare next request */
+		/* prepare next request. if this spans a cluster boundary, this will be clamped */
 		cur_bytes = bytes;
 
 		ret = xloop_file_fmt_qcow_get_host_offset(xlo_fmt, *ppos, &cur_bytes, &host_offset, &type);
-		if (ret < 0)
+		if (ret)
 			goto fail;
 
 		offset_in_cluster = xloop_file_fmt_qcow_offset_into_cluster(qcow_data, *ppos);
@@ -1046,6 +1111,12 @@ static int __qcow_file_fmt_read_bvec(struct xloop_file_fmt *xlo_fmt, struct bio_
 			ret = __qcow_file_fmt_read_compressed(xlo_fmt, bvec, host_offset, *ppos, cur_bytes, bytes_done);
 			if (ret < 0)
 				goto fail;
+			if (len == 0) {
+				dev_err(xloop_file_fmt_to_dev(xlo_fmt), "Unexpected empty read in compressed cluster\n");
+				ret = -EIO;
+				goto fail;
+			}
+			cur_bytes = ret;
 
 			break;
 
@@ -1065,10 +1136,18 @@ static int __qcow_file_fmt_read_bvec(struct xloop_file_fmt *xlo_fmt, struct bio_
 			bvec_kunmap_irq(data, &irq_flags);
 #endif
 
-			if (len < 0)
-				return len;
+			if (len < 0) {
+				dev_err(xloop_file_fmt_to_dev(xlo_fmt), "Read error in uncompressed cluster\n");
+				ret = len;
+				goto fail;
+			}
 
-			ASSERT(len == cur_bytes);
+			if (len == 0) {
+				dev_err(xloop_file_fmt_to_dev(xlo_fmt), "Premature EOF when reading uncompressed cluster\n");
+				ret = -EIO;
+				goto fail;
+			}
+			cur_bytes = len;
 			break;
 
 		default:

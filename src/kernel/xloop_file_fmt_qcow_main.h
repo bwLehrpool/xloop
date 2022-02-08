@@ -303,6 +303,7 @@ struct xloop_file_fmt_qcow_data {
 	/* used to cache last compressed QCOW cluster */
 	u8            *cmp_out_buf;
 	u64           cmp_last_coffset;
+	int           cmp_last_size;
 
 	/*
 	 * Compression type used for the image. Default: 0 - ZLIB
