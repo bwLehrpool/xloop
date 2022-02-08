@@ -6,7 +6,7 @@ This repository contains the source code for the xloop Linux kernel modules
 
   - **xloop**: eXtended loop device with file format subsystem
   - **xloop_file_format_raw**: file format subsystem driver for RAW files
-  - **xloop_file_format_qcow**: file format subsystem driver for QCOW files
+  - **xloop_file_format_qcow**: file format subsystem driver for QCOW files (read only)
 
 and the user space utility **xlosetup** to configure xloop devices. The xloop Linux kernel modules can be built for the following Linux kernel versions and Linux distributions:
 
