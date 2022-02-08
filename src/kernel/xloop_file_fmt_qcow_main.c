@@ -975,16 +975,16 @@ static int __qcow_file_fmt_read_compressed(struct xloop_file_fmt *xlo_fmt, struc
 
 	ASSERT(bytes <= bvec->bv_len);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
-			data = bvec_kmap_local(bvec) + bytes_done;
+	data = bvec_kmap_local(bvec);
 #else
-			data = bvec_kmap_irq(bvec, &irq_flags) + bytes_done;
+	data = bvec_kmap_irq(bvec, &irq_flags);
 #endif
-	memcpy(data, qcow_data->cmp_out_buf + offset_in_cluster, bytes);
+	memcpy(data + bytes_done, qcow_data->cmp_out_buf + offset_in_cluster, bytes);
 	flush_dcache_page(bvec->bv_page);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
-			kunmap_local(data);
+	kunmap_local(data);
 #else
-			bvec_kunmap_irq(data, &irq_flags);
+	bvec_kunmap_irq(data, &irq_flags);
 #endif
 
 out_free_in_buf:
@@ -1029,11 +1029,11 @@ static int __qcow_file_fmt_read_bvec(struct xloop_file_fmt *xlo_fmt, struct bio_
 		case QCOW_SUBCLUSTER_UNALLOCATED_PLAIN:
 		case QCOW_SUBCLUSTER_UNALLOCATED_ALLOC:
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
-			data = bvec_kmap_local(bvec) + bytes_done;
+			data = bvec_kmap_local(bvec);
 #else
-			data = bvec_kmap_irq(bvec, &irq_flags) + bytes_done;
+			data = bvec_kmap_irq(bvec, &irq_flags);
 #endif
-			memset(data, 0, cur_bytes);
+			memset(data + bytes_done, 0, cur_bytes);
 			flush_dcache_page(bvec->bv_page);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
 			kunmap_local(data);
@@ -1053,11 +1053,11 @@ static int __qcow_file_fmt_read_bvec(struct xloop_file_fmt *xlo_fmt, struct bio_
 			pos_read = host_offset;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
-			data = bvec_kmap_local(bvec) + bytes_done;
+			data = bvec_kmap_local(bvec);
 #else
-			data = bvec_kmap_irq(bvec, &irq_flags) + bytes_done;
+			data = bvec_kmap_irq(bvec, &irq_flags);
 #endif
-			len = kernel_read(xlo->xlo_backing_file, data, cur_bytes, &pos_read);
+			len = kernel_read(xlo->xlo_backing_file, data + bytes_done, cur_bytes, &pos_read);
 			flush_dcache_page(bvec->bv_page);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
 			kunmap_local(data);
