@@ -200,6 +200,8 @@ static int __qcow_file_fmt_compression_init(struct xloop_file_fmt *xlo_fmt)
 #endif
 	}
 
+	mutex_init(&qcow_data->global_mutex);
+
 	return ret;
 
 #ifdef CONFIG_ZSTD_DECOMPRESS
@@ -217,6 +219,8 @@ out:
 static void __qcow_file_fmt_compression_exit(struct xloop_file_fmt *xlo_fmt)
 {
 	struct xloop_file_fmt_qcow_data *qcow_data = xlo_fmt->private_data;
+
+	mutex_destroy(&qcow_data->global_mutex);
 
 	/* ZLIB specific cleanup */
 	zlib_inflateEnd(qcow_data->zlib_dstrm);
@@ -302,7 +306,9 @@ static ssize_t __qcow_file_fmt_dbgfs_ofs_read(struct file *file, char __user *bu
 	mutex_unlock(&qcow_data->dbgfs_qcow_offset_mutex);
 
 	/* calculate and print the cluster offset */
+	mutex_lock(&qcow_data->global_mutex);
 	ret = xloop_file_fmt_qcow_get_host_offset(xlo_fmt, offset, &cur_bytes, &host_offset, &type);
+	mutex_unlock(&qcow_data->global_mutex);
 	if (ret)
 		return -EINVAL;
 
@@ -1060,7 +1066,6 @@ static int __qcow_file_fmt_read_bvec(struct xloop_file_fmt *xlo_fmt, struct bio_
 {
 	struct xloop_file_fmt_qcow_data *qcow_data = xlo_fmt->private_data;
 	struct xloop_device *xlo = xloop_file_fmt_get_xlo(xlo_fmt);
-	int offset_in_cluster;
 	int ret;
 	unsigned int cur_bytes; /* number of bytes in current iteration */
 	u64 bytes;
@@ -1082,11 +1087,11 @@ static int __qcow_file_fmt_read_bvec(struct xloop_file_fmt *xlo_fmt, struct bio_
 		/* prepare next request. if this spans a cluster boundary, this will be clamped */
 		cur_bytes = bytes;
 
+		mutex_lock(&qcow_data->global_mutex);
 		ret = xloop_file_fmt_qcow_get_host_offset(xlo_fmt, *ppos, &cur_bytes, &host_offset, &type);
+		mutex_unlock(&qcow_data->global_mutex);
 		if (ret)
 			goto fail;
-
-		offset_in_cluster = xloop_file_fmt_qcow_offset_into_cluster(qcow_data, *ppos);
 
 		switch (type) {
 		case QCOW_SUBCLUSTER_ZERO_PLAIN:
@@ -1108,7 +1113,9 @@ static int __qcow_file_fmt_read_bvec(struct xloop_file_fmt *xlo_fmt, struct bio_
 			break;
 
 		case QCOW_SUBCLUSTER_COMPRESSED:
+			mutex_lock(&qcow_data->global_mutex);
 			ret = __qcow_file_fmt_read_compressed(xlo_fmt, bvec, host_offset, *ppos, cur_bytes, bytes_done);
+			mutex_unlock(&qcow_data->global_mutex);
 			if (ret < 0)
 				goto fail;
 			if (len == 0) {

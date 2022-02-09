@@ -291,6 +291,8 @@ struct xloop_file_fmt_qcow_data {
 	u64           compatible_features;
 	u64           autoclear_features;
 
+	struct mutex  global_mutex;
+
 	/* ZLIB specific data */
 	z_streamp     zlib_dstrm;
 
