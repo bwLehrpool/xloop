@@ -37,11 +37,16 @@ set(CHECKPATCH_IGNORE_WARNINGS "LINUX_VERSION_CODE"
                                "UNSPECIFIED_INT"
                                "ENOSYS")
 
+file(GLOB XLOOP_MAIN_VERSION_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/xloop_main_*.h)
+file(GLOB XLOOP_MAIN_VERSION_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_main_*.c)
+
 # xloop main Linux kernel module
 set(KERNEL_MODULE_XLOOP_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt.c
-                                     ${CMAKE_CURRENT_SOURCE_DIR}/xloop_main.c)
+                                     ${CMAKE_CURRENT_SOURCE_DIR}/xloop_main.c
+                                     ${XLOOP_MAIN_VERSION_SOURCES})
 set(KERNEL_MODULE_XLOOP_HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt.h
                                      ${CMAKE_CURRENT_SOURCE_DIR}/xloop_main.h
+                                     ${XLOOP_MAIN_VERSION_HEADERS}
                                      ${CMAKE_CURRENT_SOURCE_DIR}/uapi_xloop.h)
 add_kernel_module(xloop "${KERNEL_BUILD_DIR}"
                         "${KERNEL_INSTALL_DIR}"
@@ -67,6 +72,7 @@ add_linter_fix(xloop-lint-fix-clang "${KERNEL_MODULE_XLOOP_SOURCE_FILES}"
 set(KERNEL_MODULE_XLOOP_RAW_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt_raw.c)
 set(KERNEL_MODULE_XLOOP_RAW_HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt.h
                                          ${CMAKE_CURRENT_SOURCE_DIR}/xloop_main.h
+                                         ${XLOOP_MAIN_VERSION_HEADERS}
                                          ${CMAKE_CURRENT_SOURCE_DIR}/uapi_xloop.h)
 add_kernel_module(xloop_file_fmt_raw "${KERNEL_BUILD_DIR}"
                                      "${KERNEL_INSTALL_DIR}"
@@ -98,6 +104,7 @@ set(KERNEL_MODULE_XLOOP_QCOW_HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file
                                           ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt_qcow_main.h
                                           ${CMAKE_CURRENT_SOURCE_DIR}/xloop_file_fmt.h
                                           ${CMAKE_CURRENT_SOURCE_DIR}/xloop_main.h
+                                          ${XLOOP_MAIN_VERSION_HEADERS}
                                           ${CMAKE_CURRENT_SOURCE_DIR}/uapi_xloop.h)
 add_kernel_module(xloop_file_fmt_qcow "${KERNEL_BUILD_DIR}"
                                       "${KERNEL_INSTALL_DIR}"
