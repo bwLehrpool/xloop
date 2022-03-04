@@ -1,6 +1,10 @@
-#include <linux/version.h>
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
+#include "xloop_main.h"
+
+#if RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(8, 5))
+#include "xloop_main_rhel_8.5.c"
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
 #include "xloop_main_4.18.c"
 #else
 #include "xloop_main_5.15.c"

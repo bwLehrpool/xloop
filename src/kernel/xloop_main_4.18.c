@@ -53,8 +53,6 @@
  *
  */
 
-#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/sched.h>
@@ -95,13 +93,6 @@
 #include "xloop_main.h"
 
 #include <linux/uaccess.h>
-
-/* define RHEL_CHECK_VERSION macro to check CentOS version */
-#if defined(RHEL_RELEASE_CODE) && defined(RHEL_RELEASE_VERSION)
-#define RHEL_CHECK_VERSION(CONDITION) (CONDITION)
-#else
-#define RHEL_CHECK_VERSION(CONDITION) (0)
-#endif
 
 static DEFINE_IDR(xloop_index_idr);
 static DEFINE_MUTEX(xloop_ctl_mutex);
