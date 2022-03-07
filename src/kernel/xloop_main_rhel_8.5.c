@@ -2038,7 +2038,7 @@ static int __init xloop_init(void)
 	if (err < 0)
 		goto err_out;
 
-	if (register_blkdev(XLOOP_MAJOR, "xloop")) {
+	if (__register_blkdev(XLOOP_MAJOR, "xloop", xloop_probe)) {
 		err = -EIO;
 		goto misc_out;
 	}
@@ -2050,11 +2050,6 @@ static int __init xloop_init(void)
 		goto misc_out;
 	}
 #endif
-
-	if (__register_blkdev(XLOOP_MAJOR, "xloop", xloop_probe)) {
-		err = -EIO;
-		goto misc_out;
-	}
 
 	/* pre-create number of devices given by config or max_xloop */
 	mutex_lock(&xloop_ctl_mutex);
