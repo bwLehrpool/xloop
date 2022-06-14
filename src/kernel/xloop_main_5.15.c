@@ -97,6 +97,10 @@
 
 #define XLOOP_IDLE_WORKER_TIMEOUT (60 * HZ)
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
+#define GENHD_FL_NO_PART GENHD_FL_NO_PART_SCAN
+#endif
+
 static DEFINE_IDR(xloop_index_idr);
 static DEFINE_MUTEX(xloop_ctl_mutex);
 static DEFINE_MUTEX(xloop_validate_mutex);
@@ -1011,7 +1015,7 @@ static int xloop_configure(struct xloop_device *xlo, fmode_t mode,
 		xlo->xlo_flags |= XLO_FLAGS_PARTSCAN;
 	partscan = xlo->xlo_flags & XLO_FLAGS_PARTSCAN;
 	if (partscan)
-		xlo->xlo_disk->flags &= ~GENHD_FL_NO_PART_SCAN;
+		xlo->xlo_disk->flags &= ~GENHD_FL_NO_PART;
 
 	xloop_global_unlock(xlo, is_xloop);
 	if (partscan)
@@ -1158,7 +1162,7 @@ out_unlock:
 	mutex_lock(&xlo->xlo_mutex);
 	xlo->xlo_flags = 0;
 	if (!part_shift)
-		xlo->xlo_disk->flags |= GENHD_FL_NO_PART_SCAN;
+		xlo->xlo_disk->flags |= GENHD_FL_NO_PART;
 	xlo->xlo_state = Xlo_unbound;
 	mutex_unlock(&xlo->xlo_mutex);
 
@@ -1286,7 +1290,7 @@ out_unfreeze:
 
 	if (!err && (xlo->xlo_flags & XLO_FLAGS_PARTSCAN) &&
 	     !(prev_xlo_flags & XLO_FLAGS_PARTSCAN)) {
-		xlo->xlo_disk->flags &= ~GENHD_FL_NO_PART_SCAN;
+		xlo->xlo_disk->flags &= ~GENHD_FL_NO_PART;
 		partscan = true;
 	}
 out_unlock:
@@ -2110,8 +2114,10 @@ static int xloop_add(int i)
 	 * userspace tools. Parameters like this in general should be avoided.
 	 */
 	if (!part_shift)
-		disk->flags |= GENHD_FL_NO_PART_SCAN;
+		disk->flags |= GENHD_FL_NO_PART;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
 	disk->flags |= GENHD_FL_EXT_DEVT;
+#endif
 	atomic_set(&xlo->xlo_refcnt, 0);
 	mutex_init(&xlo->xlo_mutex);
 	xlo->xlo_number = i;

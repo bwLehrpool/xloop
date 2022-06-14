@@ -39,6 +39,15 @@
 #ifdef CONFIG_ZSTD_DECOMPRESS
 #define ZSTD_WINDOWLOG_LIMIT_DEFAULT 27
 #define ZSTD_MAXWINDOWSIZE ((U32_C(1) << ZSTD_WINDOWLOG_LIMIT_DEFAULT) + 1)
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
+#define zstd_dstream_workspace_bound ZSTD_DStreamWorkspaceBound
+#define zstd_init_dstream ZSTD_initDStream
+#define zstd_reset_dstream ZSTD_resetDStream
+#define zstd_decompress_stream ZSTD_decompressStream
+#define zstd_is_error ZSTD_isError
+#endif
+
 #endif
 
 typedef ssize_t (*qcow_file_fmt_decompress_fn)(struct xloop_file_fmt *xlo_fmt, void *dest, size_t dest_size,
@@ -172,7 +181,7 @@ static int __qcow_file_fmt_compression_init(struct xloop_file_fmt *xlo_fmt)
 
 #ifdef CONFIG_ZSTD_DECOMPRESS
 	/* create workspace for ZSTD decompression stream */
-	workspace_size = ZSTD_DStreamWorkspaceBound(ZSTD_MAXWINDOWSIZE);
+	workspace_size = zstd_dstream_workspace_bound(ZSTD_MAXWINDOWSIZE);
 	qcow_data->zstd_dworkspace = vzalloc(workspace_size);
 	if (!qcow_data->zstd_dworkspace) {
 		ret = -ENOMEM;
@@ -180,7 +189,7 @@ static int __qcow_file_fmt_compression_init(struct xloop_file_fmt *xlo_fmt)
 	}
 
 	/* set up ZSTD decompression stream */
-	qcow_data->zstd_dstrm = ZSTD_initDStream(ZSTD_MAXWINDOWSIZE, qcow_data->zstd_dworkspace, workspace_size);
+	qcow_data->zstd_dstrm = zstd_init_dstream(ZSTD_MAXWINDOWSIZE, qcow_data->zstd_dworkspace, workspace_size);
 	if (!qcow_data->zstd_dstrm) {
 		ret = -EINVAL;
 		goto out_free_zstd_dworkspace;
@@ -860,9 +869,9 @@ static ssize_t __qcow_file_fmt_zstd_decompress(struct xloop_file_fmt *xlo_fmt, v
 
 	ZSTD_inBuffer input = { .src = src, .size = src_size, .pos = 0 };
 
-	zstd_ret = ZSTD_resetDStream(qcow_data->zstd_dstrm);
+	zstd_ret = zstd_reset_dstream(qcow_data->zstd_dstrm);
 
-	if (ZSTD_isError(zstd_ret)) {
+	if (zstd_is_error(zstd_ret)) {
 		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "zstd reset error: %d\n", (int)zstd_ret);
 		ret = -EINVAL;
 		goto out;
@@ -883,9 +892,9 @@ static ssize_t __qcow_file_fmt_zstd_decompress(struct xloop_file_fmt *xlo_fmt, v
 		size_t last_in_pos = input.pos;
 		size_t last_out_pos = output.pos;
 
-		zstd_ret = ZSTD_decompressStream(qcow_data->zstd_dstrm, &output, &input);
+		zstd_ret = zstd_decompress_stream(qcow_data->zstd_dstrm, &output, &input);
 
-		if (ZSTD_isError(zstd_ret))
+		if (zstd_is_error(zstd_ret))
 			break;
 
 	/*
@@ -908,7 +917,7 @@ static ssize_t __qcow_file_fmt_zstd_decompress(struct xloop_file_fmt *xlo_fmt, v
 	 * greater then the cluster size, possibly because of its
 	 * damage.
 	 */
-	if (ZSTD_isError(zstd_ret)) {
+	if (zstd_is_error(zstd_ret)) {
 		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "zstd decompress error: %d\n", (int)zstd_ret);
 		ret = -EIO;
 	} if (zstd_ret) {
