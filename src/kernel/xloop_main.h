@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+
 #include <linux/version.h>
 
 /* define RHEL_CHECK_VERSION macro to check CentOS version */

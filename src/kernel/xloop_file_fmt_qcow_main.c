@@ -682,6 +682,7 @@ static int qcow_file_fmt_init(struct xloop_file_fmt *xlo_fmt)
 
 	if (qcow_data->l1_size > 0) {
 		const int read_size = qcow_data->l1_size * QCOW_L1E_SIZE;
+
 		qcow_data->l1_table = vzalloc(round_up(qcow_data->l1_size * QCOW_L1E_SIZE, 512));
 		if (qcow_data->l1_table == NULL) {
 			ret = -ENOMEM;
@@ -920,7 +921,8 @@ static ssize_t __qcow_file_fmt_zstd_decompress(struct xloop_file_fmt *xlo_fmt, v
 	if (zstd_is_error(zstd_ret)) {
 		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "zstd decompress error: %d\n", (int)zstd_ret);
 		ret = -EIO;
-	} if (zstd_ret) {
+	}
+	if (zstd_ret) {
 		dev_err(xloop_file_fmt_to_dev(xlo_fmt), "zstd incomplete frame at end of cluster\n");
 		ret = -EIO;
 	} else {
