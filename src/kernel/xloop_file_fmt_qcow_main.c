@@ -1129,7 +1129,7 @@ static int __qcow_file_fmt_read_bvec(struct xloop_file_fmt *xlo_fmt, struct bio_
 			mutex_unlock(&qcow_data->global_mutex);
 			if (ret < 0)
 				goto fail;
-			if (len == 0) {
+			if (ret == 0) {
 				dev_err(xloop_file_fmt_to_dev(xlo_fmt), "Unexpected empty read in compressed cluster\n");
 				ret = -EIO;
 				goto fail;
