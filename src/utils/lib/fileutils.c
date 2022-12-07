@@ -186,10 +186,7 @@ int main(int argc, char *argv[])
 		ignore_result( dup(STDIN_FILENO) );
 		ignore_result( dup(STDIN_FILENO) );
 
-# ifdef HAVE_CLOSE_RANGE
-		if (close_range(STDERR_FILENO + 1, ~0U, 0) < 0)
-# endif
-			ul_close_all_fds(STDERR_FILENO + 1, ~0U);
+		ul_close_all_fds(STDERR_FILENO + 1, ~0U);
 
 	} else if (strcmp(argv[1], "--copy-file") == 0) {
 		int ret = ul_copy_file(STDIN_FILENO, STDOUT_FILENO);
