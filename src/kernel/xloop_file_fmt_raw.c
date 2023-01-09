@@ -360,20 +360,20 @@ static int __raw_file_fmt_fallocate(struct xloop_device *xlo, struct request *rq
 	 * information.
 	 */
 	struct file *file = xlo->xlo_backing_file;
-	struct request_queue *q = xlo->xlo_queue;
 	int ret;
 
 	mode |= FALLOC_FL_KEEP_SIZE;
 
-	if (!blk_queue_discard(q)) {
-		ret = -EOPNOTSUPP;
-		goto out;
-	}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0)
+	if (!bdev_max_discard_sectors(xlo->xlo_device))
+#else
+	if (!blk_queue_discard(xlo->xlo_queue))
+#endif
+		return -EOPNOTSUPP;
 
 	ret = file->f_op->fallocate(file, mode, pos, blk_rq_bytes(rq));
 	if (unlikely(ret && ret != -EINVAL && ret != -EOPNOTSUPP))
 		ret = -EIO;
-out:
 	return ret;
 }
 

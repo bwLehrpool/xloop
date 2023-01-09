@@ -667,12 +667,16 @@ static void xloop_config_discard(struct xloop_device *xlo)
 		q->limits.discard_granularity = granularity;
 		blk_queue_max_discard_sectors(q, max_discard_sectors);
 		blk_queue_max_write_zeroes_sectors(q, max_discard_sectors);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
 		blk_queue_flag_set(QUEUE_FLAG_DISCARD, q);
+#endif
 	} else {
 		q->limits.discard_granularity = 0;
 		blk_queue_max_discard_sectors(q, 0);
 		blk_queue_max_write_zeroes_sectors(q, 0);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
 		blk_queue_flag_clear(QUEUE_FLAG_DISCARD, q);
+#endif
 	}
 	q->limits.discard_alignment = 0;
 }
@@ -1894,7 +1898,11 @@ static blk_status_t xloop_queue_rq(struct blk_mq_hw_ctx *hctx,
 	cmd->memcg_css = NULL;
 #ifdef CONFIG_BLK_CGROUP
 	if (rq->bio && rq->bio->bi_blkg) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0)
+		cmd->blkcg_css = bio_blkcg_css(rq->bio);
+#else
 		cmd->blkcg_css = &bio_blkcg(rq->bio)->css;
+#endif
 #ifdef CONFIG_MEMCG
 		cmd->memcg_css =
 			cgroup_get_e_css(cmd->blkcg_css->cgroup,
@@ -2133,7 +2141,9 @@ static int xloop_add(int i)
 	disk->event_flags = DISK_EVENT_FLAG_UEVENT;
 	sprintf(disk->disk_name, "xloop%d", i);
 	/* Make this xloop device reachable from pathname. */
-	add_disk(disk);
+	err = add_disk(disk);
+	if (err != 0)
+		goto out_free_file_fmt;
 	/* Show this xloop device. */
 	mutex_lock(&xloop_ctl_mutex);
 	xlo->idr_visible = true;
@@ -2161,7 +2171,11 @@ static int xloop_add(int i)
 out_free_file_fmt:
 	xloop_file_fmt_free(xlo->xlo_fmt);
 out_cleanup_disk:
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
+	put_disk(xlo->xlo_disk);
+#else
 	blk_cleanup_disk(xlo->xlo_disk);
+#endif
 out_cleanup_tags:
 	blk_mq_free_tag_set(&xlo->tag_set);
 out_free_idr:
@@ -2180,7 +2194,11 @@ static void xloop_remove(struct xloop_device *xlo)
 	debugfs_remove(xlo->xlo_dbgfs_dir);
 	/* Make this xloop device unreachable from pathname. */
 	del_gendisk(xlo->xlo_disk);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
+	put_disk(xlo->xlo_disk);
+#else
 	blk_cleanup_disk(xlo->xlo_disk);
+#endif
 	blk_mq_free_tag_set(&xlo->tag_set);
 	mutex_lock(&xloop_ctl_mutex);
 	idr_remove(&xloop_index_idr, xlo->xlo_number);
