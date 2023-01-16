@@ -10,9 +10,9 @@ This repository contains the source code for the xloop Linux kernel modules
 
 and the user space utility **xlosetup** to configure xloop devices. The xloop Linux kernel modules can be built for the following Linux kernel versions and Linux distributions:
 
-  - Archlinux with **Linux kernel 5.15.x** or **5.10.x**
+  - Archlinux with **Linux kernel 6.1.x, 5.15.x** or **5.10.x**
   - Raspberry Pi OS with **Linux kernel 5.4.x**
-  - Ubuntu 20.04 with **Linux kernel 5.4.x**
+  - Ubuntu 20.04 with **Linux kernel 6.1.x, 5.15.x, 5.10.x** or **5.4.x**
   - Ubuntu 18.04 with **Linux kernel 4.19.x**
   - CentOS 8 with **Linux kernel 4.18.x**
   - AlmaLinux 8 with **Linux kernel 4.18.x**
