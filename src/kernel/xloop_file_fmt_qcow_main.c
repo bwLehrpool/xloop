@@ -40,7 +40,7 @@
 #define ZSTD_WINDOWLOG_LIMIT_DEFAULT 27
 #define ZSTD_MAXWINDOWSIZE ((U32_C(1) << ZSTD_WINDOWLOG_LIMIT_DEFAULT) + 1)
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0) && ! RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0))
 #define zstd_dstream_workspace_bound ZSTD_DStreamWorkspaceBound
 #define zstd_init_dstream ZSTD_initDStream
 #define zstd_reset_dstream ZSTD_resetDStream
@@ -1053,14 +1053,14 @@ static int __qcow_file_fmt_read_compressed(struct xloop_file_fmt *xlo_fmt, struc
 	}
 
 	ASSERT(bytes <= bvec->bv_len);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0) || RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0))
 	data = bvec_kmap_local(bvec);
 #else
 	data = bvec_kmap_irq(bvec, &irq_flags);
 #endif
 	memcpy(data + bytes_done, qcow_data->cmp_out_buf + offset_in_cluster, bytes);
 	flush_dcache_page(bvec->bv_page);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0) || RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0))
 	kunmap_local(data);
 #else
 	bvec_kunmap_irq(data, &irq_flags);
@@ -1109,14 +1109,14 @@ static int __qcow_file_fmt_read_bvec(struct xloop_file_fmt *xlo_fmt, struct bio_
 		case QCOW_SUBCLUSTER_ZERO_ALLOC:
 		case QCOW_SUBCLUSTER_UNALLOCATED_PLAIN:
 		case QCOW_SUBCLUSTER_UNALLOCATED_ALLOC:
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0) || RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0))
 			data = bvec_kmap_local(bvec);
 #else
 			data = bvec_kmap_irq(bvec, &irq_flags);
 #endif
 			memset(data + bytes_done, 0, cur_bytes);
 			flush_dcache_page(bvec->bv_page);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0) || RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0))
 			kunmap_local(data);
 #else
 			bvec_kunmap_irq(data, &irq_flags);
@@ -1141,14 +1141,14 @@ static int __qcow_file_fmt_read_bvec(struct xloop_file_fmt *xlo_fmt, struct bio_
 		case QCOW_SUBCLUSTER_NORMAL:
 			pos_read = host_offset;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0) || RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0))
 			data = bvec_kmap_local(bvec);
 #else
 			data = bvec_kmap_irq(bvec, &irq_flags);
 #endif
 			len = kernel_read(xlo->xlo_backing_file, data + bytes_done, cur_bytes, &pos_read);
 			flush_dcache_page(bvec->bv_page);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0) || RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0))
 			kunmap_local(data);
 #else
 			bvec_kunmap_irq(data, &irq_flags);
