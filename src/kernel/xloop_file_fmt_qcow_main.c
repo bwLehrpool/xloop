@@ -1007,6 +1007,7 @@ static int __qcow_file_fmt_read_compressed(struct xloop_file_fmt *xlo_fmt, struc
 	if (qcow_data->cmp_last_coffset != coffset) {
 		int csize, nb_csectors;
 
+		dev_dbg(xloop_file_fmt_to_dev(xlo_fmt), "caching cluster at %llu\n", coffset);
 		nb_csectors = ((file_cluster_offset >> qcow_data->csize_shift) & qcow_data->csize_mask) + 1;
 		csize = nb_csectors * QCOW_COMPRESSED_SECTOR_SIZE - (coffset & ~QCOW_COMPRESSED_SECTOR_MASK);
 		in_buf = vmalloc(csize);
