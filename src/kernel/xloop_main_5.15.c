@@ -2034,7 +2034,9 @@ static const struct blk_mq_ops xloop_mq_ops = {
 	.complete	= xlo_complete_rq,
 };
 
+#ifdef CONFIG_DEBUG_FS
 static struct dentry *xloop_dbgfs_dir;
+#endif
 
 static int xloop_add(int i)
 {
@@ -2191,7 +2193,9 @@ out:
 static void xloop_remove(struct xloop_device *xlo)
 {
 	xloop_file_fmt_free(xlo->xlo_fmt);
+#ifdef CONFIG_DEBUG_FS
 	debugfs_remove(xlo->xlo_dbgfs_dir);
+#endif
 	/* Make this xloop device unreachable from pathname. */
 	del_gendisk(xlo->xlo_disk);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
