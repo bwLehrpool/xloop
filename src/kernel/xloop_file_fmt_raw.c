@@ -157,7 +157,7 @@ static void __raw_file_fmt_rw_aio_complete(struct kiocb *iocb, long ret)
 	struct xloop_cmd *cmd = container_of(iocb, struct xloop_cmd, iocb);
 
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0) && ! RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0) && !RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0))
 	if (cmd->css)
 		css_put(cmd->css);
 #endif
@@ -232,7 +232,7 @@ static int __raw_file_fmt_rw_aio(struct xloop_device *xlo, struct xloop_cmd *cmd
 	cmd->iocb.ki_complete = __raw_file_fmt_rw_aio_complete;
 	cmd->iocb.ki_flags = IOCB_DIRECT;
 	cmd->iocb.ki_ioprio = IOPRIO_PRIO_VALUE(IOPRIO_CLASS_NONE, 0);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0) && ! RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0) && !RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0))
 	if (cmd->css)
 		kthread_associate_blkcg(cmd->css);
 #endif
@@ -243,7 +243,7 @@ static int __raw_file_fmt_rw_aio(struct xloop_device *xlo, struct xloop_cmd *cmd
 		ret = call_read_iter(file, &cmd->iocb, &iter);
 
 	__raw_file_fmt_rw_aio_do_completion(cmd);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0) && ! RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0) && !RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0))
 	kthread_associate_blkcg(NULL);
 #endif
 

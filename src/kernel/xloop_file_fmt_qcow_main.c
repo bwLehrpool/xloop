@@ -40,7 +40,7 @@
 #define ZSTD_WINDOWLOG_LIMIT_DEFAULT 27
 #define ZSTD_MAXWINDOWSIZE ((U32_C(1) << ZSTD_WINDOWLOG_LIMIT_DEFAULT) + 1)
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0) && ! RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0) && !RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0))
 #define zstd_dstream_workspace_bound ZSTD_DStreamWorkspaceBound
 #define zstd_init_dstream ZSTD_initDStream
 #define zstd_reset_dstream ZSTD_resetDStream

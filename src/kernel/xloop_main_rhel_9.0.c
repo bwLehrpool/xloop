@@ -97,12 +97,6 @@
 
 #define XLOOP_IDLE_WORKER_TIMEOUT (60 * HZ)
 
-/*
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
-#define GENHD_FL_NO_PART GENHD_FL_NO_PART_SCAN
-#endif
-*/
-
 static DEFINE_IDR(xloop_index_idr);
 static DEFINE_MUTEX(xloop_ctl_mutex);
 static DEFINE_MUTEX(xloop_validate_mutex);
@@ -669,20 +663,10 @@ static void xloop_config_discard(struct xloop_device *xlo)
 		q->limits.discard_granularity = granularity;
 		blk_queue_max_discard_sectors(q, max_discard_sectors);
 		blk_queue_max_write_zeroes_sectors(q, max_discard_sectors);
-/*
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
-		blk_queue_flag_set(QUEUE_FLAG_DISCARD, q);
-#endif
-*/
 	} else {
 		q->limits.discard_granularity = 0;
 		blk_queue_max_discard_sectors(q, 0);
 		blk_queue_max_write_zeroes_sectors(q, 0);
-/*
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
-		blk_queue_flag_clear(QUEUE_FLAG_DISCARD, q);
-#endif
-*/
 	}
 	q->limits.discard_alignment = 0;
 }
@@ -1904,15 +1888,7 @@ static blk_status_t xloop_queue_rq(struct blk_mq_hw_ctx *hctx,
 	cmd->memcg_css = NULL;
 #ifdef CONFIG_BLK_CGROUP
 	if (rq->bio && rq->bio->bi_blkg) {
-/*
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0)
-*/
 		cmd->blkcg_css = bio_blkcg_css(rq->bio);
-/*
-#else
-		cmd->blkcg_css = &bio_blkcg(rq->bio)->css;
-#endif
-*/
 #ifdef CONFIG_MEMCG
 		cmd->memcg_css =
 			cgroup_get_e_css(cmd->blkcg_css->cgroup,
@@ -2133,11 +2109,6 @@ static int xloop_add(int i)
 	 */
 	if (!part_shift)
 		disk->flags |= GENHD_FL_NO_PART;
-/*
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
-	disk->flags |= GENHD_FL_EXT_DEVT;
-#endif
-*/
 	atomic_set(&xlo->xlo_refcnt, 0);
 	mutex_init(&xlo->xlo_mutex);
 	xlo->xlo_number = i;
