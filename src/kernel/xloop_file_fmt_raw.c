@@ -34,68 +34,6 @@ static inline loff_t __raw_file_fmt_rq_get_pos(struct xloop_file_fmt *xlo_fmt, s
 	return ((loff_t)blk_rq_pos(rq) << 9) + xlo->xlo_offset;
 }
 
-/* transfer function for DEPRECATED cryptoxloop support */
-static inline int __raw_file_fmt_do_transfer(struct xloop_device *xlo, int cmd, struct page *rpage, unsigned int roffs,
-					     struct page *lpage, unsigned int loffs, int size, sector_t rblock)
-{
-	int ret;
-
-	ret = xlo->transfer(xlo, cmd, rpage, roffs, lpage, loffs, size, rblock);
-	if (likely(!ret))
-		return 0;
-
-	pr_err_ratelimited("transfer error at byte offset %llu, length %i.\n", (unsigned long long)rblock << 9, size);
-	return ret;
-}
-
-static int __raw_file_fmt_read_transfer(struct xloop_device *xlo, struct request *rq, loff_t pos)
-{
-	struct bio_vec bvec, b;
-	struct req_iterator iter;
-	struct iov_iter i;
-	struct page *page;
-	ssize_t len;
-	int ret = 0;
-
-	page = alloc_page(GFP_NOIO);
-	if (unlikely(!page))
-		return -ENOMEM;
-
-	rq_for_each_segment(bvec, rq, iter) {
-		loff_t offset = pos;
-
-		b.bv_page = page;
-		b.bv_offset = 0;
-		b.bv_len = bvec.bv_len;
-
-		iov_iter_bvec(&i, READ, &b, 1, b.bv_len);
-		len = vfs_iter_read(xlo->xlo_backing_file, &i, &pos, 0);
-		if (len < 0) {
-			ret = len;
-			goto out_free_page;
-		}
-
-		ret = __raw_file_fmt_do_transfer(xlo, READ, page, 0, bvec.bv_page, bvec.bv_offset, len, offset >> 9);
-		if (ret)
-			goto out_free_page;
-
-		flush_dcache_page(bvec.bv_page);
-
-		if (len != bvec.bv_len) {
-			struct bio *bio;
-
-			__rq_for_each_bio(bio, rq)
-				zero_fill_bio(bio);
-			break;
-		}
-	}
-
-	ret = 0;
-out_free_page:
-	__free_page(page);
-	return ret;
-}
-
 static int raw_file_fmt_read(struct xloop_file_fmt *xlo_fmt, struct request *rq)
 {
 	struct bio_vec bvec;
@@ -108,11 +46,8 @@ static int raw_file_fmt_read(struct xloop_file_fmt *xlo_fmt, struct request *rq)
 	xlo = xloop_file_fmt_get_xlo(xlo_fmt);
 	pos = __raw_file_fmt_rq_get_pos(xlo_fmt, rq);
 
-	if (xlo->transfer)
-		return __raw_file_fmt_read_transfer(xlo, rq, pos);
-
 	rq_for_each_segment(bvec, rq, iter) {
-		iov_iter_bvec(&i, READ, &bvec, 1, bvec.bv_len);
+		iov_iter_bvec(&i, READ, &bvec, 1, bvec.bv_len); // READ -> ITER_DEST at some point
 		len = vfs_iter_read(xlo->xlo_backing_file, &i, &pos, 0);
 		if (len < 0)
 			return len;
@@ -286,40 +221,6 @@ static int __raw_file_fmt_write_bvec(struct file *file, struct bio_vec *bvec, lo
 	return bw;
 }
 
-/*
- * This is the slow, transforming version that needs to double buffer the
- * data as it cannot do the transformations in place without having direct
- * access to the destination pages of the backing file.
- */
-static int __raw_file_fmt_write_transfer(struct xloop_device *xlo, struct request *rq, loff_t pos)
-{
-	struct bio_vec bvec, b;
-	struct req_iterator iter;
-	struct page *page;
-	int ret = 0;
-
-	page = alloc_page(GFP_NOIO);
-	if (unlikely(!page))
-		return -ENOMEM;
-
-	rq_for_each_segment(bvec, rq, iter) {
-		ret = __raw_file_fmt_do_transfer(xlo, WRITE, page, 0, bvec.bv_page, bvec.bv_offset, bvec.bv_len,
-						 pos >> 9);
-		if (unlikely(ret))
-			break;
-
-		b.bv_page = page;
-		b.bv_offset = 0;
-		b.bv_len = bvec.bv_len;
-		ret = __raw_file_fmt_write_bvec(xlo->xlo_backing_file, &b, &pos);
-		if (ret < 0)
-			break;
-	}
-
-	__free_page(page);
-	return ret;
-}
-
 static int raw_file_fmt_write(struct xloop_file_fmt *xlo_fmt, struct request *rq)
 {
 	struct bio_vec bvec;
@@ -330,9 +231,6 @@ static int raw_file_fmt_write(struct xloop_file_fmt *xlo_fmt, struct request *rq
 
 	xlo = xloop_file_fmt_get_xlo(xlo_fmt);
 	pos = __raw_file_fmt_rq_get_pos(xlo_fmt, rq);
-
-	if (xlo->transfer)
-		return __raw_file_fmt_write_transfer(xlo, rq, pos);
 
 	rq_for_each_segment(bvec, rq, iter) {
 		ret = __raw_file_fmt_write_bvec(xlo->xlo_backing_file, &bvec, &pos);
@@ -357,9 +255,7 @@ static int __raw_file_fmt_fallocate(struct xloop_device *xlo, struct request *rq
 {
 	/*
 	 * We use fallocate to manipulate the space mappings used by the image
-	 * a.k.a. discard/zerorange. However we do not support this if
-	 * encryption is enabled, because it may give an attacker useful
-	 * information.
+	 * a.k.a. discard/zerorange.
 	 */
 	struct file *file = xlo->xlo_backing_file;
 	int ret;
