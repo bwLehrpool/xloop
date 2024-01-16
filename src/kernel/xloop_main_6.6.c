@@ -1871,7 +1871,7 @@ static int xloop_add(int i)
 	INIT_LIST_HEAD(&xlo->rootcg_cmd_list);
 	disk->major		= XLOOP_MAJOR;
 	disk->first_minor	= i << part_shift;
-	disk->minors 		= 1 << part_shift;
+	disk->minors		= 1 << part_shift;
 	disk->fops		= &xlo_fops;
 	disk->private_data	= xlo;
 	disk->queue		= xlo->xlo_queue;
