@@ -444,7 +444,8 @@ static ssize_t xloop_attr_file_fmt_type_show(struct xloop_device *xlo, char *buf
 	ssize_t len = 0;
 
 	len = xloop_file_fmt_print_type(xlo->xlo_fmt->file_fmt_type, buf);
-	len += sysfs_emit(buf + len, "\n");
+	/* do not use sysfs_emit here, doesn't work with offset */
+	len += sprintf(buf + len, "\n");
 
 	return len;
 }
