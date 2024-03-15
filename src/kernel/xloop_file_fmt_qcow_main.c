@@ -997,7 +997,7 @@ static int __qcow_file_fmt_read_compressed(struct xloop_file_fmt *xlo_fmt, struc
 	u8 *in_buf = NULL;
 	ssize_t len;
 	void *data;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0) && !RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0))
 	unsigned long irq_flags;
 #endif
 	int offset_in_cluster = xloop_file_fmt_qcow_offset_into_cluster(qcow_data, offset);
@@ -1085,7 +1085,7 @@ static int __qcow_file_fmt_read_bvec(struct xloop_file_fmt *xlo_fmt, struct bio_
 	u64 bytes_done = 0;
 	enum xloop_file_fmt_qcow_subcluster_type type;
 	void *data;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0) && !RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0))
 	unsigned long irq_flags;
 #endif
 	ssize_t len;
