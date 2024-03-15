@@ -101,6 +101,12 @@ static DEFINE_IDR(xloop_index_idr);
 static DEFINE_MUTEX(xloop_ctl_mutex);
 static DEFINE_MUTEX(xloop_validate_mutex);
 
+#if RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 4)
+#define FMODE_EXCL BLK_OPEN_EXCL
+// This is ugly as fmode_t still exists but since it's unused here just do this :)
+#define fmode_t blk_mode_t
+#endif
+
 /**
  * xloop_global_lock_killable() - take locks for safe xloop_validate_file() test
  *
@@ -911,7 +917,11 @@ static int xloop_configure(struct xloop_device *xlo, fmode_t mode,
 	 * here to avoid changing device under exclusive owner.
 	 */
 	if (!(mode & FMODE_EXCL)) {
+#if RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 4)
+		error = bd_prepare_to_claim(bdev, xloop_configure, NULL);
+#else
 		error = bd_prepare_to_claim(bdev, xloop_configure);
+#endif
 		if (error)
 			goto out_putf;
 	}
@@ -1753,9 +1763,15 @@ static int xlo_compat_ioctl(struct block_device *bdev, fmode_t mode,
 }
 #endif
 
+#if RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 4)
+static int xlo_open(struct gendisk *disk, blk_mode_t mode)
+{
+	struct xloop_device *xlo = disk->private_data;
+#else
 static int xlo_open(struct block_device *bdev, fmode_t mode)
 {
 	struct xloop_device *xlo = bdev->bd_disk->private_data;
+#endif
 	int err;
 
 	err = mutex_lock_killable(&xlo->xlo_mutex);
@@ -1769,7 +1785,11 @@ static int xlo_open(struct block_device *bdev, fmode_t mode)
 	return err;
 }
 
+#if RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 4)
+static void xlo_release(struct gendisk *disk)
+#else
 static void xlo_release(struct gendisk *disk, fmode_t mode)
+#endif
 {
 	struct xloop_device *xlo = disk->private_data;
 
