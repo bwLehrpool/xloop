@@ -83,7 +83,7 @@ static void __raw_file_fmt_rw_aio_do_completion(struct xloop_cmd *cmd)
 #endif
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0) && !RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 2))
 static void __raw_file_fmt_rw_aio_complete(struct kiocb *iocb, long ret, long ret2)
 #else
 static void __raw_file_fmt_rw_aio_complete(struct kiocb *iocb, long ret)
@@ -182,7 +182,7 @@ static int __raw_file_fmt_rw_aio(struct xloop_device *xlo, struct xloop_cmd *cmd
 	kthread_associate_blkcg(NULL);
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0) && !RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 2))
 	if (ret != -EIOCBQUEUED)
 		cmd->iocb.ki_complete(&cmd->iocb, ret, 0);
 #else

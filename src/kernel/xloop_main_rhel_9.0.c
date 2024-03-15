@@ -2154,7 +2154,7 @@ static int xloop_add(int i)
 out_free_file_fmt:
 	xloop_file_fmt_free(xlo->xlo_fmt);
 out_cleanup_disk:
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
+#if RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 2)
 	put_disk(xlo->xlo_disk);
 #else
 	blk_cleanup_disk(xlo->xlo_disk);
@@ -2177,7 +2177,7 @@ static void xloop_remove(struct xloop_device *xlo)
 	debugfs_remove(xlo->xlo_dbgfs_dir);
 	/* Make this xloop device unreachable from pathname. */
 	del_gendisk(xlo->xlo_disk);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
+#if RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 2)
 	put_disk(xlo->xlo_disk);
 #else
 	blk_cleanup_disk(xlo->xlo_disk);
