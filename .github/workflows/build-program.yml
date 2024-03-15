@@ -14,10 +14,10 @@ jobs:
       matrix:
         config:
           - name: debug [default] on Ubuntu 20.04
-            build-os: ubuntu-20.04
+            build-os: ubuntu-22.04
             build-type: "Debug"
           - name: release [default] on Ubuntu 20.04
-            build-os: ubuntu-20.04
+            build-os: ubuntu-22.04
             build-type: "Release"
     name: Build xloop ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.build-os }}
@@ -28,8 +28,7 @@ jobs:
           sudo apt-get install -y -qq make \
                                       clang-format \
                                       linux-headers-generic \
-                                      libcap-dev \
-                                      rpm
+                                      libcap-dev
       - name: Checkout xloop repository
         uses: actions/checkout@v4
       - name: Fetch xloop repository tags
