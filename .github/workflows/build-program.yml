@@ -31,7 +31,7 @@ jobs:
                                       libcap-dev \
                                       rpm
       - name: Checkout xloop repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Fetch xloop repository tags
         run: git fetch --prune --unshallow
       - name: Configure xloop build
