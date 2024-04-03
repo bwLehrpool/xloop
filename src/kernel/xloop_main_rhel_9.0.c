@@ -2092,7 +2092,11 @@ static int xloop_add(int i)
 	}
 	xlo->xlo_queue = xlo->xlo_disk->queue;
 
+#if RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 5)
+	blk_queue_max_hw_sectors(xlo->xlo_queue, BLK_DEF_MAX_SECTORS_CAP);
+#else
 	blk_queue_max_hw_sectors(xlo->xlo_queue, BLK_DEF_MAX_SECTORS);
+#endif
 
 	/*
 	 * By default, we do buffer IO, so it doesn't make sense to enable

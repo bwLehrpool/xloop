@@ -1827,7 +1827,11 @@ static int xloop_add(int i)
 	}
 	xlo->xlo_queue = xlo->xlo_disk->queue;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
+	blk_queue_max_hw_sectors(xlo->xlo_queue, BLK_DEF_MAX_SECTORS_CAP);
+#else
 	blk_queue_max_hw_sectors(xlo->xlo_queue, BLK_DEF_MAX_SECTORS);
+#endif
 
 	/*
 	 * By default, we do buffer IO, so it doesn't make sense to enable
