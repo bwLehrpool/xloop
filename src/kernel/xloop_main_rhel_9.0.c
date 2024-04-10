@@ -471,7 +471,11 @@ static int xloop_change_fd(struct xloop_device *xlo, struct block_device *bdev,
 		goto out_err;
 
 	/* and ... switch */
+#ifdef QUEUE_FLAG_SYNCHRONOUS
+	disk_force_media_change(xlo->xlo_disk);
+#else
 	disk_force_media_change(xlo->xlo_disk, DISK_EVENT_MEDIA_CHANGE);
+#endif
 	blk_mq_freeze_queue(xlo->xlo_queue);
 	mapping_set_gfp_mask(old_file->f_mapping, xlo->old_gfp_mask);
 	xlo->xlo_backing_file = file;
@@ -969,7 +973,11 @@ static int xloop_configure(struct xloop_device *xlo, fmode_t mode,
 		goto out_unlock;
 	}
 
+#ifdef QUEUE_FLAG_SYNCHRONOUS
+	disk_force_media_change(xlo->xlo_disk);
+#else
 	disk_force_media_change(xlo->xlo_disk, DISK_EVENT_MEDIA_CHANGE);
+#endif
 	set_disk_ro(xlo->xlo_disk, (xlo->xlo_flags & XLO_FLAGS_READ_ONLY) != 0);
 
 	INIT_WORK(&xlo->rootcg_work, xloop_rootcg_workfn);
@@ -1129,7 +1137,11 @@ static int __xloop_clr_fd(struct xloop_device *xlo, bool release)
 
 	partscan = xlo->xlo_flags & XLO_FLAGS_PARTSCAN && bdev;
 	xlo_number = xlo->xlo_number;
+#ifdef QUEUE_FLAG_SYNCHRONOUS
+	disk_force_media_change(xlo->xlo_disk);
+#else
 	disk_force_media_change(xlo->xlo_disk, DISK_EVENT_MEDIA_CHANGE);
+#endif
 out_unlock:
 	mutex_unlock(&xlo->xlo_mutex);
 	if (partscan) {
