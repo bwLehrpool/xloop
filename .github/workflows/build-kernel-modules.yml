@@ -100,6 +100,9 @@ jobs:
                 -D KERNEL_BUILD_DIR=${{ github.workspace }}/../kernel \
                 -D KERNEL_INSTALL_DIR=${{ github.workspace }}/../kernel/extra \
                 -D KERNEL_SCRIPTS_DIR=${{ github.workspace }}/../kernel/scripts
+          touch ${{ github.workspace }}/build/src/kernel/xloop/xloop.prelink.mod
+          touch ${{ github.workspace }}/build/src/kernel/xloop_file_fmt_raw/xloop_file_fmt_raw.prelink.mod
+          touch ${{ github.workspace }}/build/src/kernel/xloop_file_fmt_qcow/xloop_file_fmt_qcow.prelink.mod
       - name: Build xloop kernel modules
         working-directory: ${{ github.workspace }}/build
         run: make xloop xloop_file_fmt_qcow xloop_file_fmt_raw
