@@ -172,10 +172,17 @@ static int __raw_file_fmt_rw_aio(struct xloop_device *xlo, struct xloop_cmd *cmd
 		kthread_associate_blkcg(cmd->css);
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
+	if (rw == ITER_SOURCE)
+		ret = file->f_op->write_iter(&cmd->iocb, &iter);
+	else
+		ret = file->f_op->read_iter(&cmd->iocb, &iter);
+#else
 	if (rw == WRITE)
 		ret = call_write_iter(file, &cmd->iocb, &iter);
 	else
 		ret = call_read_iter(file, &cmd->iocb, &iter);
+#endif
 
 	__raw_file_fmt_rw_aio_do_completion(cmd);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0) && !RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0))

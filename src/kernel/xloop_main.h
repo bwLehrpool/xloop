@@ -17,6 +17,8 @@
 #include "xloop_main_4.18.h"
 #elif LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0)
 #include "xloop_main_5.15.h"
-#else
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(6, 11, 0)
 #include "xloop_main_6.6.h"
+#else
+#include "xloop_main_6.11.h"
 #endif
