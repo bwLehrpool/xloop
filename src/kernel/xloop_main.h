@@ -9,7 +9,9 @@
 #define RHEL_CHECK_VERSION(CONDITION) (0)
 #endif
 
-#if RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0))
+#if RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 6))
+#include "xloop_main_6.11.h" // Make a copy once this diverges!
+#elif RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0))
 #include "xloop_main_rhel_9.0.h"
 #elif RHEL_CHECK_VERSION(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(8, 5))
 #include "xloop_main_rhel_8.5.h"
