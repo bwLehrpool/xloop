@@ -10,7 +10,7 @@ on:
 jobs:
   lint:
     name: Lint xloop
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Install xloop dependencies
         run: |
