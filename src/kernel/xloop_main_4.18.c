@@ -246,7 +246,10 @@ static void xloop_set_size(struct xloop_device *xlo, loff_t size)
 	bd_set_size(bdev, size << SECTOR_SHIFT);
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 234)
+	if (!set_capacity_and_notify(lo->lo_disk, size))
+		kobject_uevent(&disk_to_dev(lo->lo_disk)->kobj, KOBJ_CHANGE);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 	if (!set_capacity_revalidate_and_notify(xlo->xlo_disk, size, false))
 		kobject_uevent(&disk_to_dev(bdev->bd_disk)->kobj, KOBJ_CHANGE);
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)
