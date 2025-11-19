@@ -21,6 +21,6 @@
 #include "xloop_main_5.15.h"
 #elif LINUX_VERSION_CODE < KERNEL_VERSION(6, 11, 0)
 #include "xloop_main_6.6.h"
-#else
+#else // Make copy for 6.14 once it diverges
 #include "xloop_main_6.11.h"
 #endif
