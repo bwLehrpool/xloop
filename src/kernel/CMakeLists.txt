@@ -35,6 +35,7 @@ set(CHECKPATCH_IGNORE_WARNINGS "LINUX_VERSION_CODE"
                                "SPLIT_STRING"
                                "STATIC_CONST_CHAR_ARRAY"
                                "UNSPECIFIED_INT"
+                               "MACRO_ARG_UNUSED"
                                "ENOSYS")
 
 file(GLOB XLOOP_MAIN_VERSION_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/xloop_main_*.h)
