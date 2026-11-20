@@ -756,7 +756,11 @@ static int xloop_reconfigure_limits(struct xloop_device *xlo, unsigned short bsi
 	lim.features &= ~(BLK_FEAT_WRITE_CACHE | BLK_FEAT_ROTATIONAL);
 	if (file->f_op->fsync && !(xlo->xlo_flags & XLO_FLAGS_READ_ONLY))
 		lim.features |= BLK_FEAT_WRITE_CACHE;
+#ifdef blk_queue_rot
+	if (backing_bdev && bdev_rot(backing_bdev))
+#else
 	if (backing_bdev && !bdev_nonrot(backing_bdev))
+#endif
 		lim.features |= BLK_FEAT_ROTATIONAL;
 	xloop_config_discard(xlo, &lim);
 	return queue_limits_commit_update(xlo->xlo_queue, &lim);

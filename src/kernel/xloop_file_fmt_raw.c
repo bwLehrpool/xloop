@@ -106,6 +106,11 @@ static int __raw_file_fmt_rw_aio(struct xloop_device *xlo, struct xloop_cmd *cmd
 	struct iov_iter iter;
 	struct req_iterator rq_iter;
 	struct bio_vec *bvec;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
+	const struct bio_vec *iov_bvec;
+#else
+	struct bio_vec *iov_bvec;
+#endif
 	struct request *rq = blk_mq_rq_from_pdu(cmd);
 	struct bio *bio = rq->bio;
 	struct file *file = xlo->xlo_backing_file;
@@ -144,6 +149,7 @@ static int __raw_file_fmt_rw_aio(struct xloop_device *xlo, struct xloop_cmd *cmd
 			bvec++;
 		}
 		bvec = cmd->bvec;
+		iov_bvec = bvec;
 		offset = 0;
 	} else {
 		/*
@@ -151,15 +157,19 @@ static int __raw_file_fmt_rw_aio(struct xloop_device *xlo, struct xloop_cmd *cmd
 		 * 'bvec' because of bio splitting, so offset from the bvec
 		 * must be passed to iov iterator
 		 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
+		offset = bio->bi_iter.bi_offset;
+#else
 		offset = bio->bi_iter.bi_bvec_done;
-		bvec = __bvec_iter_bvec(bio->bi_io_vec, bio->bi_iter);
+#endif
+		iov_bvec = __bvec_iter_bvec(bio->bi_io_vec, bio->bi_iter);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
 		nr_bvec = bio_segments(bio);
 #endif
 	}
 	atomic_set(&cmd->ref, 2);
 
-	iov_iter_bvec(&iter, rw, bvec, nr_bvec, blk_rq_bytes(rq));
+	iov_iter_bvec(&iter, rw, iov_bvec, nr_bvec, blk_rq_bytes(rq));
 	iter.iov_offset = offset;
 
 	cmd->iocb.ki_pos = pos;
