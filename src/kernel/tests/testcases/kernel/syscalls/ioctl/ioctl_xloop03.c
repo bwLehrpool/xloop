@@ -1,76 +1,45 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
-/*
- * Copyright (c) 2020 FUJITSU LIMITED. All rights reserved.
- * Author: Yang Xu <xuyang2018.jy@cn.jujitsu.com>
- *
- * This is a basic ioctl test about xloopdevice.
- *
- * It is designed to test XLOOP_CHANGE_FD can not succeed (get EINVAL error)
- * when xloop_dev is not read only.
- */
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+#include "xloop_test.h"
 
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include "lapi/xloop.h"
-#include "tst_test.h"
-
-static char dev_path[1024];
-static int dev_num, dev_fd, file_fd, attach_flag;
-
-static void verify_ioctl_xloop(void)
+int main(void)
 {
-	TEST(ioctl(dev_fd, XLOOP_CHANGE_FD, file_fd));
-	if (TST_RET == 0) {
-		tst_res(TFAIL, "XLOOP_CHANGE_FD succeeded unexpectedly");
-		return;
+	char device_path[PATH_MAX];
+	int device_fd = -1;
+	int backing_fd = -1;
+	int device_number;
+	int attached = 0;
+	if (test_begin() != 0)
+		return test_finish();
+	device_number = find_free_xloopdev(device_path, sizeof(device_path));
+	if (device_number < 0) {
+		tst_res(TCONF, "no free xloop device is available");
+		return test_finish();
 	}
-	if (TST_ERR == EINVAL)
-		tst_res(TPASS | TTERRNO, "XLOOP_CHANGE_FD failed as expected");
+	if (fill_file("test.img", 10U * 1024U, 0U) != 0) {
+		tst_res(TBROK, "cannot create backing file: %s", strerror(errno));
+		goto cleanup;
+	}
+	device_fd = attach_device(device_path, "test.img", 0U);
+	if (device_fd < 0) {
+		tst_res(TBROK, "cannot attach writable xloop device: %s", strerror(errno));
+		goto cleanup;
+	}
+	attached = 1;
+	backing_fd = open("test.img", O_RDWR | O_CLOEXEC);
+	if (backing_fd < 0) {
+		tst_res(TBROK, "cannot open backing file: %s", strerror(errno));
+		goto cleanup;
+	}
+	if (ioctl(device_fd, XLOOP_CHANGE_FD, backing_fd) != 0 && errno == EINVAL)
+		tst_res(TPASS, "XLOOP_CHANGE_FD rejects a writable xloop device with EINVAL");
 	else
-		tst_res(TFAIL | TTERRNO, "XLOOP_CHANGE_FD failed expected EINVAL got");
+		tst_res(TFAIL, "XLOOP_CHANGE_FD did not reject a writable xloop device");
+cleanup:
+	if (attached != 0)
+		(void)detach_by_fd(device_path, device_fd);
+	if (backing_fd >= 0)
+		(void)close(backing_fd);
+	if (device_fd >= 0)
+		(void)close(device_fd);
+	return test_finish();
 }
-
-static void setup(void)
-{
-	struct xloop_info xloopinfoget;
-
-	memset(&xloopinfoget, 0, sizeof(xloopinfoget));
-	dev_num = tst_find_free_xloopdev(dev_path, sizeof(dev_path));
-	if (dev_num < 0)
-		tst_brk(TBROK, "Failed to find free xloop device");
-
-	tst_fill_file("test.img", 0, 1024, 10);
-	tst_attach_device(dev_path, "test.img");
-	attach_flag = 1;
-
-	dev_fd = SAFE_OPEN(dev_path, O_RDWR);
-	file_fd = SAFE_OPEN("test.img", O_RDWR);
-	SAFE_IOCTL(dev_fd, XLOOP_GET_STATUS, &xloopinfoget);
-
-	if (xloopinfoget.xlo_flags & XLO_FLAGS_READ_ONLY)
-		tst_brk(TCONF, "Current environment has unexpected XLO_FLAGS_READ_ONLY flag");
-}
-
-static void cleanup(void)
-{
-	if (dev_fd > 0)
-		SAFE_CLOSE(dev_fd);
-	if (file_fd > 0)
-		SAFE_CLOSE(file_fd);
-	if (attach_flag)
-		tst_detach_device(dev_path);
-}
-
-static struct tst_test test = {
-	.setup = setup,
-	.cleanup = cleanup,
-	.test_all = verify_ioctl_xloop,
-	.needs_root = 1,
-	.needs_tmpdir = 1,
-	.needs_drivers = (const char *const []) {
-		"xloop",
-		"xloop_file_fmt_raw",
-		NULL
-	}
-};

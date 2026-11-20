@@ -1,144 +1,114 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
-/*
- * Copyright (c) 2020 FUJITSU LIMITED. All rights reserved.
- * Author: Yang Xu <xuyang2018.jy@cn.jujitsu.com>
- *
- * This is a basic error test about the invalid block size of xloopdevice
- * by using XLOOP_SET_BLOCK_SIZE or XLOOP_CONFIGURE ioctl.
- */
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+#include "xloop_test.h"
 
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <stdlib.h>
-#include "lapi/xloop.h"
-#include "tst_test.h"
-
-static char dev_path[1024];
-static int dev_num, dev_fd, file_fd, attach_flag, xloop_configure_sup = 1;
-static unsigned int invalid_value, half_value, unalign_value;
-static struct xloop_config xloopconfig;
-
-static struct tcase {
-	unsigned int *setvalue;
-	int ioctl_flag;
-	char *message;
-} tcases[] = {
-	{&half_value, XLOOP_SET_BLOCK_SIZE,
-	"Using XLOOP_SET_BLOCK_SIZE with arg < 512"},
-
-	{&invalid_value, XLOOP_SET_BLOCK_SIZE,
-	"Using XLOOP_SET_BLOCK_SIZE with arg > PAGE_SIZE"},
-
-	{&unalign_value, XLOOP_SET_BLOCK_SIZE,
-	"Using XLOOP_SET_BLOCK_SIZE with arg != power_of_2"},
-
-	{&half_value, XLOOP_CONFIGURE,
-	"Using XLOOP_CONFIGURE with block_size < 512"},
-
-	{&invalid_value, XLOOP_CONFIGURE,
-	"Using XLOOP_CONFIGURE with block_size > PAGE_SIZE"},
-
-	{&unalign_value, XLOOP_CONFIGURE,
-	"Using XLOOP_CONFIGURE with block_size != power_of_2"},
-};
-
-static void verify_ioctl_xloop(unsigned int n)
+static int check_direct_io(int device_fd, const char *sysfs_dio, int expected)
 {
-	if (tcases[n].ioctl_flag == XLOOP_CONFIGURE)
-		TEST(ioctl(dev_fd, XLOOP_CONFIGURE, &xloopconfig));
+	struct xloop_info info;
+	memset(&info, 0, sizeof(info));
+	if (retry_ioctl(device_fd, XLOOP_GET_STATUS, &info) != 0) {
+		tst_res(TFAIL, "XLOOP_GET_STATUS failed: %s", strerror(errno));
+		return -1;
+	}
+	if (((info.xlo_flags & XLO_FLAGS_DIRECT_IO) != 0) == (expected != 0))
+		tst_res(TPASS, "direct-I/O status flag is %s", expected != 0 ? "set" : "clear");
 	else
-		TEST(ioctl(dev_fd, XLOOP_SET_BLOCK_SIZE, *(tcases[n].setvalue)));
-
-	if (TST_RET == 0) {
-		tst_res(TFAIL, "Set block size succeed unexpectedly");
-		if (tcases[n].ioctl_flag == XLOOP_CONFIGURE)
-			tst_detach_device_by_fd(dev_path, dev_fd);
-		return;
-	}
-	if (TST_ERR == EINVAL)
-		tst_res(TPASS | TTERRNO, "Set block size failed as expected");
-	else
-		tst_res(TFAIL | TTERRNO, "Set block size failed expected EINVAL got");
+		tst_res(TFAIL, "direct-I/O status flag has the wrong value");
+	return assert_int(sysfs_dio, expected);
 }
 
-static void run(unsigned int n)
+int main(void)
 {
-	struct tcase *tc = &tcases[n];
-
-	tst_res(TINFO, "%s", tc->message);
-	if (tc->ioctl_flag == XLOOP_SET_BLOCK_SIZE) {
-		if (!attach_flag) {
-			tst_attach_device(dev_path, "test.img");
-			attach_flag = 1;
-		}
-		verify_ioctl_xloop(n);
-		return;
+	char device_path[PATH_MAX];
+	char sysfs_dio[PATH_MAX];
+	char backing_device[PATH_MAX];
+	int device_number;
+	int device_fd = -1;
+	int backing_fd = -1;
+	int attached = 0;
+	int logical_block_size = 512;
+	long filesystem_type;
+	struct xloop_info status;
+	if (test_begin() != 0)
+		return test_finish();
+	if (fs_type(".", &filesystem_type) == 0 && filesystem_type == 0x01021994L) {
+		tst_res(TCONF, "tmpfs does not support direct I/O");
+		return test_finish();
 	}
-
-	if (tc->ioctl_flag == XLOOP_CONFIGURE && !xloop_configure_sup) {
-		tst_res(TCONF, "XLOOP_CONFIGURE ioctl not supported");
-		return;
+	device_number = find_free_xloopdev(device_path, sizeof(device_path));
+	if (device_number < 0) {
+		tst_res(TCONF, "no free xloop device is available");
+		return test_finish();
 	}
-	if (attach_flag) {
-		tst_detach_device_by_fd(dev_path, dev_fd);
-		attach_flag = 0;
+	if (fill_file("test.img", 1024U * 1024U, 0U) != 0) {
+		tst_res(TBROK, "cannot create backing file: %s", strerror(errno));
+		goto cleanup;
 	}
-	xloopconfig.block_size = *(tc->setvalue);
-	verify_ioctl_xloop(n);
+	(void)snprintf(sysfs_dio, sizeof(sysfs_dio), "/sys/block/xloop%d/xloop/dio", device_number);
+	device_fd = attach_device(device_path, "test.img", 0U);
+	if (device_fd < 0) {
+		tst_res(TBROK, "cannot attach xloop device: %s", strerror(errno));
+		goto cleanup;
+	}
+	attached = 1;
+	if (ioctl(device_fd, XLOOP_SET_DIRECT_IO, 0UL) != 0 && errno == EINVAL) {
+		tst_res(TCONF, "XLOOP_SET_DIRECT_IO is unsupported");
+		goto cleanup;
+	}
+	if (find_backing_device("test.img", backing_device, sizeof(backing_device)) != 0) {
+		tst_res(TCONF, "cannot locate the backing filesystem block device");
+		goto cleanup;
+	}
+	backing_fd = open(backing_device, O_RDONLY | O_CLOEXEC);
+	if (backing_fd < 0 || ioctl(backing_fd, BLKSSZGET, &logical_block_size) != 0) {
+		tst_res(TCONF, "cannot determine backing-device logical block size");
+		goto cleanup;
+	}
+	(void)close(backing_fd);
+	backing_fd = -1;
+	if (logical_block_size > 512 &&
+		ioctl(device_fd, XLOOP_SET_BLOCK_SIZE, (unsigned long)logical_block_size) != 0) {
+		tst_res(TCONF, "cannot set xloop logical block size: %s", strerror(errno));
+		goto cleanup;
+	}
+	memset(&status, 0, sizeof(status));
+	if (retry_ioctl(device_fd, XLOOP_SET_STATUS, &status) != 0 ||
+		ioctl(device_fd, XLOOP_SET_DIRECT_IO, 1UL) != 0) {
+		tst_res(TFAIL, "cannot enable direct I/O at offset zero: %s", strerror(errno));
+		goto cleanup;
+	}
+	(void)check_direct_io(device_fd, sysfs_dio, 1);
+	if (ioctl(device_fd, XLOOP_SET_DIRECT_IO, 0UL) != 0) {
+		tst_res(TFAIL, "cannot disable direct I/O: %s", strerror(errno));
+		goto cleanup;
+	}
+	(void)check_direct_io(device_fd, sysfs_dio, 0);
+	status.xlo_offset = (uint64_t)logical_block_size;
+	if (retry_ioctl(device_fd, XLOOP_SET_STATUS, &status) != 0 ||
+		ioctl(device_fd, XLOOP_SET_DIRECT_IO, 1UL) != 0) {
+		tst_res(TFAIL, "direct I/O failed at aligned offset: %s", strerror(errno));
+		goto cleanup;
+	}
+	(void)check_direct_io(device_fd, sysfs_dio, 1);
+	(void)ioctl(device_fd, XLOOP_SET_DIRECT_IO, 0UL);
+	status.xlo_offset = (uint64_t)(logical_block_size / 2);
+	if (retry_ioctl(device_fd, XLOOP_SET_STATUS, &status) != 0) {
+		tst_res(TFAIL, "cannot set unaligned offset: %s", strerror(errno));
+		goto cleanup;
+	}
+	if (ioctl(device_fd, XLOOP_SET_DIRECT_IO, 1UL) == 0) {
+		tst_res(TPASS, "direct-I/O ioctl accepts the unaligned offset");
+		(void)ioctl(device_fd, XLOOP_SET_DIRECT_IO, 0UL);
+	} else if (errno == EINVAL) {
+		tst_res(TPASS, "direct-I/O ioctl rejects the unaligned offset with EINVAL");
+	} else {
+		tst_res(TFAIL, "direct-I/O ioctl failed unexpectedly: %s", strerror(errno));
+	}
+cleanup:
+	if (attached != 0)
+		(void)detach_by_fd(device_path, device_fd);
+	if (backing_fd >= 0)
+		(void)close(backing_fd);
+	if (device_fd >= 0)
+		(void)close(device_fd);
+	return test_finish();
 }
-
-static void setup(void)
-{
-	unsigned int pg_size;
-	int ret;
-
-	dev_num = tst_find_free_xloopdev(dev_path, sizeof(dev_path));
-	if (dev_num < 0)
-		tst_brk(TBROK, "Failed to find free xloop device");
-
-	tst_fill_file("test.img", 0, 1024, 1024);
-	half_value = 256;
-	pg_size = getpagesize();
-	invalid_value = pg_size * 2 ;
-	unalign_value = pg_size - 1;
-
-	dev_fd = SAFE_OPEN(dev_path, O_RDWR);
-
-	if (ioctl(dev_fd, XLOOP_SET_BLOCK_SIZE, 512) && errno == EINVAL)
-		tst_brk(TCONF, "XLOOP_SET_BLOCK_SIZE is not supported");
-
-	file_fd = SAFE_OPEN("test.img", O_RDWR);
-	xloopconfig.fd = -1;
-	ret = ioctl(dev_fd, XLOOP_CONFIGURE, &xloopconfig);
-	if (ret && errno != EBADF) {
-		tst_res(TINFO | TERRNO, "XLOOP_CONFIGURE is not supported");
-		xloop_configure_sup = 0;
-		return;
-	}
-	xloopconfig.fd = file_fd;
-}
-
-static void cleanup(void)
-{
-	if (dev_fd > 0)
-		SAFE_CLOSE(dev_fd);
-	if (file_fd > 0)
-		SAFE_CLOSE(file_fd);
-	if (attach_flag)
-		tst_detach_device(dev_path);
-}
-
-static struct tst_test test = {
-	.setup = setup,
-	.cleanup = cleanup,
-	.test = run,
-	.tcnt = ARRAY_SIZE(tcases),
-	.needs_root = 1,
-	.needs_tmpdir = 1,
-	.needs_drivers = (const char *const []) {
-		"xloop",
-		"xloop_file_fmt_raw",
-		NULL
-	}
-};

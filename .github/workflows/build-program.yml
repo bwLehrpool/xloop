@@ -28,7 +28,6 @@ jobs:
           sudo apt-get install -y -qq make \
                                       clang-format \
                                       linux-headers-generic \
-                                      libcap-dev
       - name: Checkout xloop repository
         uses: actions/checkout@v4
       - name: Fetch xloop repository tags

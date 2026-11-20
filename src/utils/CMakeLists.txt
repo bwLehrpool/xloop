@@ -4,18 +4,13 @@ cmake_minimum_required(VERSION 3.10)
 project(xloop-utils
         LANGUAGES C)
 
-# include global headers
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+# include project and xloop UAPI headers
 include_directories(${PROJECT_INCLUDE_GEN_DIR})
-
-# configure configuration config.h and add it to each source file
-add_compile_options(-include ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../kernel)
 
 # add xloop specific compile options
 add_definitions(-DCONFIG_BLK_DEV_XLOOP_MIN_COUNT=${BLK_DEV_XLOOP_MIN_COUNT} -DXLOOP_MAJOR=${XLOOP_MAJOR})
 
-add_subdirectory(lib)
-add_subdirectory(libsmartcols)
 add_subdirectory(sys-utils)
 
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/bash-completion/xlosetup

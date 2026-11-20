@@ -31,7 +31,6 @@ pacman -S git \
           gcc \
           clang \
           linux-headers \  # or linux-lts-headers
-          libcap \  # required only in Debug build configuration
           dpkg \
           rpm-tools
 ```
@@ -44,7 +43,6 @@ apt-get install git \
                 gcc \
                 clang-format \
                 raspberrypi-kernel-headers \
-                libcap-dev \  # required only in Debug build configuration
                 rpm
 ```
 
@@ -56,7 +54,6 @@ apt-get install git \
                 gcc \
                 clang-format \
                 linux-headers-generic \
-                libcap-dev \  # required only in Debug build configuration
                 rpm
 ```
 
@@ -68,7 +65,6 @@ apt-get install git \
                 gcc \
                 clang-format \
                 linux-headers-generic \
-                libcap-dev \  # required only in Debug build configuration
                 rpm
 ```
 
@@ -81,7 +77,6 @@ yum install git \
             clang-tools-extra \
             kernel-devel \
             elfutils-libelf-devel \
-            libcap-devel \  # required only in Debug build configuration
             rpm-build
 ```
 
@@ -94,7 +89,6 @@ yum install git \
             clang-tools-extra \
             kernel-devel \
             elfutils-libelf-devel \
-            libcap-devel \  # required only in Debug build configuration
             rpm-build
 ```
 
@@ -191,12 +185,7 @@ More information regarding the Linux kernel's dynamic debug feature can be found
 
 
 ### User space utility
-Built-in debug messages from the user space utility **xlosetup** can be enabled by setting the following environment variables before any execution of xlosetup:
-
-```shell
-export XLOOPDEV_DEBUG=all
-export LIBSMARTCOLS_DEBUG=all
-```
+The standalone **xlosetup** utility does not provide the util-linux debug environment variables.
 
 
 ## Development notes

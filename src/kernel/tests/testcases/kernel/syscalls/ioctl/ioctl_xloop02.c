@@ -1,165 +1,128 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
-/*
- * Copyright (c) 2020 FUJITSU LIMITED. All rights reserved.
- * Author: Yang Xu <xuyang2018.jy@cn.jujitsu.com>
- *
- * This is a basic ioctl test about xloopdevice.
- *
- * It is designed to test XLO_FLAGS_READ_ONLY (similar as xlosetup -r)
- * and XLOOP_CHANGE_FD.
- *
- * For XLOOP_CHANGE_FD, this operation is possible only if the xloop device
- * is read-only and the new backing store is the same size and type as the
- * old backing store.
- *
- * If using XLOOP_CONFIGURE ioctl, we can set XLO_FLAGS_READ_ONLY
- * flag even though backing file with write mode.
- */
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+#include "xloop_test.h"
 
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include "lapi/xloop.h"
-#include "tst_test.h"
-
-static int file_fd, file_change_fd, file_fd_invalid;
-static char backing_path[1024], backing_file_path[1024], backing_file_change_path[1024];
-static int attach_flag, dev_fd, xloop_configure_sup = 1;
-static char xloop_ro_path[1024], dev_path[1024];
-static struct xloop_config xloopconfig;
-
-static struct tcase {
-	int mode;
-	int ioctl;
-	char *message;
-} tcases[] = {
-	{O_RDONLY, XLOOP_SET_FD, "Using XLOOP_SET_FD to setup xloopdevice"},
-	{O_RDWR, XLOOP_CONFIGURE, "Using XLOOP_CONFIGURE with read_only flag"},
-};
-
-static void verify_ioctl_xloop(unsigned int n)
+static int change_backing_file(int device_fd, int backing_fd)
 {
-	struct tcase *tc = &tcases[n];
-	struct xloop_info xloopinfoget;
+	return ioctl(device_fd, XLOOP_CHANGE_FD, backing_fd);
+}
 
-	if (tc->ioctl == XLOOP_CONFIGURE && !xloop_configure_sup) {
-		tst_res(TCONF, "XLOOP_CONFIGURE ioctl not supported");
-		return;
+int main(void)
+{
+	char device_path[PATH_MAX];
+	char sysfs_ro[PATH_MAX];
+	char sysfs_backing[PATH_MAX];
+	char expected_path[PATH_MAX];
+	int device_number;
+	int device_fd = -1;
+	int readonly_fd = -1;
+	int same_size_fd = -1;
+	int invalid_size_fd = -1;
+	int config_fd = -1;
+	int attached = 0;
+	struct xloop_config probe;
+	int configure_supported;
+	if (test_begin() != 0)
+		return test_finish();
+	device_number = find_free_xloopdev(device_path, sizeof(device_path));
+	if (device_number < 0) {
+		tst_res(TCONF, "no free xloop device is available");
+		return test_finish();
 	}
-
-	tst_res(TINFO, "%s", tc->message);
-	file_fd = SAFE_OPEN("test.img", tc->mode);
-
-	if (tc->ioctl == XLOOP_SET_FD) {
-		SAFE_IOCTL(dev_fd, XLOOP_SET_FD, file_fd);
-	} else {
-		xloopconfig.fd = file_fd;
-		SAFE_IOCTL(dev_fd, XLOOP_CONFIGURE, &xloopconfig);
+	if (fill_file("test.img", 10U * 1024U, 0U) != 0 ||
+		fill_file("same.img", 10U * 1024U, 1U) != 0 ||
+		fill_file("large.img", 20U * 1024U, 2U) != 0) {
+		tst_res(TBROK, "cannot create backing files: %s", strerror(errno));
+		goto cleanup;
 	}
-	attach_flag = 1;
-
-	TST_ASSERT_INT(xloop_ro_path, 1);
-	TST_ASSERT_STR(backing_path, backing_file_path);
-
-	memset(&xloopinfoget, 0, sizeof(xloopinfoget));
-
-	SAFE_IOCTL(dev_fd, XLOOP_GET_STATUS, &xloopinfoget);
-
-	if (xloopinfoget.xlo_flags & ~XLO_FLAGS_READ_ONLY)
-		tst_res(TFAIL, "xlo_flags has unexpected %d flag", xloopinfoget.xlo_flags);
-	else
-		tst_res(TPASS, "xlo_flags only has default XLO_FLAGS_READ_ONLY flag");
-
-	TEST(write(dev_fd, "xx", 2));
-	if (TST_RET != -1)
-		tst_res(TFAIL, "write succeed unexpectedly");
-	else
-		tst_res(TPASS | TTERRNO, "Can not write data in RO mode");
-
-	TEST(ioctl(dev_fd, XLOOP_CHANGE_FD, file_change_fd));
-	if (TST_RET) {
-		tst_res(TFAIL | TTERRNO, "XLOOP_CHANGE_FD failed");
-	} else {
-		tst_res(TPASS, "XLOOP_CHANGE_FD succeeded");
-		TST_ASSERT_INT(xloop_ro_path, 1);
-		TST_ASSERT_STR(backing_path, backing_file_change_path);
+	device_fd = open_device(device_path);
+	readonly_fd = open("test.img", O_RDONLY | O_CLOEXEC);
+	same_size_fd = open("same.img", O_RDWR | O_CLOEXEC);
+	invalid_size_fd = open("large.img", O_RDWR | O_CLOEXEC);
+	if (device_fd < 0 || readonly_fd < 0 || same_size_fd < 0 || invalid_size_fd < 0) {
+		tst_res(TBROK, "cannot open test files or device: %s", strerror(errno));
+		goto cleanup;
 	}
-
-	TEST(ioctl(dev_fd, XLOOP_CHANGE_FD, file_fd_invalid));
-	if (TST_RET) {
-		if (TST_ERR == EINVAL)
-			tst_res(TPASS | TTERRNO, "XLOOP_CHANGE_FD failed as expected");
+	if (ioctl(device_fd, XLOOP_SET_FD, readonly_fd) != 0) {
+		tst_res(TBROK, "XLOOP_SET_FD failed: %s", strerror(errno));
+		goto cleanup;
+	}
+	attached = 1;
+	(void)snprintf(sysfs_ro, sizeof(sysfs_ro), "/sys/block/xloop%d/ro", device_number);
+	(void)snprintf(sysfs_backing, sizeof(sysfs_backing), "/sys/block/xloop%d/xloop/backing_file", device_number);
+	if (append_path(expected_path, sizeof(expected_path), xloop_test_tmpdir,
+		"/test.img") != 0) {
+		tst_res(TBROK, "cannot construct backing path: %s", strerror(errno));
+		goto cleanup;
+	}
+	(void)assert_int(sysfs_ro, 1);
+	(void)assert_str(sysfs_backing, expected_path);
+	{
+		struct xloop_info info;
+		memset(&info, 0, sizeof(info));
+		if (retry_ioctl(device_fd, XLOOP_GET_STATUS, &info) == 0 &&
+			(info.xlo_flags & XLO_FLAGS_READ_ONLY) != 0)
+			tst_res(TPASS, "read-only flag is reported");
 		else
-			tst_res(TFAIL | TTERRNO, "XLOOP_CHANGE_FD failed expected EINVAL got");
+			tst_res(TFAIL, "read-only flag is missing");
+	}
+	if (write(device_fd, "x", 1U) < 0 && errno == EROFS)
+		tst_res(TPASS, "writes are rejected on the read-only xloop device");
+	else
+		tst_res(TFAIL, "write unexpectedly succeeded on read-only xloop device");
+	if (change_backing_file(device_fd, same_size_fd) == 0) {
+		tst_res(TPASS, "XLOOP_CHANGE_FD accepts an equal-size backing file");
+		if (append_path(expected_path, sizeof(expected_path), xloop_test_tmpdir,
+			"/same.img") != 0) {
+			tst_res(TBROK, "cannot construct backing path: %s", strerror(errno));
+			goto cleanup;
+		}
+		(void)assert_str(sysfs_backing, expected_path);
 	} else {
-		tst_res(TFAIL, "XLOOP_CHANGE_FD succeeded");
+		tst_res(TFAIL, "XLOOP_CHANGE_FD rejected an equal-size backing file: %s", strerror(errno));
 	}
-
-	SAFE_CLOSE(file_fd);
-	tst_detach_device_by_fd(dev_path, dev_fd);
-	attach_flag = 0;
-}
-
-static void setup(void)
-{
-	int dev_num;
-	int ret;
-
-	char *tmpdir = tst_get_tmpdir();
-	dev_num = tst_find_free_xloopdev(dev_path, sizeof(dev_path));
-	if (dev_num < 0)
-		tst_brk(TBROK, "Failed to find free xloop device");
-
-	tst_fill_file("test.img", 0, 1024, 10);
-	tst_fill_file("test1.img", 0, 1024, 10);
-	tst_fill_file("test2.img", 0, 2048, 20);
-
-	sprintf(backing_path, "/sys/block/xloop%d/xloop/backing_file", dev_num);
-	sprintf(backing_file_path, "%s/test.img", tmpdir);
-	sprintf(backing_file_change_path, "%s/test1.img", tmpdir);
-	sprintf(xloop_ro_path, "/sys/block/xloop%d/ro", dev_num);
-
-	free(tmpdir);
-
-	file_change_fd = SAFE_OPEN("test1.img", O_RDWR);
-	file_fd_invalid = SAFE_OPEN("test2.img", O_RDWR);
-
-	dev_fd = SAFE_OPEN(dev_path, O_RDWR);
-	xloopconfig.fd = -1;
-	ret = ioctl(dev_fd, XLOOP_CONFIGURE, &xloopconfig);
-
-	if (ret && errno != EBADF) {
-		tst_res(TINFO | TERRNO, "XLOOP_CONFIGURE is not supported");
-		xloop_configure_sup = 0;
+	if (change_backing_file(device_fd, invalid_size_fd) != 0 && errno == EINVAL)
+		tst_res(TPASS, "XLOOP_CHANGE_FD rejects a different-size backing file");
+	else
+		tst_res(TFAIL, "XLOOP_CHANGE_FD did not reject a different-size backing file");
+	(void)detach_by_fd(device_path, device_fd);
+	attached = 0;
+	memset(&probe, 0, sizeof(probe));
+	probe.fd = UINT32_MAX;
+	configure_supported = ioctl(device_fd, XLOOP_CONFIGURE, &probe) != 0 && errno == EBADF;
+	if (configure_supported != 0) {
+		memset(&probe, 0, sizeof(probe));
+		config_fd = open("test.img", O_RDWR | O_CLOEXEC);
+		probe.fd = config_fd < 0 ? UINT32_MAX : (uint32_t)config_fd;
+		probe.info.xlo_flags = XLO_FLAGS_READ_ONLY;
+		if (config_fd < 0 || ioctl(device_fd, XLOOP_CONFIGURE, &probe) != 0) {
+			tst_res(TFAIL, "XLOOP_CONFIGURE read-only setup failed: %s", strerror(errno));
+		} else {
+			attached = 1;
+			if (append_path(expected_path, sizeof(expected_path), xloop_test_tmpdir,
+				"/test.img") != 0) {
+				tst_res(TBROK, "cannot construct backing path: %s", strerror(errno));
+				goto cleanup;
+			}
+			(void)assert_int(sysfs_ro, 1);
+			(void)assert_str(sysfs_backing, expected_path);
+			(void)detach_by_fd(device_path, device_fd);
+			attached = 0;
+		}
+	} else {
+		tst_res(TCONF, "XLOOP_CONFIGURE is unsupported");
 	}
-	xloopconfig.info.xlo_flags = XLO_FLAGS_READ_ONLY;
+cleanup:
+	if (attached != 0 && device_fd >= 0)
+		(void)detach_by_fd(device_path, device_fd);
+	if (device_fd >= 0)
+		(void)close(device_fd);
+	if (readonly_fd >= 0)
+		(void)close(readonly_fd);
+	if (same_size_fd >= 0)
+		(void)close(same_size_fd);
+	if (invalid_size_fd >= 0)
+		(void)close(invalid_size_fd);
+	if (config_fd >= 0)
+		(void)close(config_fd);
+	return test_finish();
 }
-
-static void cleanup(void)
-{
-	if (dev_fd > 0)
-		SAFE_CLOSE(dev_fd);
-	if (file_fd > 0)
-		SAFE_CLOSE(file_fd);
-	if (file_change_fd > 0)
-		SAFE_CLOSE(file_change_fd);
-	if (file_fd_invalid > 0)
-		SAFE_CLOSE(file_fd_invalid);
-	if (attach_flag)
-		tst_detach_device(dev_path);
-}
-
-static struct tst_test test = {
-	.setup = setup,
-	.cleanup = cleanup,
-	.tcnt = ARRAY_SIZE(tcases),
-	.test = verify_ioctl_xloop,
-	.needs_root = 1,
-	.needs_tmpdir = 1,
-	.needs_drivers = (const char *const []) {
-		"xloop",
-		"xloop_file_fmt_raw",
-		NULL
-	}
-};

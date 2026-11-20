@@ -6,7 +6,7 @@ project(xloop-utils-sys-utils
 
 # add xlosetup executable
 add_executable(xlosetup ${CMAKE_CURRENT_SOURCE_DIR}/xlosetup.c)
-target_link_libraries(xlosetup libcommon libsmartcols xloop-version)
+target_link_libraries(xlosetup xloop-version)
 install(TARGETS xlosetup DESTINATION bin
         COMPONENT main)
 

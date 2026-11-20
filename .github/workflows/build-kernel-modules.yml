@@ -66,7 +66,6 @@ jobs:
           sudo apt-get install -y -qq make \
                                       clang-format \
                                       libelf-dev \
-                                      libcap-dev \
                                       rpm2cpio \
                                       rpm
       - name: Checkout xloop repository
